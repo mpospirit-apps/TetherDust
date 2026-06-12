@@ -1,0 +1,123 @@
+{% extends "console/base.html" %}
+{% block title %}{% if instance %}Edit{% else %}Add{% endif %} MCP Server{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if instance %}Edit {{ instance.name }}{% else %}Add MCP Server{% endif %}</h1>
+        <p>Register a remote HTTP or local subprocess MCP server so roles can opt users into its tools</p>
+    </div>
+    <div class="flex-gap">
+        <button type="button" class="btn btn-ghost" data-help-open="help-mcp-server-form">
+            <i class="fa-solid fa-circle-question"></i> Help
+        </button>
+        <a href="{% if instance %}{% url 'console:mcp_server_detail' instance.pk %}{% else %}{% url 'console:mcp_server_list' %}{% endif %}" class="btn btn-ghost">Back</a>
+    </div>
+</div>
+
+<form method="post" id="mcp-server-form">
+    {% csrf_token %}
+
+    <div class="card">
+        <h3 style="margin:0 0 var(--md)">Server Settings</h3>
+        {% include "console/includes/field.html" with field=form.name %}
+        {% include "console/includes/field.html" with field=form.description %}
+        {% include "console/includes/field.html" with field=form.is_active %}
+    </div>
+
+    <div class="card" style="margin-top:var(--md)">
+        <h3 style="margin:0 0 var(--md)">Server Type</h3>
+        <div class="flex-gap" style="margin-bottom:var(--md)">
+            <label style="cursor:pointer;display:flex;align-items:center;gap:8px">
+                <input type="radio" name="_server_type" value="remote" id="type-remote"> Remote HTTP
+            </label>
+            <label style="cursor:pointer;display:flex;align-items:center;gap:8px">
+                <input type="radio" name="_server_type" value="local" id="type-local"> Local Subprocess
+            </label>
+        </div>
+
+        <div id="section-remote">
+            <p class="text-sec" style="margin-bottom:var(--md)">Point to a remote MCP endpoint (streamable-http or SSE).</p>
+            {% include "console/includes/field.html" with field=form.url %}
+            {% include "console/includes/field.html" with field=form.transport %}
+            <p class="text-sec" style="margin-bottom:var(--md);margin-top:var(--md)">Optional authentication for remote servers.</p>
+            {% include "console/includes/field.html" with field=form.auth_token %}
+            {% include "console/includes/field.html" with field=form.headers %}
+        </div>
+
+        <div id="section-local" style="display:none">
+            <p class="text-sec" style="margin-bottom:var(--md)">Run an MCP server as a subprocess inside the local-mcp container. Requires Node.js (npx) or Python (uvx).</p>
+            {% include "console/includes/field.html" with field=form.command %}
+            {% include "console/includes/field.html" with field=form.args %}
+            {% include "console/includes/field.html" with field=form.command_env %}
+        </div>
+    </div>
+
+    <div class="form-actions" style="margin-top:var(--md)">
+        <button type="submit" class="btn btn-primary">{% if instance %}Save Changes{% else %}Create MCP Server{% endif %}</button>
+        <a href="{% if instance %}{% url 'console:mcp_server_detail' instance.pk %}{% else %}{% url 'console:mcp_server_list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<div class="help-modal" id="help-mcp-server-form">
+    <div class="help-modal__panel">
+        <div class="help-modal__header">
+            <h2><i class="fa-solid fa-server"></i> Adding an MCP Server</h2>
+            <button class="btn btn-ghost btn-sm" data-help-close><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="help-modal__body">
+            <h3>Remote HTTP</h3>
+            <p>Register an MCP endpoint reachable over HTTP. Provide the full URL, transport type, and optional auth.</p>
+            <ul>
+                <li><strong>URL:</strong> e.g. <code>https://mcp.example.com/mcp</code></li>
+                <li><strong>Transport:</strong> <code>streamable-http</code> (current standard) or <code>sse</code> (legacy)</li>
+                <li><strong>Bearer token:</strong> sent as <code>Authorization: Bearer &lt;token&gt;</code>. Encrypted at rest.</li>
+                <li><strong>Extra headers:</strong> JSON object, e.g. <code>{"X-API-Key": "abc"}</code></li>
+            </ul>
+
+            <h3>Local Subprocess</h3>
+            <p>Run an MCP server as a child process inside TetherDust's <code>local-mcp</code> container. Ideal for packages like <code>@notionhq/notion-mcp-server</code> that require local auth tokens rather than OAuth.</p>
+            <ul>
+                <li><strong>Command:</strong> the executable, e.g. <code>npx</code> or <code>uvx</code></li>
+                <li><strong>Args:</strong> JSON array, e.g. <code>["-y", "@notionhq/notion-mcp-server"]</code></li>
+                <li><strong>Env vars:</strong> JSON object of environment variables passed to the subprocess. Encrypted at rest. e.g. <code>{"NOTION_API_KEY": "ntn_..."}</code></li>
+            </ul>
+
+            <h3>Who can use it</h3>
+            <p>Custom MCP servers are <strong>opt-in per role</strong>. After saving, go to Roles → edit a role → check this server under "MCP Servers" to grant access.</p>
+
+            <div class="help-modal__tip">
+                <strong>Tip:</strong> Use the Test Connection button on the detail page to verify the server is reachable before assigning it to a role.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const radioRemote = document.getElementById('type-remote');
+    const radioLocal = document.getElementById('type-local');
+    const sectionRemote = document.getElementById('section-remote');
+    const sectionLocal = document.getElementById('section-local');
+
+    function updateSections() {
+        const isLocal = radioLocal.checked;
+        sectionRemote.style.display = isLocal ? 'none' : '';
+        sectionLocal.style.display = isLocal ? '' : 'none';
+    }
+
+    radioRemote.addEventListener('change', updateSections);
+    radioLocal.addEventListener('change', updateSections);
+
+    // Detect initial state from existing instance values
+    const commandField = document.querySelector('[name="command"]');
+    const hasCommand = commandField && commandField.value.trim() !== '';
+    if (hasCommand) {
+        radioLocal.checked = true;
+    } else {
+        radioRemote.checked = true;
+    }
+    updateSections();
+})();
+</script>
+{% endblock %}

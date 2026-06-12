@@ -1,0 +1,306 @@
+{% extends "console/base.html" %}
+{% block title %}Create Dashboard with AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 id="page-title">Create Dashboard with AI</h1>
+        <p>Generate a data visualization dashboard using an AI agent</p>
+    </div>
+    <a href="{% url 'console:dashboard_list' %}" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<!-- AI Generation form -->
+<div id="gen-form-step">
+    <form id="gen-form">
+        {% csrf_token %}
+
+        <div class="card" style="margin-bottom:var(--md)">
+            <h3 class="doc-section__title">Requirements</h3>
+            <div class="doc-req-row">
+                <div class="doc-form-group">
+                    <label>Dashboard Name</label>
+                    <input type="text" name="dashboard_name" class="form-control" placeholder="e.g. Sales Overview Q1" required>
+                </div>
+                <div class="doc-form-group">
+                    <label>Agent</label>
+                    <select name="agent" class="form-control" required>
+                        {% for agent in agents %}
+                        <option value="{{ agent.pk }}">{{ agent.name }}</option>
+                        {% empty %}
+                        <option value="" disabled>No agents configured</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:var(--md)">
+            <h3 class="doc-section__title">Prompting</h3>
+            <div class="doc-prompt-row">
+                <div class="doc-prompt-row__config">
+                    <div class="doc-form-group">
+                        <label>Dashboard Type</label>
+                        <select name="dashboard_type" class="form-control" required>
+                            <option value="overview">Overview / KPIs</option>
+                            <option value="time_series">Time Series Analysis</option>
+                            <option value="comparison">Comparison / Breakdown</option>
+                        </select>
+                    </div>
+
+                    <div class="doc-form-group">
+                        <label>Sources</label>
+                        <div class="doc-sources-section">
+                            <h5>Databases</h5>
+                            <div class="doc-source-checks">
+                                {% for db in databases %}
+                                <label><input type="checkbox" name="source_db" value="{{ db.pk }}"> {{ db.name }} ({{ db.engine }})</label>
+                                {% empty %}
+                                <span class="text-sec" style="font-size:var(--text-xs)">No active databases</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="doc-sources-section">
+                            <h5>Documentation</h5>
+                            <div class="doc-source-checks">
+                                {% for doc in doc_sources %}
+                                <label><input type="checkbox" name="source_doc" value="{{ doc.pk }}"> {{ doc.folder_name }}</label>
+                                {% empty %}
+                                <span class="text-sec" style="font-size:var(--text-xs)">No active doc sources</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="doc-sources-section">
+                            <h5>Codebases</h5>
+                            <div class="doc-source-checks">
+                                {% for cb in codebases %}
+                                <label><input type="checkbox" name="source_codebase" value="{{ cb.pk }}"> {{ cb.name }}</label>
+                                {% empty %}
+                                <span class="text-sec" style="font-size:var(--text-xs)">No active codebases</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="doc-prompt-row__editor">
+                    <label>Final Prompt</label>
+                    <span class="text-sec" style="font-size:var(--text-xs);display:block;margin-bottom:var(--sm)">Edit freely before generating.</span>
+                    <textarea id="prompt-editor" class="form-control" style="font-size:var(--text-xs)"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="btn-generate">Generate <i class="fa-solid fa-paper-plane"></i></button>
+            <a href="{% url 'console:dashboard_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Loading -->
+<div id="gen-loading-step" style="display:none">
+    <div class="card">
+        <div class="doc-loading-state">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Generating dashboard&hellip;</p>
+            <p class="doc-loading-elapsed" id="loading-elapsed"></p>
+            <p class="text-sec" style="font-size:var(--text-xs);margin-top:var(--sm);transition:opacity 0.2s ease;" id="loading-status">Agent is working&hellip;</p>
+        </div>
+    </div>
+</div>
+
+<!-- Result -->
+<div id="gen-result-step" style="display:none">
+    <div class="card">
+        <div id="result-content"></div>
+        <div class="doc-step-actions" style="margin-top:var(--lg)">
+            <a href="{% url 'console:dashboard_list' %}" class="btn btn-primary" id="result-back-btn">Back to Dashboards</a>
+            <a href="#" class="btn btn-ghost" id="result-view-btn" style="display:none">View Dashboard</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    var formStep = document.getElementById('gen-form-step');
+    var loadingStep = document.getElementById('gen-loading-step');
+    var resultStep = document.getElementById('gen-result-step');
+    var form = document.getElementById('gen-form');
+
+    function showStep(id){
+        formStep.style.display = id === 'gen-form-step' ? '' : 'none';
+        loadingStep.style.display = id === 'gen-loading-step' ? '' : 'none';
+        resultStep.style.display = id === 'gen-result-step' ? '' : 'none';
+
+        var title = document.getElementById('page-title');
+        if(id === 'gen-loading-step') title.textContent = 'Generating Dashboard\u2026';
+        else if(id === 'gen-result-step') title.textContent = 'Generation Complete';
+        else title.textContent = 'Create Dashboard with AI';
+    }
+
+    // Prompt templates
+    var promptTemplates = {
+        'overview': 'Create a dashboard showing key metrics and KPIs for the selected databases. Include charts for:\n- Summary counts and totals\n- Status distributions (pie or bar charts)\n- Recent activity trends (line or area charts)\n\nEach chart should tell a clear data story.',
+        'time_series': 'Create a dashboard with charts tracking trends and changes over time. Focus on:\n- Time-based aggregations (daily, weekly, monthly)\n- Growth or decline patterns\n- Comparisons across time periods\n\nUse line and area charts where appropriate.',
+        'comparison': 'Create a dashboard comparing metrics across categories or dimensions. Include:\n- Side-by-side comparisons (grouped bar charts)\n- Distribution breakdowns (pie or stacked bar charts)\n- Ranking visualizations\n\nFocus on making differences and patterns visually clear.'
+    };
+    var promptEditor = document.getElementById('prompt-editor');
+    var promptEdited = false;
+
+    function buildPrompt(){
+        var dashType = form.querySelector('[name="dashboard_type"]').value;
+        var prompt = promptTemplates[dashType] || promptTemplates['overview'];
+        var dbs = [];
+        form.querySelectorAll('[name="source_db"]:checked').forEach(function(cb){
+            dbs.push(cb.parentElement.textContent.trim());
+        });
+        var docs = [];
+        form.querySelectorAll('[name="source_doc"]:checked').forEach(function(cb){
+            docs.push(cb.parentElement.textContent.trim());
+        });
+        var codebases = [];
+        form.querySelectorAll('[name="source_codebase"]:checked').forEach(function(cb){
+            codebases.push(cb.parentElement.textContent.trim());
+        });
+        if(dbs.length || docs.length || codebases.length){
+            prompt += '\n\n---\n\nSelected sources:';
+            if(dbs.length) prompt += '\nDatabases: ' + dbs.join(', ');
+            if(docs.length) prompt += '\nDocumentation: ' + docs.join(', ');
+            if(codebases.length) prompt += '\nCodebases: ' + codebases.join(', ');
+        }
+        return prompt;
+    }
+
+    function refreshPrompt(){
+        if(!promptEdited) promptEditor.value = buildPrompt();
+    }
+    promptEditor.addEventListener('input', function(){ promptEdited = true; });
+    form.querySelector('[name="dashboard_type"]').addEventListener('change', function(){ promptEdited = false; refreshPrompt(); });
+    form.querySelectorAll('[name="source_db"], [name="source_doc"], [name="source_codebase"]').forEach(function(cb){
+        cb.addEventListener('change', refreshPrompt);
+    });
+    setTimeout(refreshPrompt, 0);
+
+    // Timer
+    var timer = { interval: null, startTime: 0 };
+    function startTimer(){
+        timer.startTime = Date.now();
+        var el = document.getElementById('loading-elapsed');
+        el.textContent = '';
+        timer.interval = setInterval(function(){
+            var secs = Math.floor((Date.now() - timer.startTime) / 1000);
+            var m = Math.floor(secs / 60);
+            var s = secs % 60;
+            el.textContent = (m > 0 ? m + 'm ' : '') + s + 's elapsed';
+        }, 1000);
+    }
+    function stopTimer(){ if(timer.interval) clearInterval(timer.interval); }
+
+    function esc(s){ var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // Polling
+    var pollTimer = null;
+
+    function showResult(data){
+        stopTimer();
+        if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+        showStep('gen-result-step');
+        var el = document.getElementById('result-content');
+        var elapsed = Math.floor((Date.now() - timer.startTime) / 1000);
+        var timeStr = elapsed >= 60 ? Math.floor(elapsed/60) + 'm ' + (elapsed%60) + 's' : elapsed + 's';
+
+        if(data.status === 'failed'){
+            el.innerHTML = '<div style="text-align:center">' +
+                '<i class="fa-solid fa-circle-xmark" style="font-size:2rem;color:var(--danger);margin-bottom:var(--md);display:block"></i>' +
+                '<h3>Generation Failed</h3>' +
+                '<p class="text-sec" style="font-size:var(--text-sm)">' + esc(data.error || 'Unknown error') + '</p>' +
+                '</div>';
+            return;
+        }
+
+        el.innerHTML = '<div style="text-align:center">' +
+            '<i class="fa-solid fa-circle-check" style="font-size:2rem;color:var(--success);margin-bottom:var(--md);display:block"></i>' +
+            '<h3>Dashboard Generated</h3>' +
+            '<p class="text-sec" style="font-size:var(--text-sm)">Created <strong>' + (data.charts_created || 0) + '</strong> chart(s) in dashboard <strong>' + esc(data.dashboard_name || '') + '</strong></p>' +
+            '<p class="text-sec" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--xs)">Completed in ' + timeStr + '</p>' +
+            '</div>';
+
+        if(data.dashboard_id){
+            var viewBtn = document.getElementById('result-view-btn');
+            viewBtn.href = '{% url "console:dashboard_detail" pk=0 %}'.replace('/0/', '/' + data.dashboard_id + '/');
+            viewBtn.style.display = '';
+        }
+    }
+
+    function startPolling(logId){
+        var statusUrl = '{% url "console:dashboard_generate_status" pk=0 %}'.replace('/0/', '/' + logId + '/');
+        pollTimer = setInterval(function(){
+            fetch(statusUrl)
+                .then(function(r){ return r.json(); })
+                .then(function(data){
+                    if(data.status === 'running'){
+                        var statusLine = document.getElementById('loading-status');
+                        var newText = null;
+                        if(data.agent_output) newText = data.agent_output;
+                        else if(data.charts_created && data.charts_created > 0) newText = data.charts_created + ' chart(s) created so far\u2026';
+                        if(newText && statusLine && statusLine.textContent !== newText){
+                            statusLine.style.opacity = '0';
+                            setTimeout(function(t){ return function(){
+                                statusLine.textContent = t;
+                                statusLine.style.opacity = '1';
+                            }; }(newText), 200);
+                        }
+                        return;
+                    }
+                    showResult(data);
+                })
+                .catch(function(){});
+        }, 3000);
+    }
+
+    // Generate
+    document.getElementById('btn-generate').addEventListener('click', function(){
+        var name = form.querySelector('[name="dashboard_name"]').value.trim();
+        var agent = form.querySelector('[name="agent"]').value;
+        if(!name){ alert('Please enter a dashboard name.'); return; }
+        if(!agent){ alert('Please select an AI agent.'); return; }
+
+        showStep('gen-loading-step');
+        startTimer();
+
+        var formData = new FormData(form);
+        formData.set('prompt_override', promptEditor.value);
+
+        fetch('{% url "console:dashboard_generate" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+            if(!data.success){
+                stopTimer();
+                showStep('gen-result-step');
+                document.getElementById('result-content').innerHTML = '<div style="text-align:center">' +
+                    '<i class="fa-solid fa-circle-xmark" style="font-size:2rem;color:var(--danger);margin-bottom:var(--md);display:block"></i>' +
+                    '<h3>Generation Failed</h3>' +
+                    '<p class="text-sec" style="font-size:var(--text-sm)">' + esc(data.error) + '</p></div>';
+                return;
+            }
+            startPolling(data.log_id);
+        })
+        .catch(function(err){
+            stopTimer();
+            showStep('gen-result-step');
+            document.getElementById('result-content').innerHTML = '<div style="text-align:center">' +
+                '<i class="fa-solid fa-circle-xmark" style="font-size:2rem;color:var(--danger);margin-bottom:var(--md);display:block"></i>' +
+                '<h3>Request Failed</h3>' +
+                '<p class="text-sec" style="font-size:var(--text-sm)">' + esc(err.message) + '</p></div>';
+        });
+    });
+})();
+</script>
+{% endblock %}

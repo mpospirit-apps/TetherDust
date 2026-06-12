@@ -1,0 +1,185 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mission Control{% endblock %} — TetherDust</title>
+    <link rel="icon" type="image/png" href="{% static 'images/tetherdust.png' %}">
+
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="{% static 'fontawesome/all.min.css' %}">
+
+    <link rel="stylesheet" href="{% static 'css/tetherdust.css' %}">
+    <script>
+        (function(){var t=localStorage.getItem('td-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+        (function(){var c=['--c-red','--c-pink','--c-cyan','--c-lime','--c-orange'];document.documentElement.style.setProperty('--c-dust','var('+c[Math.floor(Math.random()*c.length)]+')')})();
+    </script>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="aurora-bg" data-agent-status-url="{% url 'portal:agent_status' %}">
+    <!-- Navbar -->
+    <nav class="admin-navbar">
+        <a href="{% url 'console:dashboard' %}" class="brand">
+            <img src="{% static 'images/tetherdust.png' %}" alt="TetherDust" class="brand-icon">
+            <span class="brand-text">Tether<span>Dust</span></span>
+        </a>
+        <div class="nav-right">
+            {% if can_chat %}
+            <a href="{% url 'portal:chat' %}" class="nav-link">Chat</a>
+            {% endif %}
+            {% if can_view_docs %}
+            <a href="{% url 'portal:docs' %}" class="nav-link">Docs</a>
+            {% endif %}
+            {% if can_view_reports %}
+            <a href="{% url 'portal:reports' %}" class="nav-link">Reports</a>
+            {% endif %}
+            {% if can_view_dashboards %}
+            <a href="{% url 'portal:dashboards' %}" class="nav-link">Dashboards</a>
+            {% endif %}
+            {% if can_view_tethers %}
+            <a href="{% url 'portal:tethers' %}" class="nav-link">Tethers</a>
+            {% endif %}
+            <a href="{% url 'console:dashboard' %}" class="nav-link active">Control</a>
+            <div class="user-dropdown" id="user-dropdown">
+                <button class="user-dropdown__trigger" id="user-dropdown-btn" aria-label="User menu">
+                    <i class="fa-solid fa-circle-user"></i>
+                </button>
+                <div class="user-dropdown__menu" id="user-dropdown-menu">
+                    <span class="user-dropdown__username">{{ user.username }}</span>
+                    <div class="user-dropdown__divider"></div>
+                    <div class="user-dropdown__agent" id="agent-status-row">
+                        <span class="agent-status-dot" id="agent-status-dot"></span>
+                        <span class="user-dropdown__agent-name" id="agent-status-name">—</span>
+                    </div>
+                    <div class="user-dropdown__divider"></div>
+                    <button class="user-dropdown__item" id="theme-toggle-btn" aria-label="Toggle dark mode">
+                        <i class="fa-solid fa-moon" id="theme-icon"></i>
+                        <span id="theme-label">Dark mode</span>
+                    </button>
+                    <a href="{% url 'portal:logout' %}" class="user-dropdown__item">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <script type="module" src="{% static 'js/shell/admin.js' %}"></script>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-section">
+            <div class="sidebar-heading">Overview</div>
+            <a href="{% url 'console:quickstart' %}" class="sidebar-link {% if section == 'quickstart' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-rocket"></i></span> Quickstart
+            </a>
+            <a href="{% url 'console:dashboard' %}" class="sidebar-link {% if section == 'dashboard' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-gauge-high"></i></span> Dashboard
+            </a>
+            <a href="{% url 'console:version' %}" class="sidebar-link {% if section == 'version' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-code-compare"></i></span> Version
+                {% if update_available %}<span class="badge-dot" title="Update available"></span>{% endif %}
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-heading">Configuration</div>
+            <a href="{% url 'console:database_list' %}" class="sidebar-link {% if section == 'databases' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-database"></i></span> Databases
+            </a>
+            <a href="{% url 'console:codebase_list' %}" class="sidebar-link {% if section == 'codebases' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-code-branch"></i></span> Codebases
+            </a>
+            <a href="{% url 'console:docsource_list' %}" class="sidebar-link {% if section == 'docsources' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-book"></i></span> Documentation
+            </a>
+            <a href="{% url 'console:mcp_server_list' %}" class="sidebar-link {% if section == 'mcp_servers' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-server"></i></span> MCP Servers
+            </a>
+            <a href="{% url 'console:agent_list' %}" class="sidebar-link {% if section == 'agents' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-robot"></i></span> Agents
+            </a>
+            <a href="{% url 'console:report_list' %}" class="sidebar-link {% if section == 'reports' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-chart-bar"></i></span> Reports
+            </a>
+            <a href="{% url 'console:dashboard_list' %}" class="sidebar-link {% if section == 'dashboards' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-gauge"></i></span> Dashboards
+            </a>
+            <a href="{% url 'console:tether_list' %}" class="sidebar-link {% if section == 'tethers' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-link"></i></span> Tethers
+            </a>
+            <a href="{% url 'console:settings' %}" class="sidebar-link {% if section == 'settings' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-gear"></i></span> Settings
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-heading">Access Control</div>
+            <a href="{% url 'console:role_list' %}" class="sidebar-link {% if section == 'roles' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-shield-halved"></i></span> Roles
+            </a>
+            {% if can_manage_users %}
+            <a href="{% url 'console:user_list' %}" class="sidebar-link {% if section == 'users' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-users"></i></span> Users
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-heading">Monitoring</div>
+            <a href="{% url 'console:report_execution_list' %}" class="sidebar-link {% if section == 'report_runs' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-clock-rotate-left"></i></span> Report Runs
+            </a>
+            <a href="{% url 'console:docgen_log_list' %}" class="sidebar-link {% if section == 'docgen_logs' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-file-circle-check"></i></span> Doc Generation
+            </a>
+            <a href="{% url 'console:chartgen_log_list' %}" class="sidebar-link {% if section == 'chartgen_logs' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-chart-pie"></i></span> Chart Generation
+            </a>
+            <a href="{% url 'console:audit_list' %}" class="sidebar-link {% if section == 'audit' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-list-check"></i></span> Audit Log
+            </a>
+            <a href="{% url 'console:session_list' %}" class="sidebar-link {% if section == 'sessions' %}active{% endif %}">
+                <span class="icon"><i class="fa-solid fa-comments"></i></span> Sessions
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="admin-main">
+        {% if messages %}
+        <div class="flash-messages">
+            {% for message in messages %}
+            <div class="flash flash-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Confirm Modal -->
+    <div class="confirm-modal" id="confirm-modal">
+        <div class="confirm-modal__panel">
+            <div class="confirm-modal__header">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <h2>Confirm Delete</h2>
+            </div>
+            <div class="confirm-modal__body" id="confirm-modal-message"></div>
+            <div class="confirm-modal__actions">
+                <button class="btn btn-ghost" id="confirm-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="confirm-modal-ok" style="background:var(--danger);border-color:var(--danger)">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,45 @@
+{% extends "console/base.html" %}
+{% block title %}Add User{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Add User</h1>
+        <p>Create a new user account and assign a role</p>
+    </div>
+    <a href="{% url 'console:user_list' %}" class="btn btn-ghost">Back</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-split">
+
+        <!-- Left: Account credentials -->
+        <div class="card">
+            <h3 style="margin:0 0 var(--md)">Account</h3>
+            {% include "console/includes/field.html" with field=form.username %}
+            {% include "console/includes/field.html" with field=form.email %}
+            <div class="form-grid">
+                {% include "console/includes/field.html" with field=form.password %}
+                {% include "console/includes/field.html" with field=form.password_confirm %}
+            </div>
+        </div>
+
+        <!-- Right: Permissions & role -->
+        <div class="card">
+            <h3 style="margin:0 0 var(--md)">Permissions</h3>
+            {% include "console/includes/field.html" with field=form.role %}
+            <div class="form-grid" style="margin-top:var(--sm)">
+                {% include "console/includes/field.html" with field=form.is_active %}
+            </div>
+        </div>
+
+    </div>
+
+    <div class="form-actions" style="margin-top:var(--md)">
+        <button type="submit" class="btn btn-primary">Create User</button>
+        <a href="{% url 'console:user_list' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

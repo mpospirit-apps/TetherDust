@@ -1,0 +1,87 @@
+{% extends "console/base.html" %}
+{% load static %}
+{% block title %}{% if instance %}Edit Chart{% else %}Add Chart{% endif %} — {{ dashboard.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if instance %}Edit Chart{% else %}Add Chart{% endif %}</h1>
+        <p>Dashboard: <strong>{{ dashboard.name }}</strong></p>
+    </div>
+    <a href="{% url 'console:dashboard_detail' pk=dashboard.pk %}" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div class="chart-edit-grid">
+    <div class="card">
+        <form method="post" id="chart-form"
+              data-preview-url="{% url 'console:chart_preview' dashboard_pk=dashboard.pk %}"
+              data-dashboard-pk="{{ dashboard.pk }}"
+              data-active-agent="{{ active_agent_name|escapejs }}"
+              {% if instance %}
+              data-instance-pk="{{ instance.pk }}"
+              data-state-url="{% url 'console:chart_state' dashboard_pk=dashboard.pk pk=instance.pk %}"
+              {% endif %}
+        >
+            {% csrf_token %}
+            {% include "console/includes/form_fields.html" with form=form %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{% if instance %}Save Changes{% else %}Add Chart{% endif %}</button>
+                <a href="{% url 'console:dashboard_detail' pk=dashboard.pk %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="chart-edit-sidebar">
+        <div class="chart-preview-card">
+            <div class="chart-preview-card__header">
+                <h4><i class="fa-solid fa-eye"></i> Preview</h4>
+                <div class="chart-preview-card__meta">
+                    <span id="preview-status">Click Run Query</span>
+                    <button type="button" class="btn btn-ghost btn-sm" id="preview-run-btn" style="font-size:var(--text-xs);margin-left:var(--sm)">
+                        <i class="fa-solid fa-play"></i> Run Query
+                    </button>
+                </div>
+            </div>
+            <div class="chart-preview-card__body">
+                <div class="chart-preview-container" id="chart-preview-container">
+                    <div class="chart-preview-empty">Click <strong>Run Query</strong> to preview the chart.</div>
+                </div>
+            </div>
+            <div class="chart-preview-error" id="chart-preview-error"></div>
+        </div>
+
+        {% if instance %}
+        <div class="chart-aichat-card">
+            <div class="chart-aichat-card__header">
+                <h4><i class="fa-solid fa-wand-magic-sparkles"></i> Agent Editor</h4>
+                <span class="chart-preview-card__meta" id="aichat-conn-status">disconnected</span>
+            </div>
+            <div class="chart-aichat-transcript" id="aichat-transcript">
+                <div class="chart-aichat-empty">
+                    <div class="chart-aichat-empty__intro">The agent editor can:</div>
+                    <ul>
+                        <li>Rewrite the <strong>SQL query</strong> (e.g. "sort by total descending", "only last 30 days", "group by category")</li>
+                        <li>Rewrite the <strong>d3 code</strong> to change chart shape, labels, layout, or tooltips</li>
+                        <li>Adjust <strong>colors</strong> using the theme palette (e.g. "use the accent color", "switch to the cyan palette")</li>
+                        <li>Update the chart <strong>title</strong> or <strong>description</strong></li>
+                        <li>Inspect the database schema to suggest better queries</li>
+                    </ul>
+                </div>
+            </div>
+            <form class="chart-aichat-form" id="aichat-form">
+                <input type="text" id="aichat-input" placeholder="Describe a change..." autocomplete="off">
+                <button type="submit" class="btn btn-primary btn-sm" id="aichat-send">Send</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if instance %}
+{{ cached_data|json_script:"chart-cached-data" }}
+{% endif %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script type="module" src="{% static 'js/charts/chart-form.js' %}"></script>
+{% endblock %}

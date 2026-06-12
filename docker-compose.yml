@@ -1,0 +1,341 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mcp:
+    build:
+      context: .
+      dockerfile: docker/mcp/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - MCP_TRANSPORT=streamable-http
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8001
+      - TETHERDUST_DOCUMENTATIONS_DIR=/app/documentations
+      - ADMIN_DATABASE_URL=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - TETHERDUST_ENCRYPTION_KEY=${TETHERDUST_ENCRYPTION_KEY}
+      # Shared secret authenticating filter registration from web/celery.
+      - MCP_FILTER_SECRET=${MCP_FILTER_SECRET}
+    volumes:
+      - ./tetherdust/mcp_server:/app/tetherdust/mcp_server
+      - ./documentations:/app/documentations
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  local-mcp:
+    build:
+      context: .
+      dockerfile: docker/local_mcp/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - TETHERDUST_ENCRYPTION_KEY=${TETHERDUST_ENCRYPTION_KEY}
+      - LOCAL_MCP_PORT=8003
+    healthcheck:
+      test: ["CMD", "/opt/local-mcp/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/healthz')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  codex:
+    build:
+      context: .
+      dockerfile: docker/codex/Dockerfile
+    environment:
+      - MCP_URL=http://mcp:8001/mcp
+      - MCP_BASE_URL=http://mcp:8001
+      - CODEX_API_PORT=8002
+      - CODEX_HOME_DIR=/var/codex-home/.codex
+      - LOG_LEVEL=DEBUG
+      # Shared secret authenticating Django → gateway calls.
+      - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
+      # Sandbox for the agent's shell commands. "danger-full-access" disables it
+      # (escape hatch for hosts without Landlock/seccomp support).
+      - CODEX_SANDBOX_MODE=${CODEX_SANDBOX_MODE:-read-only}
+    volumes:
+      # Persistent "live working copy" of the Codex credential. Codex refreshes
+      # the session token in place here; per-request homes are seeded from and
+      # harvested back to this volume. Never written under /root.
+      - codex-home:/var/codex-home
+    depends_on:
+      mcp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/opt/codex-api/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  # Codex CLI authenticated by an OpenAI API key (per-token billing).
+  # Reuses the codex gateway image; the key is supplied per-request from the
+  # encrypted AgentConfiguration._api_key. No volume: API-key auth needs no
+  # persistent auth.json.
+  #
+  # Runs by default (no profile) so switching the active agent to a codex_api
+  # agent is a seamless DB flip — the container is already up. Idle cost is just
+  # the FastAPI wrapper (~50–80 MB). Deliberately NOT in `web`'s depends_on: an
+  # unhealthy/missing agent must surface as a runtime "service unavailable",
+  # never block web startup.
+  codex-api:
+    build:
+      context: .
+      dockerfile: docker/codex/Dockerfile
+    environment:
+      - MCP_URL=http://mcp:8001/mcp
+      - MCP_BASE_URL=http://mcp:8001
+      - CODEX_API_PORT=8002
+      - CODEX_HOME_DIR=/var/codex-home/.codex
+      - LOG_LEVEL=DEBUG
+      # Shared secret authenticating Django → gateway calls.
+      - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
+      # Sandbox for the agent's shell commands. "danger-full-access" disables it
+      # (escape hatch for hosts without Landlock/seccomp support).
+      - CODEX_SANDBOX_MODE=${CODEX_SANDBOX_MODE:-read-only}
+    depends_on:
+      mcp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/opt/codex-api/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  # Claude Code CLI authenticated by a subscription
+  # OAuth token (Claude Pro/Max). Reuses the same gateway contract as codex; the
+  # token is supplied per request from the encrypted AgentConfiguration._auth_token
+  # (no persistent volume — OAuth auth needs no auth.json on disk).
+  #
+  # Runs by default (no profile) so switching the active agent between Codex and
+  # Claude in the console is a seamless DB flip — the target container is already
+  # up and healthy. Idle cost is just the FastAPI wrapper (~50–80 MB). It is
+  # deliberately NOT in `web`'s depends_on: an unhealthy/missing agent must
+  # surface as a runtime "service unavailable", never block web startup.
+  claude:
+    build:
+      context: .
+      dockerfile: docker/claude/Dockerfile
+    environment:
+      - MCP_URL=http://mcp:8001/mcp
+      - MCP_BASE_URL=http://mcp:8001
+      - CLAUDE_API_PORT=8002
+      - LOG_LEVEL=DEBUG
+      # Shared secret authenticating Django → gateway calls.
+      - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
+    depends_on:
+      mcp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/opt/claude-api/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  # Claude Code CLI authenticated by an Anthropic API
+  # key (per-token billing). Reuses the same Claude gateway image; the key is
+  # supplied per request from the encrypted AgentConfiguration._api_key and
+  # injected as ANTHROPIC_API_KEY for the `claude -p` subprocess. No persistent
+  # volume — API-key auth needs no credential on disk.
+  #
+  # Runs by default (no profile) so switching the active agent to a
+  # claude_code_api agent is a seamless DB flip — the container is already up.
+  # Idle cost is just the FastAPI wrapper (~50–80 MB). Deliberately NOT in
+  # `web`'s depends_on: an unhealthy/missing agent must surface as a runtime
+  # "service unavailable", never block web startup.
+  claude-api:
+    build:
+      context: .
+      dockerfile: docker/claude/Dockerfile
+    environment:
+      - MCP_URL=http://mcp:8001/mcp
+      - MCP_BASE_URL=http://mcp:8001
+      - CLAUDE_API_PORT=8002
+      - LOG_LEVEL=DEBUG
+      # Shared secret authenticating Django → gateway calls.
+      - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
+    depends_on:
+      mcp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/opt/claude-api/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  # Local LLM with Ollama (self-hosted, OpenAI-compatible API). The
+  # OllamaAgent (a Direct API agent) reaches it at http://ollama:11434/v1.
+  # Optional and profile-gated — NOT a web dependency, so leaving the profile off
+  # never blocks startup. Start with `docker compose --profile ollama up -d`, then
+  # pull a tool-call-capable model: `docker compose exec ollama ollama pull llama3.1`.
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    # GPU (Linux + NVIDIA only; ignored on macOS, where Docker has no GPU access
+    # and inference runs CPU-only):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - {driver: nvidia, count: all, capabilities: [gpu]}
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mcp:
+        condition: service_healthy
+      codex:
+        condition: service_healthy
+      local-mcp:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # Mount web app for development (live template/code changes)
+      - ./tetherdust/web:/app/tetherdust/web
+      - ./documentations:/app/documentations:ro
+      - report-results:/app/report_results
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      # Debug mode + allowed hosts are configured in .env (see .env.example).
+      # The :-false fallback keeps the deploy secure if the var is ever unset.
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-false}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+      - TETHERDUST_ENCRYPTION_KEY=${TETHERDUST_ENCRYPTION_KEY}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - CODEX_SERVICE_URL=http://codex:8002
+      # Fallback service URL for the API-key Codex agent (codex-api service).
+      # Used when its AgentConfiguration.service_url is left blank.
+      - CODEX_API_SERVICE_URL=http://codex-api:8002
+      # Fallback service URL for the Claude Code agent (claude service).
+      # Used when its AgentConfiguration.service_url is left blank.
+      - CLAUDE_SERVICE_URL=http://claude:8002
+      # Fallback service URL for the API-key Claude Code agent (claude-api service).
+      # Used when its AgentConfiguration.service_url is left blank.
+      - CLAUDE_API_SERVICE_URL=http://claude-api:8002
+      - MCP_BASE_URL=http://mcp:8001
+      - LOCAL_MCP_BASE_URL=http://local-mcp:8003
+      # Shared secrets: filter registration (→ mcp) and gateway calls (→ codex/claude).
+      - MCP_FILTER_SECRET=${MCP_FILTER_SECRET}
+      - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - TETHERDUST_REPORT_RESULTS_DIR=/app/report_results
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app/tetherdust/web
+    entrypoint: []
+    command: celery -A tetherdust_web worker -l info --concurrency=2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./tetherdust/web:/app/tetherdust/web
+      - report-results:/app/report_results
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - TETHERDUST_ENCRYPTION_KEY=${TETHERDUST_ENCRYPTION_KEY}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - TETHERDUST_REPORT_RESULTS_DIR=/app/report_results
+      # Worker runs agent-driven jobs (reports/charts/docs) + the Codex token sync.
+      - MCP_FILTER_SECRET=${MCP_FILTER_SECRET}
+      - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app/tetherdust/web
+    entrypoint: []
+    command: celery -A tetherdust_web beat -l info --pidfile=
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./tetherdust/web:/app/tetherdust/web
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - TETHERDUST_ENCRYPTION_KEY=${TETHERDUST_ENCRYPTION_KEY}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+
+volumes:
+  postgres-data:
+  codex-home:
+  redis-data:
+  report-results:
+  ollama-models:

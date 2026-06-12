@@ -1,0 +1,91 @@
+{% load humanize %}
+<div class="report-meta">
+    <div class="report-title-row">
+        <h2 class="docs-title">{{ report.name }}</h2>
+        {% if execution.column_names and execution.result_data %}
+        <div class="report-download-btns">
+            <button class="btn btn-ghost btn-sm" onclick="downloadReport(this, '{{ execution.id }}', 'csv')" title="Download CSV">
+                <i class="fa-solid fa-file-csv"></i> CSV
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="downloadReport(this, '{{ execution.id }}', 'excel')" title="Download Excel">
+                <i class="fa-solid fa-file-excel"></i> Excel
+            </button>
+            {% if email_enabled %}
+            <button class="btn btn-ghost btn-sm" onclick="sendReportEmail(this, '{{ execution.id }}')" title="Send to my email">
+                <i class="fa-solid fa-envelope"></i> Email
+            </button>
+            {% else %}
+            <button class="btn btn-ghost btn-sm" disabled title="Email not available — contact your administrator to configure SMTP">
+                <i class="fa-solid fa-envelope"></i> Email
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% if report.description %}
+    <p class="text-sec">{{ report.description }}</p>
+    {% endif %}
+    <div class="report-info">
+        {% if execution.status == "success" %}
+        <span class="badge badge-success">SUCCESS</span>
+        {% elif execution.status == "failed" %}
+        <span class="badge badge-error">FAILED</span>
+        {% else %}
+        <span class="badge badge-muted">RUNNING</span>
+        {% endif %}
+        {% if execution.row_count is not None %}
+        <span class="badge badge-muted">{{ execution.row_count }} rows</span>
+        {% endif %}
+        {% if execution.execution_time_ms is not None %}
+        <span class="badge badge-muted">{{ execution.execution_time_ms }}ms</span>
+        {% endif %}
+        <span class="text-sec text-sm">{{ execution.started_at }}</span>
+        {% if is_preview %}
+        <span class="badge badge-orange">PREVIEW</span>
+        {% endif %}
+        {% if not is_preview and currentReportId is not None %}
+        <button class="btn btn-ghost btn-sm" onclick="showHistory()">
+            <i class="fa-solid fa-clock-rotate-left"></i> History
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+{% if execution.error_message %}
+<div style="margin-top: var(--md);">
+    <pre style="color: var(--danger); background: var(--bg-warm); padding: var(--md); border-radius: 8px; overflow-x: auto;">{{ execution.error_message }}</pre>
+</div>
+{% endif %}
+
+{% if execution.column_names and execution.result_data %}
+{% if execution.row_count > 25 %}
+<div class="report-preview-notice">
+    <i class="fa-solid fa-circle-info"></i>
+    Showing first 25 of {{ execution.row_count }} rows. Download the full report using the CSV or Excel buttons above.
+</div>
+{% endif %}
+<div class="report-table-wrap">
+    <table class="report-table">
+        <thead>
+            <tr>
+                {% for col in execution.column_names %}
+                <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in execution.result_data|slice:":25" %}
+            <tr>
+                {% for val in row %}
+                <td>{% if val is None %}<span class="text-muted">NULL</span>{% else %}{{ val }}{% endif %}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% elif execution.status == "success" %}
+<div class="docs-empty-state" style="margin-top: var(--md);">
+    <p class="text-sec">Query returned no rows.</p>
+</div>
+{% endif %}

@@ -1,0 +1,6 @@
+/* MCP server detail page — server metadata block. */
+
+.server-meta { display: flex; gap: var(--xl); flex-wrap: wrap; }
+.server-meta .meta-item { display: flex; flex-direction: column; gap: 2px; }
+.server-meta .meta-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; }
+.server-meta .meta-value { font-size: var(--text-sm); color: var(--text); }

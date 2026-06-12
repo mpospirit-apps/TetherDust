@@ -1,0 +1,22 @@
+# CI smoke-test overrides.
+#
+# Replaces the Codex agent gateway (Node 22 + an externally-fetched npm CLI,
+# @openai/codex) with a lightweight always-healthy stub. The `web` service only
+# requires codex to be *healthy* at boot — it doesn't call the gateway until a
+# chat request arrives — so a stub satisfies `depends_on` without the heavy,
+# network-dependent build. The first-party images (web, mcp, local-mcp) are
+# still built and booted for real.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait web
+services:
+  codex:
+    image: alpine:3.20
+    build: !reset null
+    command: ["sleep", "infinity"]
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 1s

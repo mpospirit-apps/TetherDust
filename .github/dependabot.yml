@@ -1,0 +1,56 @@
+version: 2
+updates:
+  # ── Python dependencies (pyproject.toml) ──────────────────────────────────
+  - package-ecosystem: pip
+    directory: /tetherdust
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - python
+    commit-message:
+      prefix: "deps"
+    groups:
+      # Bundle all non-major bumps into one PR; majors come individually for review.
+      python-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ── GitHub Actions (workflow files under .github/workflows) ───────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions-all:
+        patterns:
+          - "*"
+
+  # ── Docker base images (all Dockerfiles) ──────────────────────────────────
+  - package-ecosystem: docker
+    directories:
+      - /
+      - /docker/mcp
+      - /docker/local_mcp
+      - /docker/codex
+      - /docker/claude
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: "docker"
+    groups:
+      docker-all:
+        patterns:
+          - "*"

@@ -1,0 +1,81 @@
+{% extends "console/base.html" %}
+{% block title %}Chat Sessions{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Chat Sessions</h1>
+        <p>View all user chat sessions and message counts</p>
+    </div>
+    <div class="flex-gap">
+        <button class="btn btn-ghost" data-help-open="help-sessions">
+            <i class="fa-solid fa-circle-question"></i> Help
+        </button>
+        <a href="{% url 'console:session_list' %}" class="btn btn-ghost btn-sm {% if not show_empty %}active{% endif %}">With messages</a>
+        <a href="{% url 'console:session_list' %}?empty=1" class="btn btn-ghost btn-sm {% if show_empty %}active{% endif %}">All</a>
+    </div>
+</div>
+
+<div class="card">
+    {% if sessions %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>User</th>
+                    <th>Messages</th>
+                    <th>Created</th>
+                    <th>Last Activity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr class="clickable-row" onclick="window.location='{% url 'console:session_detail' s.pk %}'">
+                    <td class="text-sec">#{{ s.id }}</td>
+                    <td class="truncate">{{ s.title|default:"Untitled" }}</td>
+                    <td>{{ s.user.username }}</td>
+                    <td>{{ s.message_count }}</td>
+                    <td class="text-sec text-sm" style="white-space:nowrap">{{ s.created_at|date:"M d, H:i" }}</td>
+                    <td class="text-sec text-sm" style="white-space:nowrap">{{ s.updated_at|date:"M d, H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="icon"><i class="fa-solid fa-comments"></i></div>
+        <h3>No Sessions Yet</h3>
+        <p class="text-sec">Chat sessions will appear here when users start conversations.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="help-modal" id="help-sessions">
+    <div class="help-modal__panel">
+        <div class="help-modal__header">
+            <h2><i class="fa-solid fa-comments"></i> Chat Sessions</h2>
+            <button class="btn btn-ghost btn-sm" data-help-close><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="help-modal__body">
+            <h3>What are Chat Sessions?</h3>
+            <p>A chat session is a single conversation thread between a user and the AI agent. Sessions are created automatically when a user opens the chat interface and sends their first message. Each session preserves the full message history for that conversation.</p>
+
+            <h3>Filtering</h3>
+            <p>By default, only sessions that contain at least one message are shown. Click <strong>All</strong> to include empty sessions — these are sessions that were opened but abandoned before any messages were sent.</p>
+
+            <h3>Viewing a Session</h3>
+            <p>Click any row to open the session detail view. This shows the full conversation transcript, including both user messages and agent responses, along with any tool calls the agent made during the session.</p>
+
+            <h3>Session Retention</h3>
+            <p>Sessions and their messages are stored indefinitely. Deleting a user account will remove their sessions. There is no automatic expiry or cleanup — manage storage at the database level if needed.</p>
+
+            <div class="help-modal__tip">
+                <strong>Tip:</strong> Review sessions for users who report incorrect answers. The full transcript — including tool calls — shows exactly what the agent queried and why it produced a given response.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

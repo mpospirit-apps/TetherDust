@@ -1,0 +1,90 @@
+{% extends "portal/base.html" %}
+{% load static %}
+
+{% block title %}Chat - TetherDust{% endblock %}
+
+{% block content %}
+{% if has_chat_access == False %}
+<div class="chat-layout">
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+            <div class="chat-empty-state">
+                <div class="empty-brand"><img src="{% static 'images/tetherdust.png' %}" alt="TetherDust" class="brand-icon">Tether<span>Dust</span></div>
+                <p>Your role does not have chat access. Contact an administrator if you need it.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="chat-layout"
+     data-doc-sources-url="{% url 'portal:doc_sources_api' %}"
+     data-prompts-url="{% url 'portal:prompts_api' %}"
+     data-sessions-url="{% url 'portal:sessions_list' %}">
+    <!-- History Sidebar -->
+    <aside class="chat-history-panel" id="history-panel">
+        <div class="history-header">
+            <h3>Chat History</h3>
+            <button class="history-new-btn" id="new-chat-btn" title="New chat">
+                <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+        </div>
+        <div class="history-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search chats..." id="history-search-input">
+        </div>
+        <div class="history-list" id="history-list">
+            <!-- Populated dynamically -->
+        </div>
+    </aside>
+
+    <!-- Toggle button for collapsed sidebar -->
+    <button class="history-toggle-btn" id="history-toggle" title="Toggle history">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+    </button>
+
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+            <div class="chat-empty-state">
+                <div class="empty-brand"><img src="{% static 'images/tetherdust.png' %}" alt="TetherDust" class="brand-icon">Tether<span>Dust</span></div>
+                <p>Ask a question about your database to get started.</p>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="chat-connection-banner" id="connection-banner">
+                <span class="banner-dot"></span>
+                <i class="banner-icon fa-solid fa-triangle-exclamation"></i>
+                <span id="connection-banner-text">Connecting to agent…</span>
+            </div>
+            <div class="chat-input-hint">Type <kbd>@</kbd> to mention documentation &middot; Type <kbd class="kbd-prompt">/</kbd> to use a prompt</div>
+            <form class="chat-input-wrapper" id="chat-form">
+                {% csrf_token %}
+                <div class="slash-autocomplete" id="slash-autocomplete" style="display:none" role="listbox">
+                    <div class="slash-autocomplete-list" id="slash-autocomplete-list"></div>
+                </div>
+                <div class="mention-chips" id="mention-chips"></div>
+                <textarea
+                    class="chat-input"
+                    id="chat-input"
+                    name="message"
+                    placeholder="Ask a question about your database..."
+                    rows="1"
+                    required
+                    aria-autocomplete="list"
+                    aria-controls="slash-autocomplete"
+                ></textarea>
+                <button type="submit" class="send-button" id="send-button">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if has_chat_access != False %}
+<script type="module" src="{% static 'js/chat/chat-app.js' %}"></script>
+{% endif %}
+{% endblock %}

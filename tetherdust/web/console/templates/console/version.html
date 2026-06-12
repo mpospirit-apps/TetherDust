@@ -1,0 +1,76 @@
+{% extends "console/base.html" %}
+{% block title %}Version{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Version</h1>
+        <p>Running release, update status, and upgrade notes for TetherDust</p>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom:var(--lg)">
+    <div class="form-grid">
+        <div class="form-group">
+            <label>Current version</label>
+            <div style="font-size:var(--text-lg);font-weight:700">{{ current_version }}</div>
+        </div>
+        <div class="form-group">
+            <label>Latest release</label>
+            <div style="font-size:var(--text-lg);font-weight:700">
+                {% if latest_version %}{{ latest_version }}{% else %}<span class="text-sec">—</span>{% endif %}
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Status</label>
+            <div>
+                {% if update_available %}
+                    <span class="badge badge-orange">Update available</span>
+                {% elif latest_version %}
+                    <span class="badge badge-success">Up to date</span>
+                {% else %}
+                    <span class="badge badge-muted">Not checked</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if update_available and latest_release_url %}
+    <div style="margin-top:var(--md)">
+        <a href="{{ latest_release_url }}" target="_blank" rel="noopener" class="btn btn-primary">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> View release {{ latest_version }}
+        </a>
+        <p class="text-sec text-sm" style="margin:var(--sm) 0 0">
+            Follow the upgrade notes for this version below before deploying.
+        </p>
+    </div>
+    {% endif %}
+
+    {% if latest_checked_at %}
+    <p class="text-sec text-sm" style="margin:var(--md) 0 0">
+        Last checked: {{ latest_checked_at }}
+    </p>
+    {% endif %}
+</div>
+
+<p class="text-sec text-sm" style="margin:0 0 var(--lg)">
+    Visit the <a href="https://github.com/mpospirit-apps/TetherDust" target="_blank" rel="noopener">GitHub repository</a> to request features, report bugs, or view the roadmap.
+</p>
+
+<h3 style="margin:0 0 var(--sm)">Release notes</h3>
+{% if changelog_entries %}
+    {% for entry in changelog_entries %}
+    <div class="card" style="margin-bottom:var(--md)">
+        <div class="flex-gap" style="align-items:center;margin-bottom:var(--sm)">
+            <h2 style="margin:0">{{ entry.version }}</h2>
+            {% if entry.is_current %}<span class="badge badge-info">Current</span>{% endif %}
+        </div>
+        <div class="docs-rendered">{{ entry.html|safe }}</div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <p class="text-sec">No release notes found in the <code>changelog/</code> directory.</p>
+    </div>
+{% endif %}
+{% endblock %}

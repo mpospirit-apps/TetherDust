@@ -1,0 +1,133 @@
+{% extends "console/base.html" %}
+{% block title %}{% if instance %}Edit{% else %}Add{% endif %} Report{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if instance %}Edit {{ instance.name }}{% else %}Add Report{% endif %}</h1>
+        <p>Configure SQL report, schedule, and access control</p>
+    </div>
+    <div class="flex-gap">
+        {% if instance %}
+        <button class="btn btn-secondary"
+                hx-get="{% url 'console:report_preview' instance.pk %}"
+                hx-target="#preview-area"
+                hx-swap="innerHTML">
+            <i class="fa-solid fa-eye"></i> Preview (10 rows)
+        </button>
+        {% endif %}
+        <a href="{% url 'console:report_list' %}" class="btn btn-ghost">Back</a>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-split">
+
+        <!-- Left: Settings + Schedule + Access -->
+        <div class="form-split-col">
+
+            <div class="card">
+                <h3 style="margin:0 0 var(--md)">Report Settings</h3>
+                {% include "console/includes/field.html" with field=form.name %}
+                {% include "console/includes/field.html" with field=form.description %}
+                <div class="form-grid">
+                    {% include "console/includes/field.html" with field=form.database %}
+                    {% include "console/includes/field.html" with field=form.delivery_method %}
+                    {% include "console/includes/field.html" with field=form.is_active %}
+                </div>
+                {% include "console/includes/field.html" with field=form.email_recipients %}
+            </div>
+
+            <div class="card">
+                <h3 style="margin:0 0 var(--md)">Schedule</h3>
+                {% include "console/includes/field.html" with field=form.schedule_type %}
+                {% include "console/includes/field.html" with field=form.schedule_interval_minutes %}
+                {% include "console/includes/field.html" with field=form.schedule_time %}
+                {% include "console/includes/field.html" with field=form.schedule_day_of_week %}
+                {% include "console/includes/field.html" with field=form.schedule_day_of_month %}
+            </div>
+
+            <div class="card">
+                <h3 style="margin:0 0 var(--md)">Access Control</h3>
+                {% include "console/includes/field.html" with field=form.allowed_roles is_checklist=True %}
+            </div>
+
+        </div>
+
+        <!-- Right: SQL Query (stretches to match left height) -->
+        <div class="card card-stretch">
+            <h3 style="margin:0 0 var(--md)">SQL Query</h3>
+            <div class="form-group">
+                {{ form.sql_query }}
+                {% if form.sql_query.help_text %}<div class="helptext">{{ form.sql_query.help_text }}</div>{% endif %}
+                {% if form.sql_query.errors %}
+                <ul class="errorlist">{% for e in form.sql_query.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <div class="form-actions" style="margin-top:var(--md)">
+        <button type="submit" class="btn btn-primary">{% if instance %}Save Changes{% else %}Create Report{% endif %}</button>
+        <a href="{% url 'console:report_list' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+{% if instance %}
+<div class="card mt-lg" id="preview-area">
+    <div class="empty-state">
+        <p class="text-sec">Click "Preview" to run the query with a 10-row limit.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        var typeSelect = document.getElementById('id_schedule_type');
+        if (!typeSelect) return;
+
+        var intervalField = document.getElementById('id_schedule_interval_minutes');
+        var timeField = document.getElementById('id_schedule_time');
+        var dowField = document.getElementById('id_schedule_day_of_week');
+        var domField = document.getElementById('id_schedule_day_of_month');
+
+        function getGroup(el) {
+            return el ? el.closest('.form-group') : null;
+        }
+
+        function toggle() {
+            var val = typeSelect.value;
+            var intervalGroup = getGroup(intervalField);
+            var timeGroup = getGroup(timeField);
+            var dowGroup = getGroup(dowField);
+            var domGroup = getGroup(domField);
+
+            if (intervalGroup) intervalGroup.style.display = val === 'interval' ? '' : 'none';
+            if (timeGroup) timeGroup.style.display = (val === 'daily' || val === 'weekly' || val === 'monthly') ? '' : 'none';
+            if (dowGroup) dowGroup.style.display = val === 'weekly' ? '' : 'none';
+            if (domGroup) domGroup.style.display = val === 'monthly' ? '' : 'none';
+        }
+
+        typeSelect.addEventListener('change', toggle);
+        toggle();
+    })();
+
+    (function() {
+        var deliverySelect = document.getElementById('id_delivery_method');
+        var emailField = document.getElementById('id_email_recipients');
+        if (!deliverySelect || !emailField) return;
+
+        var emailGroup = emailField.closest('.form-group');
+        function toggleEmail() {
+            if (emailGroup) emailGroup.style.display = deliverySelect.value === 'email' ? '' : 'none';
+        }
+        deliverySelect.addEventListener('change', toggleEmail);
+        toggleEmail();
+    })();
+</script>
+{% endblock %}

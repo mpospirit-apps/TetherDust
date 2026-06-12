@@ -1,0 +1,20 @@
+{% load portal_tags %}
+{% if node.type == "dir" %}
+<div class="docs-dir">
+    <button class="docs-dir-toggle" onclick="toggleDir(this)">
+        <i class="fa-solid fa-chevron-down"></i>
+        <i class="fa-solid fa-folder"></i>
+        <span>{{ node.name }}</span>
+    </button>
+    <div class="docs-dir-children">
+        {% for child in node.children %}
+            {% include "portal/docs_tree_node.html" with node=child source_id=source_id %}
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<button class="docs-file-btn" onclick="loadDoc(this, '{% docs_content_url source_id node.path %}')">
+    <i class="fa-regular {% if node.is_code %}fa-file-code{% else %}fa-file-lines{% endif %}"></i>
+    <span>{{ node.name }}</span>
+</button>
+{% endif %}

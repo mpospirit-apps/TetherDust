@@ -1,0 +1,17 @@
+{% if cb.sync_status == 'syncing' %}
+<span class="sync-status" hx-get="{% url 'console:codebase_status' cb.pk %}" hx-trigger="load delay:2s" hx-swap="outerHTML">
+    <span class="badge badge-muted">Syncing…</span>
+</span>
+{% elif cb.sync_status == 'ok' %}
+<span class="sync-status">
+    <span class="badge badge-success">Synced</span>
+    <span class="text-sec text-sm">{{ cb.cached_tree|length }} files{% if cb.last_synced_at %} · {{ cb.last_synced_at|date:"M d, H:i" }}{% endif %}</span>
+</span>
+{% elif cb.sync_status == 'error' %}
+<span class="sync-status">
+    <span class="badge badge-error" title="{{ cb.sync_error }}">Error</span>
+    <span class="text-sec text-sm truncate" style="max-width:240px">{{ cb.sync_error }}</span>
+</span>
+{% else %}
+<span class="sync-status"><span class="badge badge-muted">Pending</span></span>
+{% endif %}

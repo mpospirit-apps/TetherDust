@@ -1,0 +1,60 @@
+{% extends "console/base.html" %}
+{% block title %}{% if instance %}Edit{% else %}Add{% endif %} Codebase{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if instance %}Edit {{ instance.name }}{% else %}Add Codebase{% endif %}</h1>
+        <p>Connect a source-code repository for the AI agent</p>
+    </div>
+    {% if is_new_with_provider %}
+    <a href="{% url 'console:codebase_add' %}" class="btn btn-ghost">Change Provider</a>
+    {% else %}
+    <a href="{% url 'console:codebase_list' %}" class="btn btn-ghost">Back</a>
+    {% endif %}
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    {% if is_new_with_provider %}
+    <input type="hidden" name="provider" value="{{ provider_key }}">
+    {% endif %}
+
+    <div class="form-split">
+
+        <!-- Left: Identity -->
+        <div class="card">
+            <h3 style="margin:0 0 var(--md)">Identity</h3>
+            {% include "console/includes/field.html" with field=form.name %}
+            {% include "console/includes/field.html" with field=form.description %}
+            {% if not is_new_with_provider %}
+            {% include "console/includes/field.html" with field=form.provider %}
+            {% endif %}
+            {% include "console/includes/field.html" with field=form.is_active %}
+        </div>
+
+        <!-- Right: Repository -->
+        <div class="card">
+            <h3 style="margin:0 0 var(--md)">Repository</h3>
+            {% include "console/includes/field.html" with field=form.repo_url %}
+            <div class="form-grid">
+                {% include "console/includes/field.html" with field=form.branch %}
+                {% include "console/includes/field.html" with field=form.subpath %}
+            </div>
+            {% include "console/includes/field.html" with field=form.access_token %}
+            {% include "console/includes/field.html" with field=form.include_globs %}
+            {% include "console/includes/field.html" with field=form.exclude_globs %}
+        </div>
+
+    </div>
+
+    <div class="form-actions" style="margin-top:var(--md)">
+        <button type="submit" class="btn btn-primary">{% if instance %}Save Changes{% else %}Add Codebase{% endif %}</button>
+        {% if is_new_with_provider %}
+        <a href="{% url 'console:codebase_add' %}" class="btn btn-secondary">Cancel</a>
+        {% else %}
+        <a href="{% url 'console:codebase_list' %}" class="btn btn-secondary">Cancel</a>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}

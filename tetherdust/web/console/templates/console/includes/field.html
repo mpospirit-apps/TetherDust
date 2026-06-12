@@ -1,0 +1,30 @@
+{% comment %}
+  Single field renderer.
+  Usage:
+    {% include "console/includes/field.html" with field=form.name %}
+    {% include "console/includes/field.html" with field=form.allowed_tools is_checklist=True %}
+
+  is_checklist=True  → renders as a checkbox list (ModelMultipleChoiceField / CheckboxSelectMultiple)
+{% endcomment %}
+<div class="form-group">
+    {% if is_checklist %}
+    <label>{{ field.label }}</label>
+    <div class="checkbox-list">
+        {% for choice in field %}
+        <label>{{ choice.tag }} {{ choice.choice_label }}</label>
+        {% endfor %}
+    </div>
+    {% elif field.field.widget.input_type == "checkbox" and not field.field.widget.attrs.items %}
+    <div class="form-check">
+        {{ field }}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    </div>
+    {% else %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% endif %}
+    {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}
+    {% if field.errors %}
+    <ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+</div>

@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — TetherDust Mission Control</title>
+    <link rel="icon" type="image/png" href="{% static 'images/tetherdust.png' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/tetherdust.css' %}">
+    <script>
+        (function(){var c=['--c-red','--c-pink','--c-cyan','--c-lime','--c-orange'];document.documentElement.style.setProperty('--c-dust','var('+c[Math.floor(Math.random()*c.length)]+')')})();
+    </script>
+</head>
+<body class="login-page">
+    <!-- Fairy Dust Glimmers -->
+    <div class="glimmer-container">
+        <div class="glimmer-dot" style="top:12%;left:8%;animation-duration:4.2s"></div>
+        <div class="glimmer-dot" style="top:35%;left:75%;animation-duration:3.8s"></div>
+        <div class="glimmer-dot" style="top:68%;left:18%;animation-duration:5.1s"></div>
+        <div class="glimmer-dot" style="top:48%;left:90%;animation-duration:3.5s"></div>
+        <div class="glimmer-dot" style="top:82%;left:42%;animation-duration:4.8s"></div>
+    </div>
+
+    <div class="login-card">
+        <div class="brand"><img src="{% static 'images/tetherdust.png' %}" alt="TetherDust" class="brand-icon">Tether<span>Dust</span></div>
+        <div class="subtitle">Mission Control Access</div>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username">Callsign</label>
+                <input type="text" id="username" name="username" placeholder="Username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Passphrase</label>
+                <input type="password" id="password" name="password" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn">Initiate Access</button>
+        </form>
+    </div>
+</body>
+</html>

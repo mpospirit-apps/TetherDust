@@ -1,0 +1,33 @@
+# Pre-commit hooks for TetherDust.
+#
+#   pip install pre-commit
+#   pre-commit install            # enable on every git commit
+#   pre-commit run --all-files    # run against the whole repo once
+#
+# These fast hooks mirror CI's lint/format job. Type checking (mypy) and the
+# test suite are intentionally left to CI — they need the full dependency set
+# and are too slow for a per-commit hook.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        exclude: ^docker-compose\.ci\.yml$
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]
+        # Demo GIFs in the docs are intentionally large.
+        exclude: ^docs/images/.*\.gif$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.16
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^tetherdust/
+      - id: ruff-format
+        files: ^tetherdust/

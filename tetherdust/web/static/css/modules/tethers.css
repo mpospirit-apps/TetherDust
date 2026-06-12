@@ -1,0 +1,673 @@
+/* ── Tethers ───────────────────────────────────────────────────────────── */
+
+/* Flat surfaces on every tether page (user + admin). */
+.tether-page,
+.tether-page *,
+.tether-admin-page,
+.tether-admin-page * {
+    border-radius: 0 !important;
+}
+
+.tethers-page { padding: var(--lg); max-width: 1200px; margin: 0 auto; }
+.tethers-page__header { margin-bottom: var(--lg); }
+.tethers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--md);
+}
+.tether-card {
+    display: flex; flex-direction: column; gap: var(--sm);
+    padding: var(--md);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text);
+    text-decoration: none;
+    transition: border-color 0.15s, transform 0.15s;
+}
+.tether-card:hover { border-color: var(--c-cyan); transform: translateY(-2px); }
+.tether-card__title { font-weight: 600; font-size: 1.05rem; }
+
+.tether-viewer { padding: var(--lg); }
+.tether-viewer__header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: var(--md);
+}
+.tether-canvas-wrap {
+    position: relative;
+    overflow: hidden;
+    min-height: 600px;
+}
+.tether-canvas {
+    display: block; width: 100%; height: 70vh;
+    cursor: grab;
+}
+.tether-canvas:active { cursor: grabbing; }
+
+.tether-canvas .node rect {
+    fill: var(--bg-card);
+    stroke: var(--border);
+    stroke-width: 1.5;
+}
+.tether-canvas .node text {
+    fill: var(--text); font-size: 12px; pointer-events: none;
+    font-family: var(--font-sans, system-ui), sans-serif;
+}
+.tether-canvas .node--code-file rect { stroke: var(--c-cyan); }
+.tether-canvas .node--code-symbol rect { stroke: var(--c-lime); }
+.tether-canvas .node--db-table rect { stroke: var(--c-pink); }
+.tether-canvas .node--db-column rect { stroke: var(--c-orange); }
+.tether-canvas .node-chevron {
+    font-size: 10px; fill: var(--text-sec);
+}
+
+.tether-legend {
+    position: absolute; bottom: var(--md); right: var(--md);
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: var(--sm) var(--md);
+    font-size: 0.85rem;
+}
+.tether-legend__item {
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.tether-legend__item i {
+    display: inline-block; width: 14px; height: 4px; border-radius: 2px;
+}
+
+.tether-status-banner {
+    background: var(--bg-warm);
+    color: var(--text-sec);
+    padding: var(--sm) var(--md);
+    border-radius: 8px;
+    margin-bottom: var(--sm);
+    font-size: 0.9rem;
+}
+
+/* ── Tether v2: summary + side panel + interactivity ──────────────────── */
+
+.tether-summary {
+    display: flex; flex-direction: row; gap: var(--md);
+    margin-top: var(--sm);
+}
+.tether-summary:empty { display: none; }
+.tether-summary__block {
+    flex: 1 1 0;
+    background: var(--bg-warm);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: var(--sm) var(--md);
+}
+.tether-summary__block h4 {
+    margin: 0 0 4px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-sec);
+}
+.tether-summary__block p { margin: 0; font-size: 0.9rem; line-height: 1.45; }
+
+.tether-canvas-wrap { position: relative; }
+
+.tether-canvas .node.is-selected rect {
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 6px currentColor);
+}
+.tether-canvas .tether-edge.is-selected {
+    opacity: 0.95;
+}
+.tether-canvas .node-badge {
+    fill: var(--text-sec);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Side panel */
+.tether-panel {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: min(420px, 95%);
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+    transform: translateX(100%);
+    transition: transform 0.22s ease;
+    overflow-y: auto;
+    padding: var(--md) var(--md) var(--lg);
+    z-index: 4;
+}
+.tether-panel.is-open { transform: translateX(0); }
+.tether-panel:empty { display: none; }
+.tether-panel__close {
+    position: absolute; top: 10px; right: 14px;
+    width: 28px; height: 28px;
+    border: none; background: transparent;
+    color: var(--text-sec); font-size: 22px; cursor: pointer;
+    border-radius: 50%;
+}
+.tether-panel__close:hover { background: var(--bg-warm); color: var(--text); }
+
+.tether-panel__header {
+    padding-left: var(--sm);
+    margin-bottom: var(--md);
+}
+.tether-panel__eyebrow {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-sec);
+}
+.tether-panel__title {
+    margin: 4px 0 0;
+    font-size: 1.05rem;
+    word-break: break-word;
+}
+.tether-panel__desc {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text);
+    margin: 0 0 var(--md);
+}
+
+.tether-panel__meta {
+    display: grid;
+    grid-template-columns: minmax(96px, auto) 1fr;
+    gap: 4px 12px;
+    font-size: 0.85rem;
+    margin: 0 0 var(--md);
+}
+.tether-panel__meta dt {
+    color: var(--text-sec);
+    font-weight: 500;
+}
+.tether-panel__meta dd {
+    margin: 0;
+    word-break: break-word;
+    font-family: var(--font-mono, ui-monospace), monospace;
+    font-size: 0.82rem;
+}
+
+.tether-panel__code { margin-bottom: var(--md); }
+.tether-panel__code h4 {
+    margin: 0 0 6px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-sec);
+}
+.tether-panel__pre {
+    background: var(--bg-warm);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: var(--font-mono, ui-monospace), monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    overflow: auto;
+    max-height: 320px;
+    white-space: pre;
+    margin: 0;
+}
+
+.tether-panel__children, .tether-panel__edges { margin-bottom: var(--md); }
+.tether-panel__children h4, .tether-panel__edges h4 {
+    margin: 0 0 6px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-sec);
+}
+.tether-panel__toggle {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-sec);
+    border-radius: 6px;
+    padding: 3px 9px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    margin-bottom: var(--sm);
+}
+.tether-panel__toggle:hover { color: var(--text); border-color: var(--c-cyan); }
+.tether-panel__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex; flex-direction: column; gap: 4px;
+}
+.tether-panel__list li {
+    display: flex; align-items: baseline; gap: 6px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+.tether-panel__dot {
+    flex: 0 0 auto;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    transform: translateY(2px);
+}
+.tether-panel__dot--code-file { background: var(--c-cyan); }
+.tether-panel__dot--code-symbol { background: var(--c-lime); }
+.tether-panel__dot--db-table { background: var(--c-pink); }
+.tether-panel__dot--db-column { background: var(--c-orange); }
+.tether-panel__link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text);
+    cursor: pointer;
+    font-family: var(--font-mono, ui-monospace), monospace;
+    font-size: 0.85rem;
+}
+.tether-panel__link:hover { color: var(--c-cyan); text-decoration: underline; }
+.tether-panel__list-note {
+    color: var(--text-sec);
+    font-size: 0.8rem;
+}
+.tether-panel__pill {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #11151a;
+    font-weight: 600;
+}
+
+@media (max-width: 720px) {
+    .tether-panel { position: fixed; }
+}
+
+/* ── Tether v3: ER cards, lanes, expressive edges ─────────────────────── */
+
+.tether-toolbar {
+    display: flex; align-items: center; gap: var(--md);
+    margin: var(--sm) 0 var(--sm);
+    flex-wrap: wrap;
+}
+.tether-search {
+    flex: 1 1 300px;
+    min-width: 220px;
+}
+.tether-filters {
+    display: flex; gap: 6px; align-items: center;
+}
+.chip {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-sec);
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    text-transform: lowercase;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.chip:hover { color: var(--text); border-color: var(--text-sec); }
+.chip.is-on { color: #11151a; font-weight: 600; }
+.chip--reads.is-on { background: var(--c-cyan); border-color: var(--c-cyan); }
+.chip--writes.is-on { background: var(--c-pink); border-color: var(--c-pink); }
+.chip--references.is-on { background: var(--c-lime); border-color: var(--c-lime); }
+.chip--maps-to.is-on { background: var(--c-orange); border-color: var(--c-orange); }
+.tether-fitbtn { margin-left: 6px; }
+
+/* Canvas wrap holds toolbar overlay + SVG + HTML cards layer + tooltip + side panel */
+.tether-canvas-wrap {
+    position: relative;
+    overflow: hidden;
+    min-height: 640px;
+}
+.tether-toolbar--overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: var(--md);
+    padding: 6px 12px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: nowrap;
+}
+.tether-lane-btn {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+.tether-lane-btn:hover { color: var(--text); }
+
+.tether-controls {
+    position: absolute;
+    bottom: 16px; left: 16px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+.tether-controls__row {
+    display: flex;
+    gap: 6px;
+}
+.tether-ctrl-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-sec);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    padding: 0;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.tether-ctrl-btn:hover, .tether-ctrl-btn.is-active {
+    color: var(--text);
+    border-color: var(--text-sec);
+    background: var(--bg-warm);
+}
+.tether-search--popup {
+    flex: none;
+    width: 220px;
+    height: 32px;
+    min-width: 0;
+    padding: 0 10px;
+    font-size: 0.85rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    outline: none;
+    box-sizing: border-box;
+}
+.tether-search--popup::placeholder { color: var(--text-muted); }
+.tether-search--popup:focus { border-color: var(--text-sec); }
+.tether-search--popup[hidden] { display: none; }
+.tether-info-panel {
+    width: 480px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.tether-info-panel[hidden] { display: none; }
+.tether-info-panel__section { margin-bottom: 10px; }
+.tether-info-panel__section:last-child { margin-bottom: 0; }
+.tether-info-panel__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+}
+.tether-info-panel__body {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--text);
+}
+.tether-filters--popup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+}
+.tether-filters--popup[hidden] { display: none; }
+
+.tether-spread--popup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+.tether-spread__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.tether-spread__row label {
+    width: 48px;
+    font-size: 0.78rem;
+    color: var(--text-sec);
+    user-select: none;
+}
+.tether-spread__row input[type="range"] {
+    width: 160px;
+    accent-color: var(--c-cyan);
+    cursor: pointer;
+}
+.tether-spread--popup[hidden] { display: none; }
+
+.tether-cards-layer {
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    transform-origin: 0 0;
+    pointer-events: none; /* children re-enable */
+    z-index: 2;
+}
+.tether-cards-layer .tcard,
+.tether-cards-layer .tcard__header,
+.tether-cards-layer .trow { pointer-events: auto; }
+
+.tether-canvas { z-index: 1; }
+.tether-seam {
+    stroke: var(--border);
+    stroke-dasharray: 4 6;
+    stroke-width: 1;
+}
+.tether-lane-label {
+    fill: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    text-transform: uppercase;
+    user-select: none;
+    pointer-events: none;
+    paint-order: stroke fill;
+    stroke: var(--bg-warm);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+}
+.tether-lane-label--clickable {
+    pointer-events: auto;
+    cursor: pointer;
+}
+.tether-lane-label--clickable:hover { fill: var(--text); }
+
+.tether-lane-summary {
+    position: absolute;
+    top: 36px;
+    z-index: 4;
+    max-width: 320px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+    padding: 10px 14px 12px;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+.tether-lane-summary--code { left: 8px; }
+.tether-lane-summary--db { right: 8px; }
+.tether-lane-summary[hidden] { display: none; }
+.tether-lane-summary h4 {
+    margin: 0 0 4px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-sec);
+}
+.tether-lane-summary p { margin: 0; color: var(--text); }
+.tether-lane-summary__close {
+    position: absolute;
+    top: 4px; right: 6px;
+    background: transparent;
+    border: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 6px;
+}
+.tether-lane-summary__close:hover { color: var(--text); }
+
+/* Cards */
+.tcard {
+    position: absolute;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
+    transition: opacity 0.18s, box-shadow 0.18s, transform 0.18s;
+    will-change: transform, left, top;
+}
+.tcard.is-dimmed { opacity: 0.18; }
+.tcard.is-selected {
+    box-shadow: 0 4px 18px rgba(0,0,0,0.12), 0 0 0 2px var(--c-cyan);
+}
+.tcard--db-table.is-selected { box-shadow: 0 4px 18px rgba(0,0,0,0.12), 0 0 0 2px var(--c-pink); }
+
+.tcard__header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-warm);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+}
+.tcard__header > i {
+    font-size: 13px;
+}
+.tcard--code-file .tcard__header > i { color: var(--c-cyan); }
+.tcard--db-table .tcard__header > i { color: var(--c-pink); }
+.tcard__title {
+    font-weight: 600;
+    font-family: var(--font-mono, ui-monospace), monospace;
+    font-size: 0.92rem;
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tcard__chip {
+    flex: 0 0 auto;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--bg-card);
+    color: var(--text-sec);
+    border: 1px solid var(--border);
+}
+
+.tcard__rows { list-style: none; padding: 4px 0; margin: 0; }
+.trow {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 12px;
+    height: 26px;
+    box-sizing: border-box;
+    cursor: pointer;
+    font-family: var(--font-mono, ui-monospace), monospace;
+    font-size: 0.78rem;
+    transition: background 0.12s;
+}
+.trow:hover { background: var(--bg-warm); }
+.trow.is-selected {
+    background: rgba(61, 188, 217, 0.12);
+    box-shadow: inset 3px 0 0 var(--c-cyan);
+}
+.trow--symbol.is-selected { box-shadow: inset 3px 0 0 var(--c-lime); background: rgba(211, 217, 59, 0.12); }
+.trow--pk.is-selected { box-shadow: inset 3px 0 0 var(--c-orange); background: rgba(242, 149, 68, 0.12); }
+.trow__icon {
+    flex: 0 0 16px;
+    text-align: center;
+    color: var(--text-sec);
+    font-size: 0.78rem;
+}
+.trow--pk .trow__icon { color: var(--c-orange); }
+.trow--fk .trow__icon { color: var(--c-cyan); font-weight: 600; }
+.trow--symbol .trow__icon { color: var(--c-lime); font-weight: 700; }
+.trow__name {
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: var(--text);
+}
+.trow__type {
+    flex: 0 0 auto;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    color: var(--text-sec);
+    background: var(--bg-warm);
+    border: 1px solid var(--border);
+    font-family: var(--font-mono, ui-monospace), monospace;
+}
+.trow--more {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.75rem;
+    height: 22px;
+    padding-top: 2px;
+}
+.trow--more:hover { color: var(--text); background: var(--bg-warm); }
+
+/* Edges + pulses */
+.tether-edge {
+    transition: opacity 0.18s;
+}
+.tether-edge.is-selected {
+    filter: drop-shadow(0 0 6px currentColor);
+}
+.tether-pulse {
+    pointer-events: none;
+    transition: opacity 0.2s;
+    filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* Tooltip */
+.tether-tooltip {
+    position: absolute;
+    z-index: 5;
+    pointer-events: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    max-width: 280px;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.14s, transform 0.14s;
+}
+.tether-tooltip.is-visible { opacity: 1; transform: translateY(0); }
+.tether-tooltip__kind {
+    display: inline-block;
+    color: var(--text-sec);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.tether-tooltip__desc {
+    color: var(--text-sec);
+    font-size: 0.78rem;
+}
+
+/* Legend stays compatible with existing v2 styles */

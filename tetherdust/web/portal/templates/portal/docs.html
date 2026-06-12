@@ -1,0 +1,282 @@
+{% extends "portal/base.html" %}
+{% load static %}
+
+{% block title %}Documentation - TetherDust{% endblock %}
+
+{% block content %}
+{% if not has_access %}
+<div class="docs-layout">
+    <div class="docs-empty-state">
+        <div class="empty-brand"><img src="{% static 'images/tetherdust.png' %}" alt="TetherDust" class="brand-icon">Tether<span>Dust</span></div>
+        <p>You don't have access to any documentation sources. Contact your administrator.</p>
+    </div>
+</div>
+{% elif not sources %}
+<div class="docs-layout">
+    <div class="docs-empty-state">
+        <div class="empty-brand"><img src="{% static 'images/tetherdust.png' %}" alt="TetherDust" class="brand-icon">Tether<span>Dust</span></div>
+        <p>No documentation sources have been configured yet.</p>
+    </div>
+</div>
+{% else %}
+<div class="docs-layout">
+    <!-- Sidebar -->
+    <aside class="docs-sidebar" id="docs-sidebar">
+        <div class="docs-sidebar-header">
+            <h3>Documentation</h3>
+        </div>
+        <div class="history-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="docs-search" placeholder="Search docs..." autocomplete="off">
+        </div>
+        <div class="docs-tree">
+            {% for source in sources %}
+            <div class="docs-source">
+                <button class="docs-source-toggle" onclick="toggleSource(this)">
+                    <i class="fa-solid fa-chevron-down"></i>
+                    {% include "console/docsources/includes/source_type_icon.html" with doc_type=source.doc_type size="14" %}
+                    <span>{{ source.name }}</span>
+                </button>
+                <div class="docs-source-children">
+                    {% for node in source.tree %}
+                        {% include "portal/docs_tree_node.html" with node=node source_id=source.id %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <!-- Toggle button -->
+    <button class="docs-toggle-btn" id="docs-toggle" title="Toggle sidebar">
+        <i class="fa-solid fa-book-open"></i>
+    </button>
+
+    <!-- Content Area -->
+    <div class="docs-content-area">
+        <div class="docs-content" id="docs-content">
+            <div class="docs-empty-state">
+                <div class="empty-brand"><img src="{% static 'images/tetherdust.png' %}" alt="TetherDust" class="brand-icon">Tether<span>Dust</span></div>
+                <p>Select a document from the sidebar to view it here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+    // Mermaid keywords that identify a block as a diagram
+    var MERMAID_RE = /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|xychart-beta|block-beta|packet-beta|architecture-beta|quadrantChart)/;
+
+    function getMermaidTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+    }
+
+    mermaid.initialize({ startOnLoad: false, theme: getMermaidTheme() });
+
+    function processCodeBlocks(container) {
+        var mermaidNodes = [];
+
+        container.querySelectorAll('pre code').forEach(function(block) {
+            var classes = Array.from(block.classList);
+            var isMermaid = classes.some(function(c) {
+                return c === 'mermaid' || c === 'language-mermaid';
+            }) || MERMAID_RE.test(block.textContent);
+
+            if (isMermaid) {
+                var pre = block.closest('pre');
+                var wrapper = pre.parentElement;
+                var div = document.createElement('div');
+                div.className = 'mermaid';
+                div.textContent = block.textContent.trim();
+                wrapper.replaceChild(div, pre);
+                mermaidNodes.push(div);
+            } else {
+                hljs.highlightElement(block);
+            }
+        });
+
+        if (mermaidNodes.length) {
+            mermaid.initialize({ startOnLoad: false, theme: getMermaidTheme() });
+            mermaid.run({ nodes: mermaidNodes });
+        }
+    }
+
+    function toggleSource(btn) {
+        const children = btn.nextElementSibling;
+        const chevron = btn.querySelector('.fa-chevron-down, .fa-chevron-right');
+        if (children.classList.contains('collapsed')) {
+            children.classList.remove('collapsed');
+            chevron.classList.remove('fa-chevron-right');
+            chevron.classList.add('fa-chevron-down');
+        } else {
+            children.classList.add('collapsed');
+            chevron.classList.remove('fa-chevron-down');
+            chevron.classList.add('fa-chevron-right');
+        }
+    }
+
+    function toggleDir(btn) {
+        const children = btn.nextElementSibling;
+        const chevron = btn.querySelector('.fa-chevron-down, .fa-chevron-right');
+        if (children.classList.contains('collapsed')) {
+            children.classList.remove('collapsed');
+            chevron.classList.remove('fa-chevron-right');
+            chevron.classList.add('fa-chevron-down');
+        } else {
+            children.classList.add('collapsed');
+            chevron.classList.remove('fa-chevron-down');
+            chevron.classList.add('fa-chevron-right');
+        }
+    }
+
+    function loadDoc(el, url) {
+        // Mark active
+        document.querySelectorAll('.docs-file-btn.active').forEach(function(b) {
+            b.classList.remove('active');
+        });
+        el.classList.add('active');
+
+        // Get file name from the button
+        var docName = el.querySelector('span').textContent;
+
+        // Load via HTMX-style fetch
+        const content = document.getElementById('docs-content');
+        content.innerHTML = '<div class="docs-loading"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+
+        fetch(url)
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                content.innerHTML = '<h2 class="docs-title">' + docName + '</h2><div class="docs-rendered">' + html + '</div>';
+                processCodeBlocks(content);
+            })
+            .catch(function() {
+                content.innerHTML = '<p class="text-sec">Failed to load document.</p>';
+            });
+    }
+
+    function loadDocByUrl(url, docName) {
+        const content = document.getElementById('docs-content');
+        if (!content) return;
+        content.innerHTML = '<div class="docs-loading"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+        fetch(url)
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                content.innerHTML = '<h2 class="docs-title">' + docName + '</h2><div class="docs-rendered">' + html + '</div>';
+                processCodeBlocks(content);
+            })
+            .catch(function() {
+                content.innerHTML = '<p class="text-sec">Failed to load document.</p>';
+            });
+    }
+
+    function loadWikiLink(el) {
+        var url = el.dataset.url;
+        var docName = el.textContent;
+
+        // Clear sidebar active state
+        document.querySelectorAll('.docs-file-btn.active').forEach(function(b) {
+            b.classList.remove('active');
+        });
+
+        var content = document.getElementById('docs-content');
+        content.innerHTML = '<div class="docs-loading"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+
+        fetch(url)
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                content.innerHTML = '<h2 class="docs-title">' + docName + '</h2><div class="docs-rendered">' + html + '</div>';
+                processCodeBlocks(content);
+            })
+            .catch(function() {
+                content.innerHTML = '<p class="text-sec">Failed to load document.</p>';
+            });
+    }
+
+    // Sidebar toggle
+    var docsSidebar = document.getElementById('docs-sidebar');
+    var docsToggle = document.getElementById('docs-toggle');
+    if (docsToggle) {
+        docsToggle.addEventListener('click', function() {
+            docsSidebar.classList.toggle('collapsed');
+        });
+    }
+
+    // Docs search filtering
+    var docsSearchInput = document.getElementById('docs-search');
+    if (docsSearchInput) {
+        docsSearchInput.addEventListener('input', function() {
+            var query = this.value.trim().toLowerCase();
+            var sources = document.querySelectorAll('.docs-source');
+
+            sources.forEach(function(source) {
+                if (!query) {
+                    // Restore everything visible; leave collapse state as-is
+                    source.style.display = '';
+                    source.querySelectorAll('.docs-dir, .docs-file-btn').forEach(function(el) {
+                        el.style.display = '';
+                    });
+                    return;
+                }
+
+                var fileBtns = source.querySelectorAll('.docs-file-btn');
+                var anySourceMatch = false;
+
+                fileBtns.forEach(function(btn) {
+                    var name = btn.querySelector('span').textContent.toLowerCase();
+                    var matches = name.includes(query);
+                    btn.style.display = matches ? '' : 'none';
+                    if (matches) anySourceMatch = true;
+                });
+
+                source.style.display = anySourceMatch ? '' : 'none';
+
+                if (anySourceMatch) {
+                    // Expand source
+                    var sourceChildren = source.querySelector('.docs-source-children');
+                    if (sourceChildren) {
+                        sourceChildren.classList.remove('collapsed');
+                        var chevron = source.querySelector('.docs-source-toggle .fa-chevron-right');
+                        if (chevron) {
+                            chevron.classList.remove('fa-chevron-right');
+                            chevron.classList.add('fa-chevron-down');
+                        }
+                    }
+
+                    // Show/hide dirs based on whether they contain visible files
+                    source.querySelectorAll('.docs-dir').forEach(function(dir) {
+                        var visibleFiles = dir.querySelectorAll('.docs-file-btn:not([style*="display: none"])');
+                        // Also check files not hidden via inline style
+                        var hasVisible = false;
+                        dir.querySelectorAll('.docs-file-btn').forEach(function(b) {
+                            if (b.style.display !== 'none') hasVisible = true;
+                        });
+                        dir.style.display = hasVisible ? '' : 'none';
+                        if (hasVisible) {
+                            var dirChildren = dir.querySelector('.docs-dir-children');
+                            if (dirChildren) dirChildren.classList.remove('collapsed');
+                            var dirChevron = dir.querySelector('.docs-dir-toggle .fa-chevron-right');
+                            if (dirChevron) {
+                                dirChevron.classList.remove('fa-chevron-right');
+                                dirChevron.classList.add('fa-chevron-down');
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    {% if auto_open %}
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDocByUrl(
+            '/docs/{{ auto_open.source_id }}/{{ auto_open.file_path|escapejs }}',
+            '{{ auto_open.doc_name|escapejs }}'
+        );
+    });
+    {% endif %}
+</script>
+{% endblock %}
