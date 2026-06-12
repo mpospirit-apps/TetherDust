@@ -253,6 +253,9 @@ services:
       # The :-false fallback keeps the deploy secure if the var is ever unset.
       - DJANGO_DEBUG=${DJANGO_DEBUG:-false}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      # On-prem deployments run without a TLS proxy, so disable Django's HTTP→HTTPS
+      # redirect. Users who terminate TLS at a reverse proxy should set this to true.
+      - DJANGO_SECURE_SSL_REDIRECT=${DJANGO_SECURE_SSL_REDIRECT:-false}
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
       - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
       - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
