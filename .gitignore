@@ -71,6 +71,10 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
+# Docs except default
+documentations/*
+!documentations/TetherDust\ Documentation
+
 # Jupyter
 .ipynb_checkpoints/
 # CocoIndex Code (ccc)

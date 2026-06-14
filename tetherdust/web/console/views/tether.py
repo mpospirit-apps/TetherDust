@@ -44,6 +44,7 @@ def _start_tether_generation(tether: Tether, user: AbstractBaseUser) -> TetherVe
         v = TetherVersion.objects.select_related(
             "tether",
             "tether__codebase",
+            "tether__codebase_doc_source",
             "tether__database_doc_source",
         ).get(pk=version_pk)
         generate_tether(v)
@@ -56,6 +57,7 @@ def _start_tether_generation(tether: Tether, user: AbstractBaseUser) -> TetherVe
 def tether_list_view(request: HttpRequest) -> HttpResponse:
     tethers = Tether.objects.select_related(
         "codebase",
+        "codebase_doc_source",
         "database_doc_source",
         "current_version",
     ).all()
@@ -105,7 +107,9 @@ def tether_form_view(request: HttpRequest, pk: int | None = None) -> HttpRespons
 @staff_member_required(login_url="/login/")
 def tether_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     tether = get_object_or_404(
-        Tether.objects.select_related("codebase", "database_doc_source", "current_version"),
+        Tether.objects.select_related(
+            "codebase", "codebase_doc_source", "database_doc_source", "current_version"
+        ),
         pk=pk,
     )
     versions = list(tether.versions.select_related("triggered_by").all())

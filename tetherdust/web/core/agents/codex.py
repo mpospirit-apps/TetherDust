@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from ..models import AgentConfiguration
 
 CODEX_HTTP_CONNECT_TIMEOUT = float(os.getenv("CODEX_HTTP_CONNECT_TIMEOUT", "30"))
-CODEX_HTTP_RESPONSE_TIMEOUT = float(os.getenv("CODEX_HTTP_RESPONSE_TIMEOUT", "300"))
+CODEX_HTTP_RESPONSE_TIMEOUT = float(os.getenv("CODEX_HTTP_RESPONSE_TIMEOUT", "1800"))
 
 
 class CodexAgent(BaseAgent):
