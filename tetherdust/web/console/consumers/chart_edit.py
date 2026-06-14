@@ -136,7 +136,8 @@ class ChartEditConsumer(BaseAgentConsumer):
                 session_id=self._codex_session_id(),
                 allowed_tools=list(self._CHART_EDIT_TOOLS),
                 allowed_databases=[self._chart_database_name],
-                allowed_doc_sources=None,
+                allowed_doc_sources=[],
+                allowed_codebases=[],
                 max_row_limit=1000,
             )
         except asyncio.CancelledError:
