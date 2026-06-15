@@ -1,4 +1,4 @@
-python-interpreter = "tetherdust/.venv/bin/python"
+python-interpreter = ".venv/bin/python"
 
 project-includes = [
     "tetherdust/**/*.py",

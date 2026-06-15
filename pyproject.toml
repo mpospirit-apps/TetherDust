@@ -80,14 +80,15 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_server"]
+sources = ["tetherdust"]
 
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["tetherdust/tests"]
 
 [tool.coverage.run]
-source = ["mcp_server", "web"]
+source = ["tetherdust/mcp_server", "tetherdust/web"]
 omit = [
     "*/migrations/*",
     "*/tests/*",

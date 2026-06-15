@@ -11,8 +11,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install MCP server with SSE transport and all database drivers
-COPY tetherdust/pyproject.toml tetherdust/
-RUN pip install --no-cache-dir -e "./tetherdust[sse,all-databases]"
+COPY pyproject.toml ./
+RUN mkdir -p tetherdust/mcp_server && touch tetherdust/mcp_server/__init__.py
+RUN pip install --no-cache-dir -e ".[sse,all-databases]"
 
 # Copy MCP server source
 COPY tetherdust/ tetherdust/

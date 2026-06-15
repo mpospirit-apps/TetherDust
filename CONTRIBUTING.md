@@ -15,7 +15,6 @@ docker compose up --build
 For local linting and testing without Docker:
 
 ```bash
-cd tetherdust
 pip install -e ".[all-databases,web,dev]"
 ```
 
@@ -39,19 +38,17 @@ pip install -e ".[all-databases,web,dev]"
 ## Checks (must pass)
 
 ```bash
-cd tetherdust
-
 # Lint
-ruff check .
+ruff check tetherdust/ docker/
 
 # Format
-ruff format .
+ruff format tetherdust/ docker/
 
 # Type check
-mypy .
+mypy tetherdust/ docker/
 
 # Tests
-pytest
+pytest tetherdust/tests/
 ```
 
 ### Pre-commit hooks
@@ -75,7 +72,7 @@ The hooks cover lint, format, and basic file hygiene. Type checking (`mypy`) and
 
 TetherDust uses SQLAlchemy for all database connections. To add support for a new engine:
 
-1. Add the driver as an optional dependency in `tetherdust/pyproject.toml` (e.g. `snowflake = ["snowflake-sqlalchemy>=..."]`).
+1. Add the driver as an optional dependency in `pyproject.toml` (e.g. `snowflake = ["snowflake-sqlalchemy>=..."]`).
 2. Add the engine to the `engine` choices in `web/core/models/connections.py`.
 3. Verify the SQL validator in `mcp_server/utils/db_service.py` handles the new dialect (SQLGlot dialect name).
 4. Add the driver to `all-databases` extras so CI installs it.

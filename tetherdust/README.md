@@ -7,7 +7,6 @@ Multi-agent AI database querying system via Model Context Protocol.
 ### 1. Set Up Virtual Environment
 
 ```bash
-cd tetherdust
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -e .
@@ -124,7 +123,6 @@ GRANT SELECT ANY TABLE TO tetherdust_readonly;
 ## Running Standalone
 
 ```bash
-cd tetherdust
 python -m mcp_server.server
 ```
 
@@ -143,5 +141,4 @@ tetherdust/
 │   └── utils/
 │       ├── db_service.py      # SQLAlchemy connection manager
 │       └── markdown_parser.py # Documentation parser
-└── pyproject.toml
 ```

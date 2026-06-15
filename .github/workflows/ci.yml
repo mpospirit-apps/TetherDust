@@ -18,10 +18,10 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: tetherdust/pyproject.toml
+          cache-dependency-path: pyproject.toml
 
       - name: Install dev dependencies
-        run: pip install -e "tetherdust/[dev]"
+        run: pip install -e ".[dev]"
 
       - name: Ruff lint
         run: ruff check tetherdust/ docker/
@@ -40,10 +40,10 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: tetherdust/pyproject.toml
+          cache-dependency-path: pyproject.toml
 
       - name: Install all dependencies
-        run: pip install -e "tetherdust/[all-databases,web,dev]"
+        run: pip install -e ".[all-databases,web,dev]"
 
       - name: Mypy
         run: mypy tetherdust/ docker/
@@ -59,10 +59,10 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: tetherdust/pyproject.toml
+          cache-dependency-path: pyproject.toml
 
       - name: Install dev dependencies
-        run: pip install -e "tetherdust/[dev]"
+        run: pip install -e ".[dev]"
 
       - name: Pyrefly check
         run: pyrefly check --summarize-errors
@@ -78,10 +78,10 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: tetherdust/pyproject.toml
+          cache-dependency-path: pyproject.toml
 
       - name: Install all dependencies
-        run: pip install -e "tetherdust/[all-databases,web,dev]"
+        run: pip install -e ".[all-databases,web,dev]"
 
       - name: Pytest with coverage
         run: pytest tetherdust/tests/ --cov --cov-report=term-missing --tb=short

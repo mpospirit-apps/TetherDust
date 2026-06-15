@@ -11,8 +11,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY tetherdust/pyproject.toml tetherdust/
-RUN pip install --no-cache-dir -e "./tetherdust[web,all-databases]"
+COPY pyproject.toml ./
+RUN mkdir -p tetherdust/mcp_server && touch tetherdust/mcp_server/__init__.py
+RUN pip install --no-cache-dir -e ".[web,all-databases]"
 
 # Copy project files
 COPY tetherdust/ tetherdust/

@@ -7,7 +7,7 @@ this `README.md`) are ignored by the Version console tab.
 
 These notes are what admins see under **Console → Version**, newest first. The
 version is independent of the `mcp_server` package version in
-`tetherdust/pyproject.toml`.
+`pyproject.toml`.
 
 ## How to release
 
