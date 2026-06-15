@@ -22,7 +22,7 @@ def _default_system_prompt_path(agent_type: str | None) -> Path:
     Claude Code seeds from its own CLAUDE.md; every other CLI agent seeds from
     the Codex AGENTS.md.
     """
-    docker_dir = Path(settings.BASE_DIR).parent.parent / "docker"
+    docker_dir = Path(settings.BASE_DIR).parent / "docker"
     if agent_type in ("claude_code", "claude_code_api"):
         return docker_dir / "claude" / "CLAUDE.md"
     return docker_dir / "codex" / "AGENTS.md"

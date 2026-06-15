@@ -244,7 +244,7 @@ services:
         condition: service_healthy
     volumes:
       # Mount web app for development (live template/code changes)
-      - ./tetherdust/web:/app/tetherdust/web
+      - ./web:/app/web
       - ./tdmcp:/app/tdmcp
       - ./documentations:/app/documentations:ro
       - report-results:/app/report_results
@@ -290,7 +290,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    working_dir: /app/tetherdust/web
+    working_dir: /app/web
     entrypoint: []
     command: celery -A tetherdust_web worker -l info --concurrency=2
     depends_on:
@@ -301,7 +301,7 @@ services:
       web:
         condition: service_healthy
     volumes:
-      - ./tetherdust/web:/app/tetherdust/web
+      - ./web:/app/web
       - ./tdmcp:/app/tdmcp
       - report-results:/app/report_results
     environment:
@@ -324,7 +324,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    working_dir: /app/tetherdust/web
+    working_dir: /app/web
     entrypoint: []
     command: celery -A tetherdust_web beat -l info --pidfile=
     depends_on:
@@ -335,7 +335,7 @@ services:
       web:
         condition: service_healthy
     volumes:
-      - ./tetherdust/web:/app/tetherdust/web
+      - ./web:/app/web
       - ./tdmcp:/app/tdmcp
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}

@@ -169,7 +169,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # image-baked collected files aren't shadowed by the mount. WhiteNoise serves
 # files at their original names (no manifest hashing), so templates that
 # reference /static/... paths keep working without changes.
-STATIC_ROOT = BASE_DIR.parent.parent / "staticfiles"
+STATIC_ROOT = BASE_DIR.parent / "staticfiles"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -214,7 +214,7 @@ CELERY_BEAT_SCHEDULE = {
 # Documentation sources folder — admins place doc folders here
 TETHERDUST_DOCUMENTATIONS_DIR = os.getenv(
     "TETHERDUST_DOCUMENTATIONS_DIR",
-    str(BASE_DIR.parent.parent / "documentations"),
+    str(BASE_DIR.parent / "documentations"),
 )
 
 # Logging

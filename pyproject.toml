@@ -87,7 +87,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["tdmcp", "tetherdust/web"]
+source = ["tdmcp", "web"]
 omit = [
     "*/migrations/*",
     "*/tests/*",

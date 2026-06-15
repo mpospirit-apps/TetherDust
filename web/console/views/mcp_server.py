@@ -323,7 +323,7 @@ def _builtin_tool_meta(tool_name: str) -> tuple[str | None, str | None]:
 
         # tdmcp lives at the repository root (…/tdmcp),
         # which isn't on the web app's path by default.
-        repo_root = str(Path(settings.BASE_DIR).parent.parent)
+        repo_root = str(Path(settings.BASE_DIR).parent)
         if repo_root not in sys.path:
             sys.path.insert(0, repo_root)
         module = importlib.import_module(f"tdmcp.tools.{tool_name}")
@@ -352,9 +352,7 @@ def tool_detail_view(request: HttpRequest, server_pk: int, pk: int) -> HttpRespo
             input_schema_display = schema_json
         if agent_description:
             tool_description = agent_description
-        handler_path = (
-            Path(settings.BASE_DIR).parent / "mcp_server" / "tools" / f"{tool.tool_name}.py"
-        )
+        handler_path = Path(settings.BASE_DIR).parent / "tdmcp" / "tools" / f"{tool.tool_name}.py"
         if handler_path.exists():
             handler_source = handler_path.read_text(encoding="utf-8")
 

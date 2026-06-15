@@ -16,13 +16,13 @@ RUN mkdir -p tdmcp && touch tdmcp/__init__.py
 RUN pip install --no-cache-dir -e ".[web,all-databases]"
 
 # Copy project files
-COPY tetherdust/ tetherdust/
+COPY web/ web/
 COPY tdmcp/ tdmcp/
 COPY documentations/ documentations/
 
 # Product release version + per-version changelog. Read at runtime by the
 # Version console tab (core/version.py). These live at the repo root — outside
-# the dev volume mount of tetherdust/web — so they must be copied explicitly.
+# the dev volume mount of web — so they must be copied explicitly.
 COPY VERSION ./VERSION
 COPY changelog/ changelog/
 
@@ -33,13 +33,13 @@ COPY docker/codex/AGENTS.md docker/codex/AGENTS.md
 COPY docker/claude/CLAUDE.md docker/claude/CLAUDE.md
 
 # Create static directory so collectstatic doesn't warn
-RUN mkdir -p tetherdust/web/static
+RUN mkdir -p web/static
 
 # Collect static files into STATIC_ROOT for WhiteNoise to serve when DEBUG=False.
 # Must succeed (no error swallowing) — a silent failure would leave production
 # with no CSS/JS.
 RUN DJANGO_SECRET_KEY=build-placeholder \
-    python tetherdust/web/manage.py collectstatic --noinput
+    python web/manage.py collectstatic --noinput
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh

@@ -26,9 +26,9 @@ repos:
     hooks:
       - id: ruff-check
         args: [--fix]
-        files: ^(tetherdust|docker)/
+        files: ^(web|docker|tdmcp)/
       - id: ruff-format
-        files: ^(tetherdust|docker)/
+        files: ^(web|docker|tdmcp)/
 
   - repo: local
     hooks:
@@ -41,7 +41,7 @@ repos:
 
       - id: mypy
         name: Mypy
-        entry: .venv/bin/mypy tdmcp/ tetherdust/ docker/
+        entry: .venv/bin/mypy tdmcp/ web/ docker/
         language: system
         types: [python]
         pass_filenames: false

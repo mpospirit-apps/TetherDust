@@ -25,7 +25,7 @@ version is independent of the `tdmcp` package version in
 # X.Y.Z — YYYY-MM-DD
 
 ## Upgrade notes for admins
-- e.g. Run `docker compose run --rm web python tetherdust/web/manage.py migrate`
+- e.g. Run `docker compose run --rm web python web/manage.py migrate`
 - e.g. New required env var `FOO` in docker-compose.yml
 
 ## Changed

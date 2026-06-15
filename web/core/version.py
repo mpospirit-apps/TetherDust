@@ -26,9 +26,9 @@ LATEST_CHECKED_AT_KEY = "latest_version_checked_at"
 
 
 def _repo_root() -> Path:
-    # BASE_DIR is <root>/tetherdust/web both in the image (/app/tetherdust/web)
-    # and in a local checkout, so the repo root is two levels up.
-    return Path(settings.BASE_DIR).parents[1]
+    # BASE_DIR is <root>/web both in the image (/app/web)
+    # and in a local checkout, so the repo root is one level up.
+    return Path(settings.BASE_DIR).parent
 
 
 @functools.lru_cache(maxsize=1)

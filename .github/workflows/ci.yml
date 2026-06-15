@@ -24,10 +24,10 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Ruff lint
-        run: ruff check tdmcp/ tetherdust/ docker/
+        run: ruff check tdmcp/ web/ docker/
 
       - name: Ruff format check
-        run: ruff format --check tdmcp/ tetherdust/ docker/
+        run: ruff format --check tdmcp/ web/ docker/
 
   typecheck:
     name: Type Check
@@ -46,7 +46,7 @@ jobs:
         run: pip install -e ".[all-databases,web,dev]"
 
       - name: Mypy
-        run: mypy tdmcp/ tetherdust/ docker/
+        run: mypy tdmcp/ web/ docker/
 
   pyrefly:
     name: Pyrefly

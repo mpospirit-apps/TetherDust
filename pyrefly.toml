@@ -2,12 +2,11 @@ python-interpreter = ".venv/bin/python"
 
 project-includes = [
     "tdmcp/**/*.py",
-    "tetherdust/**/*.py",
+    "web/**/*.py",
     "docker/**/*.py",
 ]
 
 search-path = [
-    "tetherdust/web",
-    "tetherdust",
+    "web",
     ".",
 ]

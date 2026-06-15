@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cd /app/tetherdust/web
+cd /app/web
 
 # Wait for PostgreSQL to be ready (safety net alongside Docker health checks)
 if [ -n "$DB_HOST" ]; then
