@@ -16,7 +16,7 @@ RUN mkdir -p tdmcp && touch tdmcp/__init__.py
 RUN pip install --no-cache-dir -e ".[web,all-databases]"
 
 # Copy project files
-COPY web/ web/
+COPY backend/ backend/
 COPY tdmcp/ tdmcp/
 COPY documentations/ documentations/
 
@@ -33,13 +33,13 @@ COPY docker/codex/AGENTS.md docker/codex/AGENTS.md
 COPY docker/claude/CLAUDE.md docker/claude/CLAUDE.md
 
 # Create static directory so collectstatic doesn't warn
-RUN mkdir -p web/static
+RUN mkdir -p backend/static
 
 # Collect static files into STATIC_ROOT for WhiteNoise to serve when DEBUG=False.
 # Must succeed (no error swallowing) — a silent failure would leave production
 # with no CSS/JS.
 RUN DJANGO_SECRET_KEY=build-placeholder \
-    python web/manage.py collectstatic --noinput
+    python backend/manage.py collectstatic --noinput
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh

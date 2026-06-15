@@ -2,11 +2,11 @@ python-interpreter = ".venv/bin/python"
 
 project-includes = [
     "tdmcp/**/*.py",
-    "web/**/*.py",
+    "backend/**/*.py",
     "docker/**/*.py",
 ]
 
 search-path = [
-    "web",
+    "backend",
     ".",
 ]

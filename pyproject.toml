@@ -85,15 +85,17 @@ packages = ["tdmcp"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+DJANGO_SETTINGS_MODULE = "project.settings"
+pythonpath = ["backend"]
 
 [tool.coverage.run]
-source = ["tdmcp", "web"]
+source = ["tdmcp", "backend"]
 omit = [
     "*/migrations/*",
     "*/tests/*",
-    "web/manage.py",
-    "web/tetherdust_web/asgi.py",
-    "web/tetherdust_web/wsgi.py",
+    "backend/manage.py",
+    "backend/project/asgi.py",
+    "backend/project/wsgi.py",
 ]
 
 [tool.coverage.report]

@@ -5,4 +5,4 @@ target-version = "py311"
 select = ["E", "F", "I", "N", "W", "UP"]
 
 [lint.per-file-ignores]
-"web/core/migrations/*.py" = ["E501"]
+"backend/core/migrations/*.py" = ["E501"]

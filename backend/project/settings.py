@@ -84,7 +84,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "tetherdust_web.urls"
+ROOT_URLCONF = "project.urls"
 
 TEMPLATES = [
     {
@@ -108,8 +108,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "tetherdust_web.wsgi.application"
-ASGI_APPLICATION = "tetherdust_web.asgi.application"
+WSGI_APPLICATION = "project.wsgi.application"
+ASGI_APPLICATION = "project.asgi.application"
 
 # Channel layers for WebSocket support
 _REDIS_URL = os.getenv("REDIS_URL")

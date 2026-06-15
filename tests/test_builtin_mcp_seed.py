@@ -7,7 +7,7 @@ from mcp.server.fastmcp import FastMCP
 
 from tdmcp.tools import register_tools
 
-WEB = Path(__file__).resolve().parent.parent / "web"
+WEB = Path(__file__).resolve().parent.parent / "backend"
 if str(WEB) not in sys.path:
     sys.path.insert(0, str(WEB))
 
