@@ -84,4 +84,4 @@ jobs:
         run: pip install -e ".[all-databases,web,dev]"
 
       - name: Pytest with coverage
-        run: pytest tetherdust/tests/ --cov --cov-report=term-missing --tb=short
+        run: pytest tests/ --cov --cov-report=term-missing --tb=short

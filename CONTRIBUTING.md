@@ -39,16 +39,16 @@ pip install -e ".[all-databases,web,dev]"
 
 ```bash
 # Lint
-ruff check tetherdust/ docker/
+ruff check tdmcp/ tetherdust/ docker/
 
 # Format
-ruff format tetherdust/ docker/
+ruff format tdmcp/ tetherdust/ docker/
 
 # Type check
-mypy tetherdust/ docker/
+mypy tdmcp/ tetherdust/ docker/
 
 # Tests
-pytest tetherdust/tests/
+pytest tests/
 ```
 
 ### Pre-commit hooks

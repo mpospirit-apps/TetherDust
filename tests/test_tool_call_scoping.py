@@ -14,7 +14,7 @@ from tdmcp import server
 from tdmcp._context import request_filter_token
 
 # Make the Django-side helper importable without Django settings.
-WEB = Path(__file__).resolve().parent.parent / "web"
+WEB = Path(__file__).resolve().parent.parent / "tetherdust" / "web"
 if str(WEB) not in sys.path:
     sys.path.insert(0, str(WEB))
 

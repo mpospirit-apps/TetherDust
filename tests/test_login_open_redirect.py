@@ -14,7 +14,7 @@ from pathlib import Path
 
 from django.utils.http import url_has_allowed_host_and_scheme
 
-API_VIEW = Path(__file__).resolve().parent.parent / "web" / "portal" / "views" / "api.py"
+API_VIEW = Path(__file__).resolve().parent.parent / "tetherdust" / "web" / "portal" / "views" / "api.py"
 
 
 def test_login_view_validates_next() -> None:

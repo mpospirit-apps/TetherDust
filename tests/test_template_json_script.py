@@ -10,7 +10,7 @@ from pathlib import Path
 
 from django.utils.html import json_script
 
-WEB = Path(__file__).resolve().parent.parent / "web"
+WEB = Path(__file__).resolve().parent.parent / "tetherdust" / "web"
 
 # (template path, json_script element id) — the converted injection sites.
 SITES = [

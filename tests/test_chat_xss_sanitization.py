@@ -12,7 +12,7 @@ import re
 from collections.abc import Generator
 from pathlib import Path
 
-WEB = Path(__file__).resolve().parent.parent / "web"
+WEB = Path(__file__).resolve().parent.parent / "tetherdust" / "web"
 VENDOR_PURIFY = WEB / "static" / "js" / "vendor" / "purify.min.js"
 
 # Files that call marked.parse and assign the result to innerHTML.

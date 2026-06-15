@@ -84,7 +84,7 @@ packages = ["tdmcp"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tetherdust/tests"]
+testpaths = ["tests"]
 
 [tool.coverage.run]
 source = ["tdmcp", "tetherdust/web"]

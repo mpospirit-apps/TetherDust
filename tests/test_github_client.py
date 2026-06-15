@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 # The integration module lives in the Django web app; add it to the path.
-WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+WEB_DIR = Path(__file__).resolve().parent.parent / "tetherdust" / "web"
 if str(WEB_DIR) not in sys.path:
     sys.path.insert(0, str(WEB_DIR))
 

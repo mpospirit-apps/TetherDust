@@ -48,7 +48,7 @@ repos:
 
       - id: pytest
         name: Pytest
-        entry: .venv/bin/pytest tetherdust/tests/
+        entry: .venv/bin/pytest tests/
         language: system
         types: [python]
         pass_filenames: false
