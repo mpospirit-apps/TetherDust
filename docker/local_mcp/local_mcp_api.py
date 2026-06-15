@@ -14,6 +14,7 @@ import logging
 import os
 import tempfile
 import uuid
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -48,7 +49,7 @@ def _decrypt(encrypted: str) -> str:
         return ""
 
 
-def _load_servers() -> list[dict]:
+def _load_servers() -> list[dict[str, Any]]:
     """Read local MCP server configs from PostgreSQL."""
     if not DATABASE_URL:
         logger.warning("DATABASE_URL not set; no local MCP servers loaded.")
@@ -58,7 +59,7 @@ def _load_servers() -> list[dict]:
     dsn = DATABASE_URL
     for prefix in ("postgresql+psycopg2://", "postgresql+psycopg://"):
         if dsn.startswith(prefix):
-            dsn = "postgresql://" + dsn[len(prefix):]
+            dsn = "postgresql://" + dsn[len(prefix) :]
             break
 
     try:
@@ -87,11 +88,11 @@ def _load_servers() -> list[dict]:
             env = {}
         if isinstance(args_raw, str):
             try:
-                args = json.loads(args_raw)
+                args: list[str] = [str(a) for a in json.loads(args_raw)]
             except Exception:
                 args = []
         else:
-            args = args_raw or []
+            args = [str(a) for a in args_raw] if args_raw else []
         servers.append({"id": row_id, "name": name, "command": command, "args": args, "env": env})
 
     logger.info("Loaded %d local MCP server(s) from DB.", len(servers))
@@ -101,27 +102,29 @@ def _load_servers() -> list[dict]:
 class _ServerProxy:
     """Manages a persistent ClientSession for one subprocess-based MCP server."""
 
-    def __init__(self, server_id: int, name: str, command: str, args: list, env: dict):
+    def __init__(
+        self, server_id: int, name: str, command: str, args: list[str], env: dict[str, str]
+    ):
         self.server_id = server_id
         self.name = name
         self.command = command
         self.args = args
         self.env = env
-        self._task: asyncio.Task | None = None
+        self._task: asyncio.Task[None] | None = None
         self._session: ClientSession | None = None
         self._ready = asyncio.Event()
         self._stop = asyncio.Event()
         self.last_error: str | None = None
         self.state: str = "pending"  # pending | starting | ready | failed | stopped
 
-    async def start(self):
+    async def start(self) -> None:
         self.state = "starting"
         self.last_error = None
         self._ready.clear()
         self._stop.clear()
         self._task = asyncio.create_task(self._run(), name=f"proxy-{self.server_id}")
 
-    async def stop(self):
+    async def stop(self) -> None:
         self.state = "stopped"
         self._stop.set()
         if self._task:
@@ -133,8 +136,9 @@ class _ServerProxy:
         self._session = None
         self._ready.clear()
 
-    async def _run(self):
+    async def _run(self) -> None:
         import shutil
+
         merged_env = {**os.environ, **self.env}
         path_in_use = merged_env.get("PATH", "<not set>")
 
@@ -144,15 +148,12 @@ class _ServerProxy:
         executable = parts[0]
         extra_args = parts[1:]
         effective_args = extra_args + list(self.args)
-        cmd_str = f"{executable} {' '.join(str(a) for a in effective_args)}"
+        cmd_str = f"{executable} {' '.join(effective_args)}"
 
         # Resolve the executable so we can give a clear error before even trying
         resolved = shutil.which(executable, path=merged_env.get("PATH"))
         if resolved is None:
-            self.last_error = (
-                f"Command {executable!r} not found in PATH. "
-                f"PATH={path_in_use}"
-            )
+            self.last_error = f"Command {executable!r} not found in PATH. PATH={path_in_use}"
             self.state = "failed"
             logger.error("[%s] %s", self.name, self.last_error)
             return
@@ -233,22 +234,22 @@ class _ServerProxy:
 
     async def get_session(self, timeout: float = 120.0) -> ClientSession:
         if self.state == "failed":
-            raise RuntimeError(
-                f"MCP server {self.name!r} failed to start: {self.last_error}"
-            )
+            raise RuntimeError(f"MCP server {self.name!r} failed to start: {self.last_error}")
         try:
             await asyncio.wait_for(self._ready.wait(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise RuntimeError(
                 f"MCP server {self.name!r} did not become ready within {timeout}s "
                 f"(state={self.state}, last_error={self.last_error!r})"
             )
         if self._session is None:
-            raise RuntimeError(f"MCP server {self.name!r} session is not available (state={self.state})")
+            raise RuntimeError(
+                f"MCP server {self.name!r} session is not available (state={self.state})"
+            )
         return self._session
 
 
-async def _sync_proxies(servers: list[dict]):
+async def _sync_proxies(servers: list[dict[str, Any]]) -> None:
     """Start proxies for new servers, stop proxies for removed servers."""
     async with _proxies_lock:
         desired_ids = {s["id"] for s in servers}
@@ -269,7 +270,7 @@ async def _sync_proxies(servers: list[dict]):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     servers = _load_servers()
     await _sync_proxies(servers)
     yield
@@ -283,19 +284,19 @@ app = FastAPI(title="TetherDust Local MCP Proxy", lifespan=lifespan)
 
 
 @app.get("/healthz")
-async def healthz():
+async def healthz() -> dict[str, Any]:
     return {"ok": True, "servers": len(_proxies)}
 
 
 @app.get("/status")
-async def status():
+async def status() -> dict[str, Any]:
     """Return the state of every managed proxy."""
     return {
         "servers": [
             {
                 "id": p.server_id,
                 "name": p.name,
-                "command": f"{p.command} {' '.join(str(a) for a in p.args)}",
+                "command": f"{p.command} {' '.join(p.args)}",
                 "state": p.state,
                 "last_error": p.last_error,
             }
@@ -305,7 +306,7 @@ async def status():
 
 
 @app.post("/reload")
-async def reload():
+async def reload() -> dict[str, Any]:
     """Re-read DB and sync running proxies."""
     servers = _load_servers()
     logger.info("Reload requested — syncing %d server(s) from DB.", len(servers))
@@ -313,20 +314,21 @@ async def reload():
     return {
         "ok": True,
         "servers": [
-            {"id": p.server_id, "name": p.name, "state": p.state}
-            for p in _proxies.values()
+            {"id": p.server_id, "name": p.name, "state": p.state} for p in _proxies.values()
         ],
     }
 
 
-@app.post("/mcp/{server_id}/")
-async def proxy_mcp(server_id: int, request: Request):
+@app.post("/mcp/{server_id}/", response_model=None)
+async def proxy_mcp(server_id: int, request: Request) -> Response | JSONResponse:
     """Proxy a single MCP JSON-RPC request to the appropriate subprocess."""
     async with _proxies_lock:
         proxy = _proxies.get(server_id)
 
     if proxy is None:
-        raise HTTPException(status_code=404, detail=f"No active local MCP server with id={server_id}")
+        raise HTTPException(
+            status_code=404, detail=f"No active local MCP server with id={server_id}"
+        )
 
     try:
         body: dict[str, Any] = await request.json()
@@ -347,48 +349,52 @@ async def proxy_mcp(server_id: int, request: Request):
         session = await proxy.get_session()
     except RuntimeError as exc:
         logger.error("[%s] get_session failed: %s", proxy.name, exc)
-        return JSONResponse({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(exc)}})
+        return JSONResponse(
+            {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(exc)}}
+        )
 
     try:
         result = await _dispatch(session, method, params)
         return JSONResponse({"jsonrpc": "2.0", "id": req_id, "result": result})
     except Exception as exc:
         logger.error("Error dispatching %s for server %d: %s", method, server_id, exc)
-        return JSONResponse({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(exc)}})
+        return JSONResponse(
+            {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(exc)}}
+        )
 
 
-async def _dispatch(session: ClientSession, method: str, params: dict) -> Any:
+async def _dispatch(session: ClientSession, method: str, params: dict[str, Any]) -> Any:
     if method == "initialize":
-        result = await session.initialize()
+        init_result = await session.initialize()
         return {
-            "protocolVersion": getattr(result, "protocolVersion", "2024-11-05"),
-            "capabilities": _to_dict(getattr(result, "capabilities", {})),
-            "serverInfo": _to_dict(getattr(result, "serverInfo", {})),
+            "protocolVersion": getattr(init_result, "protocolVersion", "2024-11-05"),
+            "capabilities": _to_dict(getattr(init_result, "capabilities", {})),
+            "serverInfo": _to_dict(getattr(init_result, "serverInfo", {})),
         }
 
     if method == "tools/list":
-        result = await session.list_tools()
-        tools = result.tools if hasattr(result, "tools") else []
+        tools_result = await session.list_tools()
+        tools = tools_result.tools if hasattr(tools_result, "tools") else []
         return {"tools": [_tool_to_dict(t) for t in tools]}
 
     if method == "tools/call":
         name = params.get("name", "")
         arguments = params.get("arguments") or {}
-        result = await session.call_tool(name, arguments)
-        return _call_result_to_dict(result)
+        call_result = await session.call_tool(name, arguments)
+        return _call_result_to_dict(call_result)
 
     if method == "prompts/list":
-        result = await session.list_prompts()
-        prompts = result.prompts if hasattr(result, "prompts") else []
+        prompts_result = await session.list_prompts()
+        prompts = prompts_result.prompts if hasattr(prompts_result, "prompts") else []
         return {"prompts": [_to_dict(p) for p in prompts]}
 
     if method == "prompts/get":
-        result = await session.get_prompt(params.get("name", ""), params.get("arguments"))
-        return _to_dict(result)
+        prompt_result = await session.get_prompt(params.get("name", ""), params.get("arguments"))
+        return _to_dict(prompt_result)
 
     if method == "resources/list":
-        result = await session.list_resources()
-        resources = result.resources if hasattr(result, "resources") else []
+        resources_result = await session.list_resources()
+        resources = resources_result.resources if hasattr(resources_result, "resources") else []
         return {"resources": [_to_dict(r) for r in resources]}
 
     if method == "ping":
@@ -398,7 +404,7 @@ async def _dispatch(session: ClientSession, method: str, params: dict) -> Any:
     raise ValueError(f"Unsupported MCP method: {method!r}")
 
 
-def _tool_to_dict(tool: Any) -> dict:
+def _tool_to_dict(tool: Any) -> dict[str, Any]:
     return {
         "name": getattr(tool, "name", ""),
         "description": getattr(tool, "description", ""),
@@ -406,7 +412,7 @@ def _tool_to_dict(tool: Any) -> dict:
     }
 
 
-def _call_result_to_dict(result: Any) -> dict:
+def _call_result_to_dict(result: Any) -> dict[str, Any]:
     content = getattr(result, "content", [])
     return {
         "content": [_to_dict(c) for c in content],

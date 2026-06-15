@@ -7,10 +7,11 @@ import httpx
 from core.agents.gateway import gateway_auth_headers as _gateway_auth_headers
 from core.models import AgentConfiguration, SystemConfiguration
 from django.conf import settings
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+
+from console.views._helpers import staff_required
 
 from ..forms import AgentConfigurationForm
 
@@ -43,7 +44,7 @@ async def _resolve_codex_url_async(config: object = None) -> str:
     return (config_url or db_url or os.environ.get("CODEX_SERVICE_URL", "")).rstrip("/")
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def agent_list_view(request: HttpRequest) -> HttpResponse:
     agents = AgentConfiguration.objects.all()
     return render(
@@ -56,7 +57,7 @@ def agent_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def agent_type_picker_view(request: HttpRequest) -> HttpResponse:
     """Step 1 of Add Agent: choose an agent type, grouped by integration category."""
     names = dict(AgentConfiguration.AGENT_TYPE_CHOICES)
@@ -77,7 +78,7 @@ def agent_type_picker_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def agent_form_view(
     request: HttpRequest, pk: int | None = None, agent_type: str | None = None
 ) -> HttpResponse:
@@ -207,7 +208,7 @@ def agent_form_view(
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def agent_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     obj = get_object_or_404(AgentConfiguration, pk=pk)
@@ -217,7 +218,7 @@ def agent_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("console:agent_list")
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 async def agent_device_login_start(request: HttpRequest, pk: int) -> HttpResponse:
     """Begin an in-app device-code login by proxying to the Codex service."""
@@ -245,7 +246,7 @@ async def agent_device_login_start(request: HttpRequest, pk: int) -> HttpRespons
     return JsonResponse(resp.json())
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 async def agent_device_login_status(request: HttpRequest, pk: int, login_id: str) -> HttpResponse:
     """Poll a device login; persist the credential on completion."""
     from django.shortcuts import aget_object_or_404
@@ -285,7 +286,7 @@ async def agent_device_login_status(request: HttpRequest, pk: int, login_id: str
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def agent_activate_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Activate an agent via HTMX — returns updated status badge."""

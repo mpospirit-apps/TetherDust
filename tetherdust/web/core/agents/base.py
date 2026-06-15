@@ -11,6 +11,8 @@ class BaseAgent(ABC):
     direct API integrations.
     """
 
+    _tether_raw_log: str = ""
+
     @abstractmethod
     def chat(
         self,

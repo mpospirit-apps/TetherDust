@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from typing import Any
 
 from core.consumers.audit import log_queries_from_response
 from core.consumers.base import BaseAgentConsumer
@@ -40,7 +41,7 @@ class ChatConsumer(SessionMixin, PermissionsMixin, BaseAgentConsumer):
         if partial:
             await self._save_message("assistant", partial + "\n\n*(interrupted)*")
 
-    async def connect(self):
+    async def connect(self) -> None:
         self.user = self.scope["user"]
 
         if not self.user or self.user.is_anonymous:
@@ -120,7 +121,7 @@ class ChatConsumer(SessionMixin, PermissionsMixin, BaseAgentConsumer):
                 )
             )
 
-    async def disconnect(self, close_code: int) -> None:
+    async def disconnect(self, code: int) -> None:
         try:
             await asyncio.wait_for(self._cancel_agent(), timeout=10)
         except TimeoutError:
@@ -171,7 +172,7 @@ class ChatConsumer(SessionMixin, PermissionsMixin, BaseAgentConsumer):
         # cancellation until the response finished.
         self._agent_task = asyncio.create_task(self._run_turn(data, message))
 
-    async def _run_turn(self, data: dict[str, object], message: str) -> None:
+    async def _run_turn(self, data: dict[str, Any], message: str) -> None:
         resource_uris = data.get("resource_uris")
         prompt_context = data.get("prompt_context")
         sources_info = data.get("sources_info") or []
@@ -324,7 +325,7 @@ class ChatConsumer(SessionMixin, PermissionsMixin, BaseAgentConsumer):
             logger.warning("Agent error (session=%s): %s", self.chat_session.id, stream_error)
             await self._safe_save_message("system", f"Agent error: {stream_error}")
 
-        used_tools: list = []
+        used_tools: list[dict[str, object]] = []
         try:
             # Scope the tool-call fetch to this turn's filter token so concurrent
             # chats never see each other's tool calls.

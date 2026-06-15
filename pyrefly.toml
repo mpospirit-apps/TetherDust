@@ -1,0 +1,11 @@
+python-interpreter = "tetherdust/.venv/bin/python"
+
+project-includes = [
+    "tetherdust/**/*.py",
+    "docker/**/*.py",
+]
+
+search-path = [
+    "tetherdust/web",
+    "tetherdust",
+]

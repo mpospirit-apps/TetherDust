@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from .base import BaseAgent
@@ -30,7 +31,7 @@ def build_agent(config: AgentConfiguration) -> BaseAgent:
         OpenRouterAgent,
     )
 
-    agents = {
+    agents: dict[str, Callable[..., BaseAgent]] = {
         "codex": CodexAgent,
         "claude_code": ClaudeCodeAgent,
         "claude_code_api": ClaudeCodeApiAgent,
@@ -48,7 +49,7 @@ def build_agent(config: AgentConfiguration) -> BaseAgent:
     if agent_type not in agents:
         raise ValueError(f"Unknown agent type: {agent_type}. Available: {list(agents.keys())}")
 
-    return agents[agent_type](config=config)  # type: ignore[abstract]
+    return agents[agent_type](config=config)
 
 
 def get_agent() -> BaseAgent:

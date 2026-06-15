@@ -14,13 +14,18 @@ import json as _json
 import logging
 import os
 import threading
-import time
-from collections.abc import AsyncIterator, Sequence
-from typing import Any
+import time as time
+from collections.abc import AsyncGenerator, Sequence
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from starlette.applications import Starlette
 
 from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.server import MCPResource, ReadResourceContents
+from mcp.server.lowlevel.helper_types import ReadResourceContents
 from mcp.types import ContentBlock, TextContent, Tool
+from mcp.types import Resource as MCPResource
+from pydantic import AnyUrl
 
 from . import __version__
 from ._context import (
@@ -148,20 +153,20 @@ def _get_allowed_doc_sources() -> set[str] | None:
 
 
 # Cached file index for /list-resources HTTP endpoint (not MCP protocol).
-_doc_resources_cache: list[dict] = []
+_doc_resources_cache: list[dict[str, str]] = []
 _doc_resources_cache_time: float = 0
 _doc_resources_cache_lock = threading.Lock()
 _DOC_RESOURCES_CACHE_TTL = 300  # seconds
 
 
-def _build_doc_resources_index() -> list[dict]:
+def _build_doc_resources_index() -> list[dict[str, str]]:
     """Walk all documentation sources and return metadata for every file."""
     from pathlib import Path
 
     from .tools import get_shared_parser
 
     parser = get_shared_parser()
-    results: list[dict] = []
+    results: list[dict[str, str]] = []
     for source in parser._sources:
         base = Path(source.path)
         if not base.is_dir():
@@ -185,7 +190,7 @@ def _build_doc_resources_index() -> list[dict]:
     return results
 
 
-def _get_doc_resources_cached() -> list[dict]:
+def _get_doc_resources_cached() -> list[dict[str, str]]:
     """Return cached file index, rebuilding if stale or empty."""
     global _doc_resources_cache, _doc_resources_cache_time
     now = time.time()
@@ -205,7 +210,7 @@ def _list_doc_resources(
     allowed_sources: set[str] | None = None,
     query: str = "",
     limit: int = 30,
-) -> list[dict]:
+) -> list[dict[str, str]]:
     """Return documentation resources, filtered by access and optional search query.
 
     Uses the cached file index. Results are capped at *limit*.
@@ -256,7 +261,7 @@ class TetherDustMCP(FastMCP):
             is_md = doc["path"].lower().endswith(".md")
             resources.append(
                 MCPResource(
-                    uri=doc["uri"],
+                    uri=cast(AnyUrl, doc["uri"]),
                     name=doc["name"],
                     description=f"Documentation file from {doc['source_name']}: {doc['path']}",
                     mimeType="text/markdown" if is_md else "text/plain",
@@ -270,7 +275,7 @@ class TetherDustMCP(FastMCP):
 
         uri_str = str(uri)
         if not uri_str.startswith("docs://"):
-            return await super().read_resource(uri)
+            return list(await super().read_resource(uri_str))
 
         # Parse docs://{source_name}/{path}
         rest = uri_str[len("docs://") :]
@@ -390,7 +395,7 @@ async def main() -> None:
 # ── SSE transport (legacy) ───────────────────────────────────────────────────
 
 
-def _build_sse_app() -> object:
+def _build_sse_app() -> "Starlette":
     """Build a Starlette ASGI app that serves MCP over HTTP/SSE transport."""
     from starlette.applications import Starlette
     from starlette.routing import Route
@@ -425,7 +430,7 @@ def _run_sse() -> None:
 # ── Streamable HTTP transport ────────────────────────────────────────────────
 
 
-def _build_streamable_http_app() -> object:
+def _build_streamable_http_app() -> "Starlette":
     """Build a Starlette ASGI app that serves MCP over Streamable HTTP transport.
 
     The MCP endpoint is mounted at /mcp and supports optional token-based
@@ -581,7 +586,7 @@ def _build_streamable_http_app() -> object:
         return JSONResponse({"status": "cleared"})
 
     @contextlib.asynccontextmanager
-    async def lifespan(app: Starlette) -> AsyncIterator[None]:
+    async def lifespan(app: Starlette) -> AsyncGenerator[None, None]:
         async with session_manager.run():
             logger.info("Streamable HTTP session manager started")
             # Pre-warm the doc resources cache in the background so the first

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -16,10 +16,10 @@ from django.utils.http import url_has_allowed_host_and_scheme
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from django.contrib.auth.base_user import AbstractBaseUser
+    from django.contrib.auth.models import AbstractUser
 
 
-def _default_redirect(user: AbstractBaseUser) -> str:
+def _default_redirect(user: AbstractUser) -> str:
     """Return the default post-login URL based on user type and role access."""
     if user.is_staff:
         return "console:dashboard"
@@ -38,7 +38,7 @@ def _default_redirect(user: AbstractBaseUser) -> str:
 def login_view(request: HttpRequest) -> HttpResponse:
     """Unified login page for all users (staff and regular)."""
     if request.user.is_authenticated:
-        return redirect(_default_redirect(request.user))
+        return redirect(_default_redirect(cast("AbstractUser", request.user)))
 
     error = None
     if request.method == "POST":
@@ -57,7 +57,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 require_https=request.is_secure(),
             ):
                 return redirect(next_url)
-            return redirect(_default_redirect(user))
+            return redirect(_default_redirect(cast("AbstractUser", user)))
         else:
             error = "Invalid credentials."
 
@@ -220,7 +220,7 @@ def doc_sources_api_view(request: HttpRequest) -> JsonResponse:
     """
     import httpx
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     allowed_names = None
     if not user.is_staff:
@@ -256,7 +256,7 @@ def prompts_api_view(request: HttpRequest) -> JsonResponse:
     """Return MCP prompts accessible to the current user, filtered by role."""
     from core.models import PromptConfiguration
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     if user.is_staff:
         prompts = PromptConfiguration.objects.filter(is_enabled=True, mcp_server__is_active=True)

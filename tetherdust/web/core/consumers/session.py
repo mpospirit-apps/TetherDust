@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from channels.db import database_sync_to_async
 
 if TYPE_CHECKING:
+    from ..models import ChatSession
 
     class _Base:
         user: Any
@@ -28,7 +29,7 @@ class SessionMixin(_Base):
     """
 
     @database_sync_to_async
-    def _get_or_create_session(self) -> object:
+    def _get_or_create_session(self) -> ChatSession:
         from ..models import ChatSession
 
         if self.session_id:
@@ -54,7 +55,7 @@ class SessionMixin(_Base):
         )
         result = []
         for msg in messages:
-            entry: dict = {
+            entry: dict[str, object] = {
                 "role": msg["role"],
                 "content": msg["content"],
                 "created_at": msg["created_at"].isoformat(),
@@ -74,9 +75,9 @@ class SessionMixin(_Base):
         self,
         role: str,
         content: str,
-        tools_used: list[str] | None = None,
-        sources_used: list[str] | None = None,
-        prompts_used: list[str] | None = None,
+        tools_used: list[Any] | None = None,
+        sources_used: list[Any] | None = None,
+        prompts_used: list[Any] | None = None,
     ) -> object:
         from ..models import ChatMessage
 
@@ -121,7 +122,7 @@ class SessionMixin(_Base):
         if not messages:
             return []
 
-        turns: list[dict] = []
+        turns: list[dict[str, str]] = []
         total = 0
         for role, content in reversed(messages):
             normalized = "user" if role == "user" else "assistant"

@@ -15,15 +15,19 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from typing import cast
 
 from channels.db import database_sync_to_async
 from core.consumers.base import BaseAgentConsumer
 from core.prompts import build_chart_edit_prompt
+from django.contrib.auth.models import AbstractUser
 
 logger = logging.getLogger(__name__)
 
 
 class ChartEditConsumer(BaseAgentConsumer):
+    user: AbstractUser
+
     # Tools the agent is allowed to call from the chart edit panel.
     _CHART_EDIT_TOOLS = [
         "update_chart",
@@ -36,17 +40,21 @@ class ChartEditConsumer(BaseAgentConsumer):
     ]
 
     def _codex_session_id(self) -> str:
-        return f"chart-edit-{self.chart_id}-{self.user.id}"
+        return f"chart-edit-{self.chart_id}-{self.user.pk}"
 
-    async def connect(self):
-        self.user = self.scope["user"]
+    async def connect(self) -> None:
+        self.user = cast(AbstractUser, self.scope["user"])
 
         if not self.user or self.user.is_anonymous or not self.user.is_staff:
             await self.close(code=4001)
             return
 
+        chart_id_raw = self.scope["url_route"]["kwargs"].get("chart_id")
+        if chart_id_raw is None:
+            await self.close(code=4002)
+            return
         try:
-            self.chart_id = int(self.scope["url_route"]["kwargs"].get("chart_id"))
+            self.chart_id = int(chart_id_raw)
         except (TypeError, ValueError):
             await self.close(code=4002)
             return
@@ -67,7 +75,7 @@ class ChartEditConsumer(BaseAgentConsumer):
             )
         )
 
-    async def disconnect(self, close_code: int) -> None:
+    async def disconnect(self, code: int) -> None:
         try:
             await asyncio.wait_for(self._cancel_agent(), timeout=10)
         except TimeoutError:
@@ -132,7 +140,7 @@ class ChartEditConsumer(BaseAgentConsumer):
             full_response, completed_response = await self._stream_agent_response(
                 agent,
                 message=agent_message,
-                user_id=self.user.id,
+                user_id=self.user.pk,
                 session_id=self._codex_session_id(),
                 allowed_tools=list(self._CHART_EDIT_TOOLS),
                 allowed_databases=[self._chart_database_name],

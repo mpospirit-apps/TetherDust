@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
@@ -13,14 +14,9 @@ from .models import ReportExecution
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
-    from django.contrib.auth.base_user import AbstractBaseUser
-
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_user_profile(
-    sender: type[Any], instance: AbstractBaseUser, created: bool, **kwargs: object
-) -> None:
+def create_user_profile(sender: type[Any], instance: User, created: bool, **kwargs: object) -> None:
     """Create a UserProfile for every new User.
 
     Superusers and staff get the Admin role (if it exists).

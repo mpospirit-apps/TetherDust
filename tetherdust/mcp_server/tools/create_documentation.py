@@ -68,7 +68,7 @@ def _introspect_databases(
 
                 client = clickhouse_connect.get_client(
                     host=config.host,
-                    port=config.port,
+                    port=config.port or 8123,
                     username=config.username or "default",
                     password=config.password or "",
                     database=config.database or "default",

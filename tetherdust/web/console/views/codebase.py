@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 from core.models import Codebase
-from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 
+from console.views._helpers import staff_required
+
 from ..forms import CodebaseForm
 
 
-@staff_member_required(login_url="/login/")
-def codebase_list_view(request):
+@staff_required
+def codebase_list_view(request: HttpRequest) -> HttpResponse:
     codebases = Codebase.objects.all()
     return render(
         request,
@@ -25,8 +26,8 @@ def codebase_list_view(request):
     )
 
 
-@staff_member_required(login_url="/login/")
-def codebase_provider_picker_view(request):
+@staff_required
+def codebase_provider_picker_view(request: HttpRequest) -> HttpResponse:
     """Step 1 of Add Codebase: choose a provider (GitHub only for now)."""
     return render(
         request,
@@ -38,8 +39,10 @@ def codebase_provider_picker_view(request):
     )
 
 
-@staff_member_required(login_url="/login/")
-def codebase_form_view(request, pk=None, provider=None):
+@staff_required
+def codebase_form_view(
+    request: HttpRequest, pk: int | None = None, provider: str | None = None
+) -> HttpResponse:
     instance = get_object_or_404(Codebase, pk=pk) if pk else None
 
     valid_providers = {key for key, _ in Codebase.PROVIDER_CHOICES}
@@ -49,9 +52,10 @@ def codebase_form_view(request, pk=None, provider=None):
     if request.method == "POST":
         form = CodebaseForm(request.POST, instance=instance)
         if form.is_valid():
-            codebase: Codebase = form.save()  # type: ignore[assignment]
+            saved = form.save()
+            assert isinstance(saved, Codebase)
             # Kick off an initial sync so the file tree is cached right away.
-            _enqueue_sync(codebase.pk)
+            _enqueue_sync(saved.pk)
             return redirect("console:codebase_list")
     else:
         initial: dict[str, object] = {"provider": provider} if provider else {}
@@ -75,17 +79,17 @@ def codebase_form_view(request, pk=None, provider=None):
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
-def codebase_delete_view(request, pk):
+def codebase_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     obj = get_object_or_404(Codebase, pk=pk)
     obj.delete()
     return redirect("console:codebase_list")
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
-def codebase_sync_view(request, pk):
+def codebase_sync_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Mark a codebase as syncing, enqueue the sync, and return to the list.
 
     The list row then polls ``codebase_status`` until the sync settles.
@@ -98,8 +102,8 @@ def codebase_sync_view(request, pk):
     return redirect("console:codebase_list")
 
 
-@staff_member_required(login_url="/login/")
-def codebase_status_view(request, pk):
+@staff_required
+def codebase_status_view(request: HttpRequest, pk: int) -> HttpResponse:
     """HTMX poll target: returns the current sync-status cell."""
     obj = get_object_or_404(Codebase, pk=pk)
     html = render_to_string("console/codebases/_status.html", {"cb": obj}, request=request)

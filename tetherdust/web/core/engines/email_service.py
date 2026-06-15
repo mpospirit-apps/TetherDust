@@ -85,7 +85,7 @@ def _build_html_body(
     html = f"""<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto;">
     <h2 style="color: #333; margin-bottom: 4px;">{escape(report_name)}</h2>
     <p style="color: #666; font-size: 14px; margin-top: 0;">
-        {escape(str(timestamp.strftime("%Y-%m-%d %H:%M UTC") if timestamp else "N/A"))}
+        {escape(timestamp.strftime("%Y-%m-%d %H:%M UTC") if timestamp else "N/A")}
         &nbsp;&middot;&nbsp; {row_count} row{"s" if row_count != 1 else ""}
         {f" &nbsp;&middot;&nbsp; {execution.execution_time_ms}ms" if execution.execution_time_ms else ""}
     </p>"""
@@ -96,7 +96,7 @@ def _build_html_body(
         html += """<table style="border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 12px;">
         <thead><tr>"""
         for col in column_names:
-            html += f'<th style="border: 1px solid #ddd; padding: 8px 10px; background: #f5f5f5; text-align: left; font-weight: 600;">{escape(str(col))}</th>'  # noqa: E501
+            html += f'<th style="border: 1px solid #ddd; padding: 8px 10px; background: #f5f5f5; text-align: left; font-weight: 600;">{escape(col)}</th>'  # noqa: E501
         html += "</tr></thead><tbody>"
 
         for row in preview_rows:

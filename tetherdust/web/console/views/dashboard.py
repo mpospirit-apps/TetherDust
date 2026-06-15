@@ -15,7 +15,7 @@ from core.models import (
     ToolConfiguration,
 )
 from core.prompts import DASHBOARD_TEMPLATES
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
 from django.db.models import Count
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -23,11 +23,13 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from sqlalchemy.exc import SQLAlchemyError
 
+from console.views._helpers import staff_required
+
 from ..forms import ChartForm, DashboardForm
 from ._helpers import _get_chartgen_timeout, _serialize_sql_value, logger
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def dashboard_list_view_admin(request: HttpRequest) -> HttpResponse:
     dashboards = Dashboard.objects.annotate(chart_count=Count("charts")).all()
     return render(
@@ -40,7 +42,7 @@ def dashboard_list_view_admin(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def dashboard_form_view_admin(request: HttpRequest, pk: int | None = None) -> HttpResponse:
     instance = get_object_or_404(Dashboard, pk=pk) if pk else None
 
@@ -67,7 +69,7 @@ def dashboard_form_view_admin(request: HttpRequest, pk: int | None = None) -> Ht
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def dashboard_delete_view_admin(request: HttpRequest, pk: int) -> HttpResponse:
     obj = get_object_or_404(Dashboard, pk=pk)
@@ -75,10 +77,10 @@ def dashboard_delete_view_admin(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("console:dashboard_list")
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def dashboard_detail_view_admin(request: HttpRequest, pk: int) -> HttpResponse:
     dashboard = get_object_or_404(Dashboard, pk=pk)
-    charts = dashboard.charts.filter(is_active=True).select_related("database")
+    charts = Chart.objects.filter(dashboard=dashboard, is_active=True).select_related("database")
     return render(
         request,
         "console/dashboards/detail.html",
@@ -90,7 +92,7 @@ def dashboard_detail_view_admin(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def chart_form_view(request: HttpRequest, dashboard_pk: int, pk: int | None = None) -> HttpResponse:
     dashboard = get_object_or_404(Dashboard, pk=dashboard_pk)
     instance = get_object_or_404(Chart, pk=pk, dashboard=dashboard) if pk else None
@@ -135,7 +137,7 @@ def chart_form_view(request: HttpRequest, dashboard_pk: int, pk: int | None = No
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def chart_delete_view(request: HttpRequest, dashboard_pk: int, pk: int) -> HttpResponse:
     chart = get_object_or_404(Chart, pk=pk, dashboard__pk=dashboard_pk)
@@ -148,7 +150,7 @@ def chart_delete_view(request: HttpRequest, dashboard_pk: int, pk: int) -> HttpR
 # (Phase 1 prompt consolidation), imported as ``DASHBOARD_TEMPLATES`` above.
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def dashboard_generate_page_view(request: HttpRequest) -> HttpResponse:
     """Page for AI dashboard generation."""
     return render(
@@ -194,7 +196,7 @@ def _run_dashboard_gen_background(
         agent = get_agent()
         chartgen_timeout = _get_chartgen_timeout()
 
-        async def _generate():
+        async def _generate() -> str:
             chunks = []
             completed_response = ""
             async for chunk in agent.chat(
@@ -219,12 +221,11 @@ def _run_dashboard_gen_background(
                     chunks.append(event.text)
                     status = event.text.strip()
                 if status:
-                    await asyncio.get_running_loop().run_in_executor(
-                        None,
-                        lambda s=status: _ChartGenLog.objects.filter(pk=log_pk).update(
-                            agent_output=s
-                        ),
-                    )
+
+                    def _update_log(s: str) -> None:
+                        _ChartGenLog.objects.filter(pk=log_pk).update(agent_output=s)
+
+                    await asyncio.get_running_loop().run_in_executor(None, _update_log, status)
             return completed_response or "".join(chunks)
 
         loop = asyncio.new_event_loop()
@@ -247,7 +248,7 @@ def _run_dashboard_gen_background(
     dashboard = _Dashboard.objects.filter(name=dashboard_name).first()
     charts_created = 0
     if dashboard:
-        charts_created = dashboard.charts.count()
+        charts_created = Chart.objects.filter(dashboard=dashboard).count()
         dashboard.created_by_id = user_id
         dashboard.save(update_fields=["created_by_id"])
 
@@ -265,11 +266,14 @@ def _run_dashboard_gen_background(
     log_entry.save()
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def dashboard_generate_view(request: HttpRequest) -> HttpResponse:
     """Start dashboard generation in a background thread."""
     import threading
+
+    if not isinstance(request.user, User):
+        return JsonResponse({"success": False, "error": "Forbidden"})
 
     dashboard_name = request.POST.get("dashboard_name", "").strip()
     dashboard_type = request.POST.get("dashboard_type", "overview")
@@ -366,7 +370,7 @@ def dashboard_generate_view(request: HttpRequest) -> HttpResponse:
         args=(
             log_entry.pk,
             prompt,
-            request.user.id,
+            request.user.pk,
             enabled_tools,
             selected_db_names,
             selected_doc_names,
@@ -385,7 +389,7 @@ def dashboard_generate_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def dashboard_generate_status_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Poll endpoint for dashboard generation status."""
     log_entry = get_object_or_404(ChartGenerationLog, pk=pk)
@@ -399,7 +403,7 @@ def dashboard_generate_status_view(request: HttpRequest, pk: int) -> HttpRespons
         dashboard = Dashboard.objects.filter(name=log_entry.dashboard_name).first()
         if dashboard:
             data["dashboard_id"] = dashboard.pk
-            data["charts_created"] = dashboard.charts.count()
+            data["charts_created"] = Chart.objects.filter(dashboard=dashboard).count()
         data["agent_output"] = log_entry.agent_output
         return JsonResponse(data)
 
@@ -418,7 +422,7 @@ def dashboard_generate_status_view(request: HttpRequest, pk: int) -> HttpRespons
     return JsonResponse(data)
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def chart_preview_view(request: HttpRequest, dashboard_pk: int) -> HttpResponse:
     """Execute an ad-hoc SQL query for the edit-page preview.
@@ -460,7 +464,7 @@ def chart_preview_view(request: HttpRequest, dashboard_pk: int) -> HttpResponse:
     return JsonResponse({"columns": columns, "data": rows})
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def chart_state_view(request: HttpRequest, dashboard_pk: int, pk: int) -> HttpResponse:
     """Return the current editable state of a chart as JSON.
 
@@ -478,7 +482,7 @@ def chart_state_view(request: HttpRequest, dashboard_pk: int, pk: int) -> HttpRe
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def chart_data_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Return chart data as JSON. Uses cached data unless ?refresh=1 is set."""
     chart = get_object_or_404(Chart.objects.select_related("database"), pk=pk)

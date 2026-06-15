@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 
-from ..integrations.github_client import parse_owner_repo
+from ..integrations.github_client import parse_owner_repo as parse_owner_repo
 from ._encryption import decrypt_value, encrypt_value
 
 
@@ -36,35 +36,33 @@ class DatabaseConnection(models.Model):
         "clickhouse": 8123,
     }
 
-    name: models.CharField = models.CharField(
+    name = models.CharField(
         max_length=100, unique=True, help_text="Unique identifier for this connection"
     )
-    description: models.TextField = models.TextField(
+    description = models.TextField(
         blank=True, help_text="Helps AI agent understand what data this database contains"
     )
-    engine: models.CharField = models.CharField(
-        max_length=50, choices=ENGINE_CHOICES, default="postgresql"
-    )
-    host: models.CharField = models.CharField(max_length=255, blank=True)
-    port: models.IntegerField = models.IntegerField(null=True, blank=True)
-    database: models.CharField = models.CharField(
+    engine = models.CharField(max_length=50, choices=ENGINE_CHOICES, default="postgresql")
+    host = models.CharField(max_length=255, blank=True)
+    port = models.IntegerField(null=True, blank=True)
+    database = models.CharField(
         max_length=255,
         blank=True,
         help_text="Database name or file path for SQLite. Optional for engines with a default (e.g. ClickHouse uses 'default'), or when using a full connection_string.",  # noqa: E501
     )
-    username: models.CharField = models.CharField(max_length=255, blank=True)
-    _password: models.CharField = models.CharField(
+    username = models.CharField(max_length=255, blank=True)
+    _password = models.CharField(
         max_length=500, blank=True, db_column="password", help_text="Encrypted at rest"
     )
-    connection_string: models.TextField = models.TextField(
+    connection_string = models.TextField(
         blank=True, help_text="Optional: Full SQLAlchemy URL (overrides above fields)"
     )
-    extra_options: models.JSONField = models.JSONField(
+    extra_options = models.JSONField(
         default=dict,
         blank=True,
         help_text="Additional SQLAlchemy connect_args (e.g., SSL settings)",
     )
-    read_only: models.BooleanField = models.BooleanField(
+    read_only = models.BooleanField(
         default=True,
         help_text=(
             "Strongly recommended. Runs every query in a read-only database session on "
@@ -74,9 +72,9 @@ class DatabaseConnection(models.Model):
             "checked by the SQL validator."
         ),
     )
-    is_active: models.BooleanField = models.BooleanField(default=True)
-    created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
-    updated_at: models.DateTimeField = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["name"]
@@ -173,59 +171,51 @@ class Codebase(models.Model):
         "*.eot",
     ]
 
-    name: models.CharField = models.CharField(
+    name = models.CharField(
         max_length=100, unique=True, help_text="Unique identifier for this codebase"
     )
-    description: models.TextField = models.TextField(
+    description = models.TextField(
         blank=True, help_text="Helps the AI agent understand what this repository contains"
     )
-    provider: models.CharField = models.CharField(
-        max_length=20, choices=PROVIDER_CHOICES, default="github"
-    )
-    repo_url: models.CharField = models.CharField(
-        max_length=500, help_text="e.g. https://github.com/owner/repo"
-    )
-    branch: models.CharField = models.CharField(
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default="github")
+    repo_url = models.CharField(max_length=500, help_text="e.g. https://github.com/owner/repo")
+    branch = models.CharField(
         max_length=255, blank=True, help_text="Leave blank to use the repository's default branch"
     )
-    subpath: models.CharField = models.CharField(
+    subpath = models.CharField(
         max_length=500,
         blank=True,
         help_text="Optional sub-directory to scope to, for monorepos (e.g. services/api)",
     )
-    include_globs: models.JSONField = models.JSONField(
+    include_globs = models.JSONField(
         default=list,
         blank=True,
         help_text='Glob patterns to include, e.g. ["src/**", "*.py"]. Empty = everything (minus excludes).',  # noqa: E501
     )
-    exclude_globs: models.JSONField = models.JSONField(
+    exclude_globs = models.JSONField(
         default=list,
         blank=True,
         help_text="Glob patterns to exclude. Empty = a sensible default set (node_modules, build output, binaries).",  # noqa: E501
     )
-    _access_token: models.CharField = models.CharField(
+    _access_token = models.CharField(
         max_length=500,
         blank=True,
         db_column="access_token",
         help_text="Encrypted GitHub token. Leave blank for public repositories.",
     )
     # Sync / cache state
-    default_branch: models.CharField = models.CharField(
-        max_length=255, blank=True, help_text="Resolved on sync"
-    )
-    cached_tree: models.JSONField = models.JSONField(
+    default_branch = models.CharField(max_length=255, blank=True, help_text="Resolved on sync")
+    cached_tree = models.JSONField(
         default=list,
         blank=True,
         help_text="Cached repository file tree (list of {path, type, size}), refreshed on sync.",
     )
-    last_synced_at: models.DateTimeField = models.DateTimeField(null=True, blank=True)
-    sync_status: models.CharField = models.CharField(
-        max_length=20, choices=SYNC_STATUS_CHOICES, default=SYNC_PENDING
-    )
-    sync_error: models.TextField = models.TextField(blank=True)
-    is_active: models.BooleanField = models.BooleanField(default=True)
-    created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
-    updated_at: models.DateTimeField = models.DateTimeField(auto_now=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    sync_status = models.CharField(max_length=20, choices=SYNC_STATUS_CHOICES, default=SYNC_PENDING)
+    sync_error = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["name"]
@@ -290,29 +280,29 @@ class DocumentationSource(models.Model):
         ONTOLOGY = "ontology", "Ontology"
         RUNBOOK = "runbook", "Runbook"
 
-    folder_name: models.CharField = models.CharField(
+    folder_name = models.CharField(
         max_length=255,
         unique=True,
         help_text="Folder name inside the documentations/ directory",
     )
-    doc_type: models.CharField = models.CharField(
+    doc_type = models.CharField(
         max_length=20,
         choices=DocType.choices,
         default=DocType.DATABASE,
         verbose_name="Type",
         help_text="The category of documentation this source contains",
     )
-    description: models.TextField = models.TextField(
+    description = models.TextField(
         blank=True, help_text="Helps AI understand what this source contains"
     )
-    file_patterns: models.JSONField = models.JSONField(
+    file_patterns = models.JSONField(
         default=list,
         blank=True,
         help_text='Glob patterns for files, e.g. ["*.md"] or ["*.py", "*.sql"]. Leave empty for default (*.md).',  # noqa: E501
     )
-    is_active: models.BooleanField = models.BooleanField(default=True)
-    created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
-    updated_at: models.DateTimeField = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["folder_name"]
@@ -385,63 +375,57 @@ class MCPServerConfiguration(models.Model):
         ("streamable-http", "Streamable HTTP"),
     ]
 
-    name: models.CharField = models.CharField(
+    name = models.CharField(
         max_length=100, unique=True, help_text="Display name for this MCP server"
     )
-    description: models.TextField = models.TextField(
-        blank=True, help_text="What this MCP server provides"
-    )
-    url: models.CharField = models.CharField(
+    description = models.TextField(blank=True, help_text="What this MCP server provides")
+    url = models.CharField(
         max_length=500,
         blank=True,
         help_text="Full MCP endpoint URL, e.g. https://example.com/mcp (leave blank for the built-in server)",  # noqa: E501
     )
-    host: models.CharField = models.CharField(
-        max_length=255, blank=True, help_text="Deprecated — use `url` instead"
-    )
-    port: models.IntegerField = models.IntegerField(
-        null=True, blank=True, help_text="Deprecated — use `url` instead"
-    )
-    transport: models.CharField = models.CharField(
+    host = models.CharField(max_length=255, blank=True, help_text="Deprecated — use `url` instead")
+    port = models.IntegerField(null=True, blank=True, help_text="Deprecated — use `url` instead")
+    transport = models.CharField(
         max_length=20,
         blank=True,
         default="",
         choices=TRANSPORT_CHOICES,
         help_text="Transport protocol (leave blank for the built-in server)",
     )
-    _auth_token: models.CharField = models.CharField(
+    _auth_token = models.CharField(
         max_length=500,
         blank=True,
         db_column="auth_token",
         help_text="Encrypted bearer token sent as Authorization: Bearer …",
     )
-    headers: models.JSONField = models.JSONField(
+    headers = models.JSONField(
         default=dict,
         blank=True,
         help_text='Extra HTTP headers sent to the MCP server, e.g. {"X-API-Key": "abc"}',
     )
     # Local subprocess server fields
-    command: models.CharField = models.CharField(
+    command = models.CharField(
         max_length=500,
         blank=True,
         help_text='Executable to run, e.g. "npx" or "uvx". Set this for local subprocess servers.',
     )
-    args: models.JSONField = models.JSONField(
+    args = models.JSONField(
         default=list,
         blank=True,
         help_text='Arguments for the command, e.g. ["-y", "@notionhq/notion-mcp-server"]',
     )
-    _command_env: models.TextField = models.TextField(
+    _command_env = models.TextField(
         blank=True,
         db_column="command_env",
         help_text="Encrypted JSON dict of environment variables passed to the subprocess.",
     )
-    is_active: models.BooleanField = models.BooleanField(default=True)
-    is_builtin: models.BooleanField = models.BooleanField(
+    is_active = models.BooleanField(default=True)
+    is_builtin = models.BooleanField(
         default=False, help_text="Built-in servers cannot be edited or deleted"
     )
-    created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
-    updated_at: models.DateTimeField = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-is_builtin", "name"]
@@ -469,7 +453,10 @@ class MCPServerConfiguration(models.Model):
         try:
             import json as _json
 
-            return _json.loads(raw)
+            parsed = _json.loads(raw)
+            if not isinstance(parsed, dict):
+                return {}
+            return {str(k): str(v) for k, v in parsed.items()}
         except Exception:
             return {}
 
@@ -505,38 +492,36 @@ class ToolConfiguration(models.Model):
         related_name="tools",
         help_text="MCP server this tool belongs to",
     )
-    tool_name: models.CharField = models.CharField(
+    tool_name = models.CharField(
         max_length=100, unique=True, help_text="Internal tool name (e.g., 'search_docs')"
     )
-    display_name: models.CharField = models.CharField(
-        max_length=100, help_text="Human-readable name"
-    )
-    category: models.CharField = models.CharField(
+    display_name = models.CharField(max_length=100, help_text="Human-readable name")
+    category = models.CharField(
         max_length=20,
         blank=True,
         default="",
         choices=CATEGORY_CHOICES,
         help_text="TetherDust feature this tool belongs to (groups tools in the console).",
     )
-    description: models.TextField = models.TextField(
+    description = models.TextField(
         help_text="AI-facing description that guides when/how the tool is used"
     )
-    is_enabled: models.BooleanField = models.BooleanField(default=True)
-    input_schema: models.JSONField = models.JSONField(
+    is_enabled = models.BooleanField(default=True)
+    input_schema = models.JSONField(
         default=dict,
         blank=True,
         help_text='MCP tool input schema (JSON Schema). Example: {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}',  # noqa: E501
     )
-    source_code: models.TextField = models.TextField(
+    source_code = models.TextField(
         blank=True,
         default="",
         help_text="Python handler code. Must define an async function handle(arguments: dict) -> str that returns the tool result text.",  # noqa: E501
     )
-    settings: models.JSONField = models.JSONField(
+    settings = models.JSONField(
         default=dict, blank=True, help_text="Tool-specific settings (e.g., max_results, timeout)"
     )
-    created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
-    updated_at: models.DateTimeField = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["category", "display_name"]
@@ -561,21 +546,21 @@ class PromptConfiguration(models.Model):
         related_name="prompts",
         help_text="MCP server this prompt belongs to",
     )
-    prompt_name: models.CharField = models.CharField(
+    prompt_name = models.CharField(
         max_length=100,
         unique=True,
         help_text="Internal prompt name (e.g., 'analyze_table')",
     )
-    display_name: models.CharField = models.CharField(
+    display_name = models.CharField(
         max_length=100, help_text="Human-readable name shown in autocomplete"
     )
-    is_enabled: models.BooleanField = models.BooleanField(default=True)
-    content: models.TextField = models.TextField(
+    is_enabled = models.BooleanField(default=True)
+    content = models.TextField(
         default="",
         help_text="The prompt instructions. This text is prepended to the user's message as context for the AI agent.",  # noqa: E501
     )
-    created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
-    updated_at: models.DateTimeField = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["display_name"]
@@ -596,14 +581,10 @@ class SystemConfiguration(models.Model):
         ("json", "JSON"),
     ]
 
-    key: models.CharField = models.CharField(max_length=100, unique=True)
-    value: models.TextField = models.TextField()
-    value_type: models.CharField = models.CharField(
-        max_length=20, choices=VALUE_TYPE_CHOICES, default="string"
-    )
-    description: models.TextField = models.TextField(
-        blank=True, help_text="Explain what this setting does"
-    )
+    key = models.CharField(max_length=100, unique=True)
+    value = models.TextField()
+    value_type = models.CharField(max_length=20, choices=VALUE_TYPE_CHOICES, default="string")
+    description = models.TextField(blank=True, help_text="Explain what this setting does")
 
     class Meta:
         verbose_name = "System Configuration"
@@ -652,12 +633,12 @@ class QueryAuditLog(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     database = models.ForeignKey(DatabaseConnection, on_delete=models.SET_NULL, null=True)
-    query: models.TextField = models.TextField()
-    row_count: models.IntegerField = models.IntegerField(null=True)
-    execution_time_ms: models.IntegerField = models.IntegerField(null=True)
-    success: models.BooleanField = models.BooleanField(default=True)
-    error_message: models.TextField = models.TextField(blank=True)
-    created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
+    query = models.TextField()
+    row_count = models.IntegerField(null=True)
+    execution_time_ms = models.IntegerField(null=True)
+    success = models.BooleanField(default=True)
+    error_message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]

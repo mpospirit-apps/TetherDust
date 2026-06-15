@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+from typing import Any
+
 from core.models import (
     AgentConfiguration,
     ChatSession,
@@ -14,7 +17,6 @@ from core.models import (
     Tether,
     ToolConfiguration,
 )
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
@@ -22,6 +24,8 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+
+from console.views._helpers import staff_required
 
 TREND_DAYS = 14
 SPARK_W = 100
@@ -58,9 +62,9 @@ def _delta(current: int, previous: int) -> dict[str, object]:
     return {"value": diff, "dir": direction, "pct": pct, "abs": abs(diff)}
 
 
-def _daily_query_trend(now: timezone.datetime) -> list[dict[str, object]]:
+def _daily_query_trend(now: datetime) -> list[dict[str, Any]]:
     """Group the last TREND_DAYS of audit logs into ordered daily buckets."""
-    start = (now - timezone.timedelta(days=TREND_DAYS - 1)).replace(
+    start = (now - timedelta(days=TREND_DAYS - 1)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
     rows = (
@@ -71,29 +75,29 @@ def _daily_query_trend(now: timezone.datetime) -> list[dict[str, object]]:
     )
     by_day = {r["day"]: r for r in rows}
 
-    days = []
+    days: list[dict[str, Any]] = []
     today = timezone.localdate()
     for offset in range(TREND_DAYS - 1, -1, -1):
-        d = today - timezone.timedelta(days=offset)
+        d = today - timedelta(days=offset)
         row = by_day.get(d)
         total = row["total"] if row else 0
         failed = row["failed"] if row else 0
         days.append({"date": d, "total": total, "failed": failed, "ok": total - failed})
 
-    max_total = max((d["total"] for d in days), default=0) or 1
-    for d in days:
-        d["ok_h"] = round(d["ok"] / max_total * 100, 2)
-        d["failed_h"] = round(d["failed"] / max_total * 100, 2)
+    max_total = max((day["total"] for day in days), default=0) or 1
+    for day in days:
+        day["ok_h"] = round(day["ok"] / max_total * 100, 2)
+        day["failed_h"] = round(day["failed"] / max_total * 100, 2)
     return days
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def dashboard_view(request: HttpRequest) -> HttpResponse:
     """Admin dashboard with system metrics, trends, and health."""
     now = timezone.now()
-    last_24h = now - timezone.timedelta(hours=24)
-    prev_24h = now - timezone.timedelta(hours=48)
-    last_7d = now - timezone.timedelta(days=7)
+    last_24h = now - timedelta(hours=24)
+    prev_24h = now - timedelta(hours=48)
+    last_7d = now - timedelta(days=7)
 
     queries_24h = QueryAuditLog.objects.filter(created_at__gte=last_24h).count()
     failed_24h = QueryAuditLog.objects.filter(created_at__gte=last_24h, success=False).count()
@@ -129,7 +133,7 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     kpis = {
         "queries": {
             "delta": _delta(queries_24h, queries_prev),
-            "spark": _sparkline_points([d["total"] for d in trend]),  # type: ignore[misc]
+            "spark": _sparkline_points([d["total"] for d in trend]),
         },
         "sessions": {"delta": _delta(sessions_24h, sessions_prev)},
         "failed": {
@@ -192,7 +196,7 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-def _quickstart_steps():
+def _quickstart_steps() -> list[dict[str, Any]]:
     """Build the ordered onboarding checklist with completion derived from state."""
     db_connected = DatabaseConnection.objects.exists()
     db_documented = DocumentationSource.objects.filter(
@@ -205,7 +209,7 @@ def _quickstart_steps():
         is_active=True,
     ).exists()
 
-    steps = [
+    steps: list[dict[str, Any]] = [
         {
             "title": "Configure an AI agent",
             "description": "Set up and activate an agent to handle chat queries.",
@@ -271,8 +275,8 @@ def _quickstart_steps():
     return steps
 
 
-@staff_member_required(login_url="/login/")
-def quickstart_view(request):
+@staff_required
+def quickstart_view(request: HttpRequest) -> HttpResponse:
     """Onboarding checklist tab with per-step completion and CTAs."""
     steps = _quickstart_steps()
     return render(
@@ -287,9 +291,9 @@ def quickstart_view(request):
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
-def quickstart_finish_view(request):
+def quickstart_finish_view(request: HttpRequest) -> HttpResponse:
     """Mark the informational final onboarding step as acknowledged."""
     SystemConfiguration.set_value(
         "onboarding_finished",

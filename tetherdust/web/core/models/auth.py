@@ -18,8 +18,8 @@ from .connections import (
 class Role(models.Model):
     """Admin-configurable role with granular permissions."""
 
-    name: models.CharField = models.CharField(max_length=50, unique=True)
-    description: models.TextField = models.TextField(blank=True)
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
     allowed_tools = models.ManyToManyField(ToolConfiguration, blank=True, related_name="roles")
     allowed_databases = models.ManyToManyField(DatabaseConnection, blank=True, related_name="roles")
     allowed_doc_sources = models.ManyToManyField(
@@ -34,20 +34,18 @@ class Role(models.Model):
         blank=True,
         related_name="roles",
     )
-    max_row_limit: models.IntegerField = models.IntegerField(
-        default=100, help_text="Maximum rows per query"
-    )
-    can_manage_users: models.BooleanField = models.BooleanField(default=False)
-    can_chat: models.BooleanField = models.BooleanField(
+    max_row_limit = models.IntegerField(default=100, help_text="Maximum rows per query")
+    can_manage_users = models.BooleanField(default=False)
+    can_chat = models.BooleanField(
         default=True,
         help_text="Allow users with this role to use the chat interface.",
     )
-    can_view_tethers: models.BooleanField = models.BooleanField(
+    can_view_tethers = models.BooleanField(
         default=True,
         help_text="Allow users with this role to view Tethers.",
     )
-    is_active: models.BooleanField = models.BooleanField(default=True)
-    is_admin_role: models.BooleanField = models.BooleanField(
+    is_active = models.BooleanField(default=True)
+    is_admin_role = models.BooleanField(
         default=False,
         help_text="Admin roles bypass all access restrictions. Access control settings are ignored.",  # noqa: E501
     )
@@ -270,4 +268,4 @@ class UserProfile(models.Model):
             return False
         if self.role.is_admin_role:
             return True
-        return bool(self.role.can_chat)
+        return self.role.can_chat

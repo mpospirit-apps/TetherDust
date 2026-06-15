@@ -1,6 +1,7 @@
 """Forms for database, documentation, MCP, tool, prompt, and system-settings configuration."""
 
 import json
+from typing import Any
 
 from core.forms.base import _BaseForm
 from core.models import (
@@ -99,11 +100,11 @@ class DocumentationSourceForm(_BaseForm):
         if not path.exists() or not path.is_dir():
             raise forms.ValidationError(f"Folder does not exist: {folder_name}")
 
-        return folder_name
+        return str(folder_name)
 
-    def clean(self) -> dict[str, object]:
+    def clean(self) -> dict[str, Any]:
         """Validate that the configured patterns match at least one file."""
-        cleaned_data = super().clean()
+        cleaned_data = super().clean() or {}
         folder_name = cleaned_data.get("folder_name")
         file_patterns = cleaned_data.get("file_patterns") or ["*.md"]
 
@@ -171,7 +172,7 @@ class CodebaseForm(_BaseForm):
             raise forms.ValidationError(
                 "Enter a GitHub repository URL like https://github.com/owner/repo"
             )
-        return repo_url
+        return str(repo_url)
 
     def save(self, commit: bool = True) -> object:
         instance = super().save(commit=False)
@@ -275,8 +276,8 @@ class MCPServerConfigurationForm(_BaseForm):
             except Exception:
                 pass
 
-    def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
         command = (cleaned.get("command") or "").strip()
         url = (cleaned.get("url") or "").strip()
         if command and url:

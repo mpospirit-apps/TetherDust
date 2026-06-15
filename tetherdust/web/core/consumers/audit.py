@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from channels.db import database_sync_to_async
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 @database_sync_to_async
-def log_queries_from_response(user, response: str) -> None:
+def log_queries_from_response(user: Any, response: str) -> None:
     """Parse agent response for query indicators and create an audit log entry."""
     from ..models import QueryAuditLog
 

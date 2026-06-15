@@ -17,9 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 def _results_dir() -> Path:
-    return Path(
-        getattr(settings, "TETHERDUST_REPORT_RESULTS_DIR", settings.BASE_DIR / "report_results")
-    )
+    default = settings.BASE_DIR / "report_results"
+    return Path(cast("str | Path", getattr(settings, "TETHERDUST_REPORT_RESULTS_DIR", default)))
 
 
 def _execution_dir(execution_id: int) -> Path:

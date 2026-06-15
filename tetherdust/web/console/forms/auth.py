@@ -1,5 +1,7 @@
 """Forms for roles, user profiles, and user creation."""
 
+from typing import TYPE_CHECKING, Any, cast
+
 from core.forms.base import _BaseForm
 from core.models import (
     Codebase,
@@ -15,6 +17,8 @@ from core.models import (
 )
 from django import forms
 from django.contrib.auth.models import User
+from django.db.models import Model as DjangoModel
+from django.forms import ModelMultipleChoiceField
 
 
 class RoleForm(_BaseForm):
@@ -107,7 +111,8 @@ class RoleForm(_BaseForm):
         }
 
     def __init__(self, *args: object, **kwargs: object) -> None:
-        explicit_initial: dict[str, object] = kwargs.get("initial") or {}  # type: ignore[assignment]
+        initial = kwargs.get("initial")
+        explicit_initial: dict[str, object] = initial if isinstance(initial, dict) else {}
         super().__init__(*args, **kwargs)
         self.fields["can_manage_users"].help_text = (
             "Only applies to staff users. Without Admin role, this does not "
@@ -125,9 +130,9 @@ class RoleForm(_BaseForm):
         for field_name in self.DEFAULT_CHECKED_ACCESS_FIELDS:
             if field_name in explicit_initial:
                 continue
-            self.initial[field_name] = list(
-                self.fields[field_name].queryset.values_list("pk", flat=True)
-            )
+            qs = cast(ModelMultipleChoiceField[DjangoModel], self.fields[field_name]).queryset
+            if qs is not None:
+                self.initial[field_name] = list(qs.values_list("pk", flat=True))
 
     def save(self, commit: bool = True) -> object:
         role = super().save(commit=commit)
@@ -160,7 +165,13 @@ class UserProfileForm(_BaseForm):
         return profile
 
 
-class UserCreateForm(forms.ModelForm):
+if TYPE_CHECKING:
+    _UserModelForm = forms.ModelForm[User]
+else:
+    _UserModelForm = forms.ModelForm
+
+
+class UserCreateForm(_UserModelForm):
     """Form to create a new Django User with an optional role assignment."""
 
     username = forms.CharField(max_length=150)
@@ -186,15 +197,15 @@ class UserCreateForm(forms.ModelForm):
         model = User
         fields = ["username", "email", "password", "is_active"]
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         skip = (forms.CheckboxInput, forms.CheckboxSelectMultiple, forms.RadioSelect)
         for field in self.fields.values():
             if not isinstance(field.widget, skip):
                 field.widget.attrs.setdefault("class", "form-control")
 
-    def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
         pw = cleaned.get("password")
         pw2 = cleaned.get("password_confirm")
         if pw and pw2 and pw != pw2:

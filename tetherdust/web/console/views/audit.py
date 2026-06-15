@@ -2,17 +2,19 @@
 
 from core.models import (
     ChartGenerationLog,
+    ChatMessage,
     ChatSession,
     DocGenerationLog,
     QueryAuditLog,
 )
-from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 
+from console.views._helpers import staff_required
 
-@staff_member_required(login_url="/login/")
+
+@staff_required
 def audit_list_view(request: HttpRequest) -> HttpResponse:
     qs = QueryAuditLog.objects.select_related("user", "database").order_by("-created_at")
 
@@ -35,7 +37,7 @@ def audit_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def docgen_log_list_view(request: HttpRequest) -> HttpResponse:
     qs = DocGenerationLog.objects.select_related("user", "agent").order_by("-started_at")
 
@@ -56,7 +58,7 @@ def docgen_log_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def docgen_log_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     log_entry = get_object_or_404(
         DocGenerationLog.objects.select_related("user", "agent"),
@@ -72,7 +74,7 @@ def docgen_log_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def chartgen_log_list_view(request: HttpRequest) -> HttpResponse:
     logs = ChartGenerationLog.objects.select_related("user", "agent").all()[:200]
     return render(
@@ -85,7 +87,7 @@ def chartgen_log_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def chartgen_log_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     log_entry = get_object_or_404(ChartGenerationLog.objects.select_related("user", "agent"), pk=pk)
     return render(
@@ -98,7 +100,7 @@ def chartgen_log_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def session_list_view(request: HttpRequest) -> HttpResponse:
     show_empty = request.GET.get("empty") == "1"
     sessions = (
@@ -120,7 +122,7 @@ def session_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def session_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     session = get_object_or_404(ChatSession.objects.select_related("user"), pk=pk)
     # NB: don't name this "messages" — that key collides with the
@@ -131,7 +133,7 @@ def session_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
         "console/sessions/detail.html",
         {
             "session": session,
-            "session_messages": session.messages.all(),
+            "session_messages": ChatMessage.objects.filter(session=session),
             "section": "sessions",
         },
     )

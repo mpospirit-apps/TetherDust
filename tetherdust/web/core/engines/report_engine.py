@@ -12,6 +12,7 @@ from datetime import time as dt_time
 from typing import TYPE_CHECKING
 
 import sqlglot
+from django.contrib.auth.models import User
 from django.utils import timezone
 from sqlalchemy.exc import SQLAlchemyError
 from sqlglot import expressions as exp
@@ -113,7 +114,7 @@ def validate_sql(sql: str, engine: str | None = None) -> str | None:
 
 def execute_report(
     report_definition: ReportDefinition,
-    triggered_by: object = None,
+    triggered_by: User | None = None,
     max_rows_override: int | None = None,
 ) -> ReportExecution:
     """Execute a report definition and store results.

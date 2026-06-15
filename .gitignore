@@ -55,6 +55,8 @@ celerybeat.pid
 .claude/
 /CLAUDE.md
 .codex/
+.agents/
+skills-lock.json
 
 # Environment variables
 .env

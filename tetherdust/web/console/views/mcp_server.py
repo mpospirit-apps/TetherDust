@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 from core.models import (
     MCPServerConfiguration,
@@ -12,11 +13,12 @@ from core.models import (
     ToolConfiguration,
 )
 from django.conf import settings
-from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+
+from console.views._helpers import staff_required
 
 from ..forms import (
     MCPServerConfigurationForm,
@@ -25,7 +27,7 @@ from ..forms import (
 from ._helpers import logger
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def mcp_server_list_view(request: HttpRequest) -> HttpResponse:
     servers = MCPServerConfiguration.objects.annotate(tool_count=Count("tools"))
     return render(
@@ -38,11 +40,11 @@ def mcp_server_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def mcp_server_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     server = get_object_or_404(MCPServerConfiguration, pk=pk)
-    tools = server.tools.all()
-    prompts = server.prompts.all()
+    tools = ToolConfiguration.objects.filter(mcp_server=server)
+    prompts = PromptConfiguration.objects.filter(mcp_server=server)
     return render(
         request,
         "console/mcp_servers/detail.html",
@@ -59,7 +61,7 @@ def _notify_local_mcp_reload() -> None:
     """Tell the local-mcp container to reload its server list. Silently ignored on failure."""
     import threading
 
-    def _do_reload():
+    def _do_reload() -> None:
         try:
             import httpx
             from core.models import SystemConfiguration as SysConf
@@ -74,7 +76,7 @@ def _notify_local_mcp_reload() -> None:
     threading.Thread(target=_do_reload, daemon=True).start()
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def mcp_server_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
     instance = get_object_or_404(MCPServerConfiguration, pk=pk) if pk else None
     if instance and instance.is_builtin:
@@ -82,7 +84,8 @@ def mcp_server_form_view(request: HttpRequest, pk: int | None = None) -> HttpRes
     if request.method == "POST":
         form = MCPServerConfigurationForm(request.POST, instance=instance)
         if form.is_valid():
-            saved: MCPServerConfiguration = form.save()  # type: ignore[assignment]
+            saved = form.save()
+            assert isinstance(saved, MCPServerConfiguration)
             if saved.is_local:
                 _notify_local_mcp_reload()
             return redirect("console:mcp_server_list")
@@ -99,7 +102,7 @@ def mcp_server_form_view(request: HttpRequest, pk: int | None = None) -> HttpRes
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def mcp_server_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     obj = get_object_or_404(MCPServerConfiguration, pk=pk)
@@ -112,7 +115,7 @@ def mcp_server_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("console:mcp_server_list")
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Probe a remote MCP server with initialize + tools/list and report back."""
@@ -137,7 +140,7 @@ def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
         base = SysConf.get_value("local_mcp_base_url", "") or os.getenv(
             "LOCAL_MCP_BASE_URL", "http://local-mcp:8003"
         )
-        url = f"{base.rstrip('/')}/mcp/{server.id}/"
+        url = f"{base.rstrip('/')}/mcp/{server.pk}/"
     else:
         url = (server.url or "").strip()
 
@@ -157,7 +160,7 @@ def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
     else:
         token = ""
 
-    def _parse_body(resp: httpx.Response) -> dict:
+    def _parse_body(resp: httpx.Response) -> dict[str, Any]:
         ctype = resp.headers.get("content-type", "").lower()
         text = resp.text or ""
         if "text/event-stream" in ctype:
@@ -166,11 +169,17 @@ def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
                     data = line[len("data:") :].strip()
                     if data and data != "[DONE]":
                         try:
-                            return json.loads(data)
+                            parsed = json.loads(data)
+                            if not isinstance(parsed, dict):
+                                raise ValueError("Expected a JSON object")
+                            return parsed
                         except json.JSONDecodeError:
                             continue
             raise ValueError("SSE stream contained no JSON data frame")
-        return json.loads(text)
+        parsed = json.loads(text)
+        if not isinstance(parsed, dict):
+            raise ValueError("Expected a JSON object")
+        return parsed
 
     init_req = {
         "jsonrpc": "2.0",
@@ -189,7 +198,7 @@ def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
         "params": {},
     }
 
-    result: dict = {
+    result: dict[str, Any] = {
         "url": url,
         "transport": "streamable-http"
         if server.is_local
@@ -251,10 +260,11 @@ def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
             list_start = time.monotonic()
             list_resp = client.post(url, json=list_req, headers=headers)
             list_elapsed = int((time.monotonic() - list_start) * 1000)
-            result["tools_list"] = {
+            tools_list: dict[str, Any] = {
                 "status_code": list_resp.status_code,
                 "elapsed_ms": list_elapsed,
             }
+            result["tools_list"] = tools_list
             if list_resp.status_code >= 400:
                 result["ok"] = False
                 result["error"] = f"tools/list returned HTTP {list_resp.status_code}"
@@ -325,7 +335,7 @@ def _builtin_tool_meta(tool_name: str) -> tuple[str | None, str | None]:
         return None, None
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def tool_detail_view(request: HttpRequest, server_pk: int, pk: int) -> HttpResponse:
     """Read-only view of a tool. Built-in tools are a fixed mirror of the code, so
     there is nothing to edit, add, or delete — the agent-facing description, input
@@ -362,7 +372,7 @@ def tool_detail_view(request: HttpRequest, server_pk: int, pk: int) -> HttpRespo
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def prompt_form_view(request: HttpRequest, server_pk: int, pk: int | None = None) -> HttpResponse:
     server = get_object_or_404(MCPServerConfiguration, pk=server_pk)
     instance = get_object_or_404(PromptConfiguration, pk=pk, mcp_server=server) if pk else None
@@ -389,7 +399,7 @@ def prompt_form_view(request: HttpRequest, server_pk: int, pk: int | None = None
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def prompt_toggle_view(request: HttpRequest, server_pk: int, pk: int) -> HttpResponse:
     """Toggle prompt enabled/disabled via HTMX."""
@@ -401,7 +411,7 @@ def prompt_toggle_view(request: HttpRequest, server_pk: int, pk: int) -> HttpRes
     return HttpResponse(f'<span class="badge {css}">{status.upper()}</span>')
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def prompt_delete_view(request: HttpRequest, server_pk: int, pk: int) -> HttpResponse:
     obj = get_object_or_404(PromptConfiguration, pk=pk, mcp_server_id=server_pk)

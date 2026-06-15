@@ -1,17 +1,20 @@
 """SMTP and general system settings."""
 
 import os
+from typing import cast
 
 from core.models import SystemConfiguration
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
+from console.views._helpers import staff_required
+
 from ..forms import GeneralSettingsForm, SMTPSettingsForm
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def smtp_settings_view(request: HttpRequest) -> HttpResponse:
     from core.models import encrypt_value
 
@@ -68,13 +71,13 @@ def smtp_settings_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def smtp_test_view(request: HttpRequest) -> HttpResponse:
     """Send a test email to the logged-in admin's address."""
     from core.engines.email_service import get_email_connection, get_smtp_config
 
-    user_email = request.user.email
+    user_email = cast(User, request.user).email
     if not user_email:
         return JsonResponse(
             {"error": "Your account has no email address. Set one in user settings first."},
@@ -97,7 +100,7 @@ def smtp_test_view(request: HttpRequest) -> HttpResponse:
         email = EmailMessage(
             subject="TetherDust — SMTP Test",
             body="<p>This is a test email from TetherDust. Your SMTP configuration is working correctly.</p>",  # noqa: E501
-            from_email=config["from_email"] or config["username"],
+            from_email=cast(str | None, config["from_email"]) or cast(str, config["username"]),
             to=[user_email],
             connection=connection,
         )
@@ -113,7 +116,7 @@ def smtp_test_view(request: HttpRequest) -> HttpResponse:
             pass
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def general_settings_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = GeneralSettingsForm(request.POST)

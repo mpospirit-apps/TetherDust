@@ -8,6 +8,7 @@ filter token; a turn fetches only its own.
 import sys
 from pathlib import Path
 
+import pytest
 from mcp_server import server
 from mcp_server._context import request_filter_token
 
@@ -17,7 +18,7 @@ if str(WEB) not in sys.path:
     sys.path.insert(0, str(WEB))
 
 
-def _record_under(token, *names):
+def _record_under(token: str, *names: str) -> None:
     tok = request_filter_token.set(token)
     try:
         for n in names:
@@ -26,7 +27,7 @@ def _record_under(token, *names):
         request_filter_token.reset(tok)
 
 
-def test_calls_are_isolated_per_token():
+def test_calls_are_isolated_per_token() -> None:
     """Interleaved requests don't see each other's tool calls."""
     _record_under("tokA", "list_tables", "query_database")
     _record_under("tokB", "search_docs")
@@ -41,23 +42,23 @@ def test_calls_are_isolated_per_token():
     assert server._drain_tool_calls("tokB") == ["search_docs"]
 
 
-def test_drain_is_one_shot_and_dedupes():
+def test_drain_is_one_shot_and_dedupes() -> None:
     _record_under("tokC", "query_database", "query_database")  # duplicate
     assert server._drain_tool_calls("tokC") == ["query_database"]  # deduped
     assert server._drain_tool_calls("tokC") == []  # already drained
 
 
-def test_untracked_when_no_token():
+def test_untracked_when_no_token() -> None:
     """A request with no token (e.g. stdio) records nothing."""
     server._record_tool_call("list_tables")  # no token set in context
     assert server._drain_tool_calls("") == []
 
 
-def test_unknown_token_returns_empty():
+def test_unknown_token_returns_empty() -> None:
     assert server._drain_tool_calls("never-registered") == []
 
 
-def test_ttl_purges_stale_buffers(monkeypatch):
+def test_ttl_purges_stale_buffers(monkeypatch: pytest.MonkeyPatch) -> None:
     import time as _t
 
     _record_under("tokOld", "list_tables")
@@ -68,7 +69,7 @@ def test_ttl_purges_stale_buffers(monkeypatch):
     assert server._drain_tool_calls("tokOld") == []
 
 
-async def test_fetch_tools_called_requires_token():
+async def test_fetch_tools_called_requires_token() -> None:
     """The Django client returns [] (no network call) when no token is given."""
     from core.consumers.mcp_client import fetch_tools_called
 

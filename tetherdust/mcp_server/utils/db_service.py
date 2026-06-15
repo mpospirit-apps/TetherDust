@@ -141,15 +141,15 @@ def _decrypt_password(encrypted: str) -> str:
     if not key:
         return encrypted
     try:
-        from cryptography.fernet import Fernet, InvalidToken
+        from cryptography.fernet import Fernet
 
         fernet = Fernet(key.encode() if isinstance(key, str) else key)
         return fernet.decrypt(encrypted.encode()).decode()
     except ImportError:
         logger.debug("cryptography not installed, returning password as-is")
         return encrypted
-    except (InvalidToken, Exception):
-        # Value may not be encrypted (legacy or invalid)
+    except Exception:
+        # Value may not be encrypted (legacy plain-text)
         return encrypted
 
 
@@ -384,7 +384,7 @@ class DatabaseService:
         config = self._configs[db_name.lower()]
         return clickhouse_connect.get_client(
             host=config.host,
-            port=config.port,
+            port=config.port or 8123,
             username=config.username or "default",
             password=config.password or "",
             database=config.database or "default",
@@ -496,7 +496,7 @@ class DatabaseService:
                 if config.read_only and config.engine == "oracle":
                     conn.execute(text("SET TRANSACTION READ ONLY"))
                 result = conn.execute(text(sql))
-                rows = [dict(row._mapping) for row in result.fetchall()]
+                rows = [{str(k): v for k, v in row._mapping.items()} for row in result.fetchall()]
 
         row_count = len(rows)
         logger.info("Query returned %d rows", row_count)

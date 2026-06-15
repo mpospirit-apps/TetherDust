@@ -9,15 +9,13 @@ once and falls back to plaintext for development convenience.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-try:
-    from cryptography.fernet import Fernet, InvalidToken
-except ImportError:  # pragma: no cover - cryptography is a normal dependency
-    Fernet = None  # type: ignore[assignment,misc]
-    InvalidToken = Exception  # type: ignore[assignment,misc]
+if TYPE_CHECKING:
+    from cryptography.fernet import Fernet
 
 logger = logging.getLogger("core")
 
@@ -26,18 +24,29 @@ logger = logging.getLogger("core")
 _warned_no_encryption = False
 
 
+def _get_fernet_cls() -> type[Fernet] | None:
+    """Return the Fernet class if cryptography is installed, else None."""
+    try:
+        from cryptography.fernet import Fernet as _Fernet
+
+        return _Fernet
+    except ImportError:
+        return None
+
+
 def get_fernet() -> Fernet | None:
     """Return a Fernet instance, or None if encryption is unavailable/disabled."""
-    if Fernet is None:
+    fernet_cls = _get_fernet_cls()
+    if fernet_cls is None:
         return None
     key = settings.TETHERDUST_ENCRYPTION_KEY
     if not key:
         return None
-    return Fernet(key.encode() if isinstance(key, str) else key)
+    return fernet_cls(key.encode() if isinstance(key, str) else key)
 
 
 def _encryption_unavailable_reason() -> str:
-    if Fernet is None:
+    if _get_fernet_cls() is None:
         return "the 'cryptography' package is not installed"
     return "TETHERDUST_ENCRYPTION_KEY is not set"
 
@@ -86,6 +95,8 @@ def decrypt_value(value: str) -> str:
     fernet = get_fernet()
     if fernet is None:
         return value
+    from cryptography.fernet import InvalidToken
+
     try:
         return fernet.decrypt(value.encode()).decode()
     except InvalidToken:

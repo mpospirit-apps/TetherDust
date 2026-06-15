@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 from core.models import DatabaseConnection
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from console.views._helpers import staff_required
+
 from ..forms import DatabaseConnectionForm
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def database_list_view(request: HttpRequest) -> HttpResponse:
     connections = DatabaseConnection.objects.all()
     return render(
@@ -24,7 +25,7 @@ def database_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def database_engine_picker_view(request: HttpRequest) -> HttpResponse:
     """Step 1 of Add Connection: choose a database engine."""
     return render(
@@ -37,7 +38,7 @@ def database_engine_picker_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def database_form_view(
     request: HttpRequest, pk: int | None = None, engine: str | None = None
 ) -> HttpResponse:
@@ -76,7 +77,7 @@ def database_form_view(
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def database_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     obj = get_object_or_404(DatabaseConnection, pk=pk)
@@ -84,7 +85,7 @@ def database_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("console:database_list")
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def database_test_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Test a database connection and return HTMX fragment."""
     from core.engines.db_runner import ping

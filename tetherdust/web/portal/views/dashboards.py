@@ -2,8 +2,12 @@
 
 import datetime
 import decimal
+from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth.decorators import login_required
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractUser
 from django.db.models import Count
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -26,7 +30,7 @@ def dashboards_view(request: HttpRequest) -> HttpResponse:
     """Dashboard list — role-filtered."""
     from core.models import Dashboard
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     if user.is_staff:
         dashboards = (
@@ -68,18 +72,19 @@ def dashboard_detail_view_user(request: HttpRequest, pk: int) -> HttpResponse:
     from core.models import Dashboard
 
     dashboard = get_object_or_404(Dashboard, pk=pk, is_active=True)
+    user = cast("AbstractUser", request.user)
 
-    if request.user.is_staff:
+    if user.is_staff:
         all_dashboards = Dashboard.objects.filter(is_active=True).order_by("name")
     else:
-        profile = getattr(request.user, "profile", None)
+        profile = getattr(user, "profile", None)
         if not profile or not profile.can_view_dashboards:
             return redirect("portal:dashboards")
         if not profile.get_allowed_dashboards().filter(pk=pk).exists():
             return redirect("portal:dashboards")
         all_dashboards = profile.get_allowed_dashboards().order_by("name")
 
-    charts = dashboard.charts.filter(is_active=True).select_related("database")
+    charts = cast(Any, dashboard).charts.filter(is_active=True).select_related("database")
 
     return render(
         request,
@@ -103,8 +108,9 @@ def chart_data_api_view(request: HttpRequest, pk: int) -> HttpResponse:
     chart = get_object_or_404(Chart.objects.select_related("database", "dashboard"), pk=pk)
     force_refresh = request.GET.get("refresh") == "1"
 
-    if not request.user.is_staff:
-        profile = getattr(request.user, "profile", None)
+    req_user = cast("AbstractUser", request.user)
+    if not req_user.is_staff:
+        profile = getattr(req_user, "profile", None)
         if (
             not profile
             or not profile.get_allowed_dashboards().filter(pk=chart.dashboard_id).exists()

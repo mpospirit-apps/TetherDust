@@ -10,7 +10,7 @@ def tethers_list_view(request: HttpRequest) -> HttpResponse:
     from core.models import UserProfile
 
     try:
-        profile = request.user.profile
+        profile = getattr(request.user, "profile")
     except UserProfile.DoesNotExist:
         return render(
             request,
@@ -38,7 +38,7 @@ def tether_view(request: HttpRequest, pk: int) -> HttpResponse:
     from core.models import UserProfile
 
     try:
-        profile = request.user.profile
+        profile = getattr(request.user, "profile")
     except UserProfile.DoesNotExist:
         raise Http404
     allowed = profile.get_allowed_tethers().select_related(
@@ -65,7 +65,7 @@ def tether_graph_json_view(request: HttpRequest, pk: int) -> HttpResponse:
     from core.models import UserProfile
 
     try:
-        profile = request.user.profile
+        profile = getattr(request.user, "profile")
     except UserProfile.DoesNotExist:
         raise Http404
     tether = profile.get_allowed_tethers().select_related("current_version").filter(pk=pk).first()

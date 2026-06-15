@@ -2,21 +2,23 @@
 
 from core.models import UserProfile
 from core.version import update_available
+from django.contrib.auth.models import User
 from django.http import HttpRequest
 
 
 def user_management_access(request: HttpRequest) -> dict[str, object]:
     """Add can_manage_users flag to every template context."""
-    if (
-        not hasattr(request, "user")
-        or not request.user.is_authenticated
-        or not request.user.is_staff
-    ):
+    if not hasattr(request, "user") or not request.user.is_authenticated:
         return {"can_manage_users": False}
-    if request.user.is_superuser:
+    if not isinstance(request.user, User):
+        return {"can_manage_users": False}
+    user: User = request.user
+    if not user.is_staff:
+        return {"can_manage_users": False}
+    if user.is_superuser:
         return {"can_manage_users": True}
     try:
-        profile = request.user.profile
+        profile = UserProfile.objects.get(user=user)
     except UserProfile.DoesNotExist:
         return {"can_manage_users": False}
     return {"can_manage_users": bool(profile.role and profile.role.can_manage_users)}

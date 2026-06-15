@@ -17,6 +17,7 @@ import asyncio
 import json
 import logging
 import os
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from channels.db import database_sync_to_async
@@ -24,14 +25,17 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 from ..agents.stream import parse_chunk, tool_status_label
 
+if TYPE_CHECKING:
+    from ..agents.base import BaseAgent
+
 logger = logging.getLogger(__name__)
 
 
 class BaseAgentConsumer(AsyncWebsocketConsumer):
     """Common lifecycle + agent-streaming logic for chat WebSocket consumers."""
 
-    _agent_task: asyncio.Task | None = None
-    _current_agent = None
+    _agent_task: asyncio.Task[None] | None = None
+    _current_agent: BaseAgent | None = None
 
     # --- Subclass hooks -------------------------------------------------
 
@@ -46,7 +50,7 @@ class BaseAgentConsumer(AsyncWebsocketConsumer):
     # --- Agent lookup ---------------------------------------------------
 
     @database_sync_to_async
-    def _get_agent(self):
+    def _get_agent(self) -> BaseAgent:
         from ..agents import get_agent
 
         return get_agent()
@@ -129,7 +133,9 @@ class BaseAgentConsumer(AsyncWebsocketConsumer):
 
     # --- Streaming ------------------------------------------------------
 
-    async def _stream_agent_response(self, agent, **chat_kwargs) -> tuple[list[str], str | None]:
+    async def _stream_agent_response(
+        self, agent: BaseAgent, **chat_kwargs: Any
+    ) -> tuple[list[str], str | None]:
         """Run `agent.chat`, dispatching events to the websocket.
 
         Partial state is written to ``self._stream_deltas`` and

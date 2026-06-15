@@ -2,21 +2,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from core.models import Tether, TetherVersion
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse, JsonResponse
-
-if TYPE_CHECKING:
-    from django.contrib.auth.base_user import AbstractBaseUser
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+
+from console.views._helpers import staff_required
 
 from ..forms import TetherForm
 
 
-def _start_tether_generation(tether: Tether, user: AbstractBaseUser) -> TetherVersion:
+def _start_tether_generation(tether: Tether, user: User) -> TetherVersion:
     """Create a new TetherVersion and run the generator in a background thread.
 
     Mirrors the docs/dashboard generation pattern — generation runs inside the
@@ -25,7 +22,7 @@ def _start_tether_generation(tether: Tether, user: AbstractBaseUser) -> TetherVe
     """
     import threading
 
-    last = tether.versions.order_by("-version_number").first()
+    last = TetherVersion.objects.filter(tether=tether).order_by("-version_number").first()
     next_number = (last.version_number + 1) if last else 1
     version = TetherVersion.objects.create(
         tether=tether,
@@ -34,7 +31,7 @@ def _start_tether_generation(tether: Tether, user: AbstractBaseUser) -> TetherVe
         triggered_by=user,
     )
 
-    def _run(version_pk):
+    def _run(version_pk: int) -> None:
         import django
 
         django.setup()
@@ -52,7 +49,7 @@ def _start_tether_generation(tether: Tether, user: AbstractBaseUser) -> TetherVe
     return version
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def tether_list_view(request: HttpRequest) -> HttpResponse:
     tethers = Tether.objects.select_related(
         "codebase",
@@ -61,7 +58,7 @@ def tether_list_view(request: HttpRequest) -> HttpResponse:
     ).all()
     rows = []
     for tether in tethers:
-        latest = tether.versions.order_by("-version_number").first()
+        latest = TetherVersion.objects.filter(tether=tether).order_by("-version_number").first()
         rows.append({"tether": tether, "latest": latest})
     return render(
         request,
@@ -73,10 +70,12 @@ def tether_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def tether_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
     instance = get_object_or_404(Tether, pk=pk) if pk else None
 
+    if not isinstance(request.user, User):
+        return JsonResponse({"error": "Forbidden"}, status=403)
     if request.method == "POST":
         form = TetherForm(request.POST, instance=instance)
         if form.is_valid():
@@ -102,13 +101,13 @@ def tether_form_view(request: HttpRequest, pk: int | None = None) -> HttpRespons
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def tether_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     tether = get_object_or_404(
         Tether.objects.select_related("codebase", "database_doc_source", "current_version"),
         pk=pk,
     )
-    versions = list(tether.versions.select_related("triggered_by").all())
+    versions = list(TetherVersion.objects.filter(tether=tether).select_related("triggered_by"))
     latest = versions[0] if versions else None
     return render(
         request,
@@ -122,15 +121,17 @@ def tether_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def tether_regenerate_view(request: HttpRequest, pk: int) -> HttpResponse:
+    if not isinstance(request.user, User):
+        return JsonResponse({"error": "Forbidden"}, status=403)
     tether = get_object_or_404(Tether, pk=pk)
     _start_tether_generation(tether, request.user)
     return redirect("console:tether_detail", pk=tether.pk)
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def tether_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     tether = get_object_or_404(Tether, pk=pk)
@@ -138,7 +139,7 @@ def tether_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("console:tether_list")
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def tether_version_detail_view(request: HttpRequest, pk: int, version_pk: int) -> HttpResponse:
     tether = get_object_or_404(Tether, pk=pk)
     version = get_object_or_404(
@@ -157,11 +158,11 @@ def tether_version_detail_view(request: HttpRequest, pk: int, version_pk: int) -
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def tether_status_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Polling endpoint: latest version status + live agent thoughts."""
     tether = get_object_or_404(Tether.objects.select_related("current_version"), pk=pk)
-    latest = tether.versions.order_by("-version_number").first()
+    latest = TetherVersion.objects.filter(tether=tether).order_by("-version_number").first()
     if latest is None:
         return JsonResponse({"status": "none"})
     return JsonResponse(

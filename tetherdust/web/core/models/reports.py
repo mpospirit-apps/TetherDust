@@ -1,13 +1,23 @@
 """ReportDefinition and ReportExecution models for scheduled SQL reports."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.models import User
 from django.db import models
+
+if TYPE_CHECKING:
+    from .auth import Role
 
 from .connections import DatabaseConnection
 
 
 class ReportDefinition(models.Model):
     """Admin-configured SQL report template."""
+
+    executions: models.Manager[ReportExecution]
+    latest_exec: ReportExecution | None
 
     SCHEDULE_TYPE_CHOICES = [
         ("manual", "Manual"),
@@ -54,7 +64,9 @@ class ReportDefinition(models.Model):
     delivery_config = models.JSONField(
         default=dict, blank=True, help_text="Future: email addresses, webhook URLs"
     )
-    allowed_roles = models.ManyToManyField("Role", blank=True, related_name="allowed_reports")
+    allowed_roles: models.ManyToManyField[Role, Role] = models.ManyToManyField(
+        "Role", blank=True, related_name="allowed_reports"
+    )
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_reports"
@@ -70,7 +82,7 @@ class ReportDefinition(models.Model):
     def __str__(self) -> str:
         return self.name
 
-    def get_latest_execution(self) -> "ReportExecution | None":
+    def get_latest_execution(self) -> ReportExecution | None:
         """Return the most recent successful execution, or None."""
         return self.executions.filter(status="success").order_by("-started_at").first()
 
@@ -107,7 +119,7 @@ class ReportExecution(models.Model):
         return meta["column_names"] if meta else []
 
     @property
-    def result_data(self) -> list[dict[str, object]]:
+    def result_data(self) -> list[list[object]]:
         """Load result rows from filesystem storage."""
         if not self.result_file_path:
             return []

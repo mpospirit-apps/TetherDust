@@ -1,7 +1,12 @@
 """Template context processors for the public portal."""
 
+from typing import TYPE_CHECKING, cast
+
 from core.models import Dashboard, DocumentationSource, ReportDefinition, Tether, UserProfile
 from django.http import HttpRequest
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractUser
 
 
 def docs_access(request: HttpRequest) -> dict[str, object]:
@@ -9,13 +14,13 @@ def docs_access(request: HttpRequest) -> dict[str, object]:
     if not hasattr(request, "user") or not request.user.is_authenticated:
         return {"can_view_docs": False}
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     if user.is_staff:
         return {"can_view_docs": DocumentationSource.objects.filter(is_active=True).exists()}
 
     try:
-        profile = user.profile
+        profile = getattr(user, "profile")
     except UserProfile.DoesNotExist:
         return {"can_view_docs": False}
 
@@ -27,13 +32,13 @@ def reports_access(request: HttpRequest) -> dict[str, object]:
     if not hasattr(request, "user") or not request.user.is_authenticated:
         return {"can_view_reports": False}
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     if user.is_staff:
         return {"can_view_reports": ReportDefinition.objects.filter(is_active=True).exists()}
 
     try:
-        profile = user.profile
+        profile = getattr(user, "profile")
     except UserProfile.DoesNotExist:
         return {"can_view_reports": False}
 
@@ -45,13 +50,13 @@ def dashboards_access(request: HttpRequest) -> dict[str, object]:
     if not hasattr(request, "user") or not request.user.is_authenticated:
         return {"can_view_dashboards": False}
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     if user.is_staff:
         return {"can_view_dashboards": Dashboard.objects.filter(is_active=True).exists()}
 
     try:
-        profile = user.profile
+        profile = getattr(user, "profile")
     except UserProfile.DoesNotExist:
         return {"can_view_dashboards": False}
 
@@ -63,12 +68,12 @@ def chat_access(request: HttpRequest) -> dict[str, object]:
     if not hasattr(request, "user") or not request.user.is_authenticated:
         return {"can_chat": False}
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
     if user.is_staff:
         return {"can_chat": True}
 
     try:
-        profile = user.profile
+        profile = getattr(user, "profile")
     except UserProfile.DoesNotExist:
         return {"can_chat": False}
 
@@ -80,13 +85,13 @@ def tethers_access(request: HttpRequest) -> dict[str, object]:
     if not hasattr(request, "user") or not request.user.is_authenticated:
         return {"can_view_tethers": False}
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     if user.is_staff:
         return {"can_view_tethers": Tether.objects.filter(is_active=True).exists()}
 
     try:
-        profile = user.profile
+        profile = getattr(user, "profile")
     except UserProfile.DoesNotExist:
         return {"can_view_tethers": False}
 

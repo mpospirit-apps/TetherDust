@@ -1,12 +1,19 @@
 """Roles, permissions, and user management."""
 
-from core.models import MCPServerConfiguration, Role, UserProfile
-from django.contrib.admin.views.decorators import staff_member_required
+from core.models import (
+    MCPServerConfiguration,
+    PromptConfiguration,
+    Role,
+    ToolConfiguration,
+    UserProfile,
+)
 from django.contrib.auth.models import User
 from django.db.models import Count
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+
+from console.views._helpers import staff_required
 
 from ..forms import RoleForm, UserCreateForm, UserProfileForm
 
@@ -21,7 +28,7 @@ def _posted_pk_set(data: QueryDict, key: str) -> set[int]:
     return values
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def role_list_view(request: HttpRequest) -> HttpResponse:
     roles = Role.objects.annotate(
         tool_count=Count("allowed_tools"),
@@ -38,7 +45,7 @@ def role_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def role_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
     instance = get_object_or_404(Role, pk=pk) if pk else None
     if request.method == "POST":
@@ -59,10 +66,16 @@ def role_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
         selected_tool_ids = set(instance.allowed_tools.values_list("pk", flat=True))
         selected_prompt_ids = set(instance.allowed_prompts.values_list("pk", flat=True))
     else:
-        selected_tool_ids = {tool.pk for server in mcp_servers for tool in server.tools.all()}
-        selected_prompt_ids = {
-            prompt.pk for server in mcp_servers for prompt in server.prompts.all()
-        }
+        selected_tool_ids = set(
+            ToolConfiguration.objects.filter(mcp_server__in=mcp_servers).values_list(
+                "pk", flat=True
+            )
+        )
+        selected_prompt_ids = set(
+            PromptConfiguration.objects.filter(mcp_server__in=mcp_servers).values_list(
+                "pk", flat=True
+            )
+        )
 
     return render(
         request,
@@ -78,7 +91,7 @@ def role_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def role_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     from django.contrib import messages
@@ -96,9 +109,9 @@ def role_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("console:role_list")
 
 
-def _require_user_management(request: HttpRequest) -> HttpResponse:
+def _require_user_management(request: HttpRequest) -> HttpResponse | None:
     """Returns HttpResponseForbidden if user cannot manage users. Superusers are always allowed."""
-    if request.user.is_superuser:
+    if getattr(request.user, "is_superuser", False):
         return None
     profile = getattr(request.user, "profile", None)
     if not profile or not profile.role or not profile.role.can_manage_users:
@@ -106,7 +119,7 @@ def _require_user_management(request: HttpRequest) -> HttpResponse:
     return None
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def user_list_view(request: HttpRequest) -> HttpResponse:
     if err := _require_user_management(request):
         return err
@@ -121,7 +134,7 @@ def user_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def user_create_view(request: HttpRequest) -> HttpResponse:
     """Create a new user with optional role assignment."""
     if err := _require_user_management(request):
@@ -144,7 +157,7 @@ def user_create_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def user_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
     if err := _require_user_management(request):
         return err
@@ -170,7 +183,7 @@ def user_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def user_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Delete a user account."""

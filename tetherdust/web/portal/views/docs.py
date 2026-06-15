@@ -2,21 +2,23 @@
 
 from __future__ import annotations
 
+import re
+import xml.etree.ElementTree as ET
 from html import escape as html_escape
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast, overload
 
 import markdown
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from markdown import Markdown
 from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
 
 if TYPE_CHECKING:
-    from core.models import DocumentationSource
-    from django.contrib.auth.base_user import AbstractBaseUser
+    from django.contrib.auth.models import AbstractUser
 
 # Extension → highlight.js language name for code file rendering in docs
 _EXT_TO_LANG: dict[str, str] = {
@@ -76,32 +78,37 @@ class WikiLinkInlineProcessor(InlineProcessor):
         self,
         pattern: str,
         md: Any,
-        user: AbstractBaseUser | None = None,
-        current_source: DocumentationSource | None = None,
+        user: AbstractUser | None = None,
+        current_source: str | None = None,
     ) -> None:
         super().__init__(pattern, md)
         self.user = user
         self.current_source = current_source
         self._source_cache: dict[str, int | None] = {}
-        self._allowed_sources: set[str] | None | bool = False  # False = not loaded
+        self._allowed_sources: set[str] | None = None
+        self._allowed_sources_loaded: bool = False
 
     def _get_allowed_sources(self) -> set[str] | None:
         """Lazy-load allowed doc sources for current user."""
-        if self._allowed_sources is not False:
-            return self._allowed_sources  # type: ignore[return-value]
+        if self._allowed_sources_loaded:
+            return self._allowed_sources
 
         if not self.user or not self.user.is_authenticated:
             self._allowed_sources = set()
+            self._allowed_sources_loaded = True
             return self._allowed_sources
         if self.user.is_staff:
             self._allowed_sources = None  # staff sees all
+            self._allowed_sources_loaded = True
             return None
         profile = getattr(self.user, "profile", None)
         if not profile:
             self._allowed_sources = set()
+            self._allowed_sources_loaded = True
             return self._allowed_sources
         self._allowed_sources = profile.get_allowed_doc_sources()
-        return self._allowed_sources  # type: ignore[return-value]
+        self._allowed_sources_loaded = True
+        return self._allowed_sources
 
     def _resolve_source(self, folder_name: str) -> int | None:
         """Look up DocumentationSource id by folder_name, with caching."""
@@ -110,12 +117,21 @@ class WikiLinkInlineProcessor(InlineProcessor):
         from core.models import DocumentationSource
 
         source = DocumentationSource.objects.filter(folder_name=folder_name, is_active=True).first()
-        source_id = source.id if source else None
+        source_id = source.pk if source else None
         self._source_cache[folder_name] = source_id
         return source_id
 
-    def handleMatch(self, m, data):  # noqa: N802
-        import xml.etree.ElementTree as etree  # noqa: N813
+    @overload
+    def handleMatch(self, m: re.Match[str]) -> str | ET.Element | None: ...  # noqa: N802
+
+    @overload
+    def handleMatch(
+        self, m: re.Match[str], data: str
+    ) -> tuple[ET.Element | str | None, int | None, int | None]: ...  # noqa: N802
+
+    def handleMatch(  # noqa: N802
+        self, m: re.Match[str], data: str = ""
+    ) -> tuple[ET.Element | str | None, int | None, int | None] | str | ET.Element | None:
 
         raw = m.group(1)
         if "|" in raw:
@@ -146,14 +162,14 @@ class WikiLinkInlineProcessor(InlineProcessor):
         has_access = source_id is not None and (allowed is None or folder_name in allowed)
 
         if has_access and file_path:
-            el = etree.Element("a")
+            el = ET.Element("a")
             el.set("class", "wikilink")
             el.set("data-url", f"/docs/{source_id}/{file_path}")
             el.set("onclick", "loadWikiLink(this); return false;")
             el.set("href", "#")
             el.text = display
         else:
-            el = etree.Element("span")
+            el = ET.Element("span")
             el.set("class", "wikilink-noaccess")
             el.set(
                 "title",
@@ -167,15 +183,15 @@ class WikiLinkInlineProcessor(InlineProcessor):
 class WikiLinkExtension(Extension):
     def __init__(
         self,
-        user: AbstractBaseUser | None = None,
-        current_source: DocumentationSource | None = None,
+        user: AbstractUser | None = None,
+        current_source: str | None = None,
         **kwargs: object,
     ) -> None:
         self.user = user
         self.current_source = current_source
         super().__init__(**kwargs)
 
-    def extendMarkdown(self, md):  # noqa: N802
+    def extendMarkdown(self, md: Markdown) -> None:  # noqa: N802
         md.inlinePatterns.register(
             WikiLinkInlineProcessor(
                 WIKILINK_RE, md, user=self.user, current_source=self.current_source
@@ -239,7 +255,7 @@ def docs_view(request: HttpRequest) -> HttpResponse:
     """Documentation viewer — sidebar tree + rendered markdown."""
     from core.models import DocumentationSource
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     if user.is_staff:
         sources = DocumentationSource.objects.filter(is_active=True).order_by("folder_name")
@@ -260,7 +276,7 @@ def docs_view(request: HttpRequest) -> HttpResponse:
         tree = _build_file_tree(base, src.file_patterns or ["*.md"])
         source_trees.append(
             {
-                "id": src.id,
+                "id": src.pk,
                 "name": src.folder_name,
                 "doc_type": src.doc_type,
                 "tree": tree,
@@ -277,7 +293,7 @@ def docs_view(request: HttpRequest) -> HttpResponse:
             try:
                 src = sources.get(folder_name=source_name)
                 auto_open = {
-                    "source_id": src.id,
+                    "source_id": src.pk,
                     "file_path": file_path,
                     "doc_name": Path(file_path).stem,
                 }
@@ -300,7 +316,7 @@ def docs_content_view(request: HttpRequest, source_id: int, file_path: str) -> H
     """HTMX endpoint — returns server-rendered markdown HTML for a doc file."""
     from core.models import DocumentationSource
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     if user.is_staff:
         allowed_ids = set(
@@ -337,7 +353,9 @@ def docs_content_view(request: HttpRequest, source_id: int, file_path: str) -> H
     raw = target.read_text(encoding="utf-8")
 
     if target.suffix.lower() == ".md":
-        wikilink_ext = WikiLinkExtension(user=request.user, current_source=source.folder_name)
+        wikilink_ext = WikiLinkExtension(
+            user=cast("AbstractUser", request.user), current_source=source.folder_name
+        )
         md = markdown.Markdown(
             extensions=["fenced_code", "tables", "toc", "codehilite", wikilink_ext]
         )

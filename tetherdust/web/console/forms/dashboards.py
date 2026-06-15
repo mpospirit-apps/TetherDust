@@ -69,4 +69,4 @@ class ChartForm(_BaseForm):
         error = validate_sql(sql, engine=db.engine if db else None)
         if error:
             raise forms.ValidationError(error)
-        return sql
+        return str(sql)

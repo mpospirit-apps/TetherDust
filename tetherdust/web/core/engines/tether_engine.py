@@ -179,6 +179,7 @@ def validate(graph: dict[str, object]) -> None:
             raise TetherSchemaError(f"Node #{i} missing string `id`.")
         if kind not in ALLOWED_KINDS:
             raise TetherSchemaError(f"Node {nid!r} has invalid kind {kind!r}.")
+        assert isinstance(kind, str)
         if nid in seen_ids:
             raise TetherSchemaError(f"Duplicate node id {nid!r}.")
         seen_ids[nid] = kind
@@ -274,7 +275,7 @@ async def _collect_codex_response(
             await loop.run_in_executor(None, on_status, status_text)
 
     text = final_response if final_response is not None else "".join(parts)
-    agent._tether_raw_log = "".join(raw_log)  # type: ignore[attr-defined]
+    agent._tether_raw_log = "".join(raw_log)
     return text
 
 

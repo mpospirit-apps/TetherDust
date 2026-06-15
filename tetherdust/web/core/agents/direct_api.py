@@ -21,7 +21,7 @@ import os
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx as httpx
 
 from .base import BaseAgent
 from .history import HistoryMessages
@@ -309,6 +309,7 @@ class OpenAICompatibleAgent(BaseAgent):
                 pool=30,
             )
             async with httpx.AsyncClient(timeout=http_timeout) as client:
+                final_text = ""
                 for _round in range(MAX_TOOL_ROUNDS):
                     final_text, tool_calls = "", {}
                     async for kind, text, calls in self._stream_round(client, messages, tools):

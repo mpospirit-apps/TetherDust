@@ -1,7 +1,14 @@
 """Tether and TetherVersion models for codebase × database visual links."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.models import User
 from django.db import models
+
+if TYPE_CHECKING:
+    from .auth import Role
 
 from .connections import Codebase, DocumentationSource
 
@@ -30,7 +37,9 @@ class Tether(models.Model):
         related_name="+",
         help_text="Latest successful run; what the viewer renders.",
     )
-    allowed_roles = models.ManyToManyField("Role", blank=True, related_name="allowed_tethers")
+    allowed_roles: models.ManyToManyField[Role, Role] = models.ManyToManyField(
+        "Role", blank=True, related_name="allowed_tethers"
+    )
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_tethers"

@@ -1,6 +1,7 @@
 """Documentation source CRUD + AI generation background tasks."""
 
 from pathlib import Path
+from typing import Any, TypedDict
 
 from core.agents.stream import parse_chunk, tool_status_label
 from core.models import (
@@ -13,10 +14,12 @@ from core.models import (
 )
 from core.prompts import build_doc_generation_prompt, build_library_prompt
 from django.conf import settings
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+
+from console.views._helpers import staff_required
 
 from ..forms import DocumentationSourceForm
 from ._helpers import (
@@ -27,6 +30,12 @@ from ._helpers import (
     logger,
 )
 
+
+class _LibraryFile(TypedDict):
+    path: str
+    size: int
+
+
 # Library generation is restricted to these two source categories (see the
 # generate_library form). Used both for the form's Type dropdown and POST validation.
 LIBRARY_DOC_TYPES = (
@@ -35,7 +44,7 @@ LIBRARY_DOC_TYPES = (
 )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def docsource_list_view(request: HttpRequest) -> HttpResponse:
     DocumentationSource.sync_from_filesystem()
     sources = DocumentationSource.objects.all()
@@ -50,7 +59,7 @@ def docsource_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def docsource_add_picker_view(request: HttpRequest) -> HttpResponse:
     """Step 1 of Add Documentation: choose how to add a documentation source."""
     return render(
@@ -62,7 +71,7 @@ def docsource_add_picker_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def docsource_generate_page_view(request: HttpRequest) -> HttpResponse:
     """Standalone page for AI documentation generation."""
     docs_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR)
@@ -88,7 +97,7 @@ def docsource_generate_page_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def docsource_library_page_view(request: HttpRequest) -> HttpResponse:
     """Standalone page for AI documentation *library* generation (a folder tree)."""
     docs_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR)
@@ -115,7 +124,7 @@ def docsource_library_page_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def docsource_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
     instance = get_object_or_404(DocumentationSource, pk=pk) if pk else None
 
@@ -144,7 +153,7 @@ def docsource_form_view(request: HttpRequest, pk: int | None = None) -> HttpResp
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def docsource_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     import shutil
@@ -164,7 +173,7 @@ def docsource_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("console:docsource_list")
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def docsource_validate_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Validate a documentation source path and return HTMX fragment."""
     obj = get_object_or_404(DocumentationSource, pk=pk)
@@ -225,7 +234,7 @@ def _execute_docgen(
     agent = get_agent()
     docgen_timeout = timeout
 
-    async def _generate():
+    async def _generate() -> str:
         chunks = []
         completed_response = ""
         async for chunk in agent.chat(
@@ -250,10 +259,11 @@ def _execute_docgen(
                 chunks.append(event.text)
                 status = event.text.strip()
             if status:
-                await asyncio.get_running_loop().run_in_executor(
-                    None,
-                    lambda s=status: _DocGenLog.objects.filter(pk=log_pk).update(agent_output=s),
-                )
+
+                def _update_log(s: str) -> None:
+                    _DocGenLog.objects.filter(pk=log_pk).update(agent_output=s)
+
+                await asyncio.get_running_loop().run_in_executor(None, _update_log, status)
         return completed_response or "".join(chunks)
 
     loop = asyncio.new_event_loop()
@@ -263,12 +273,12 @@ def _execute_docgen(
         loop.close()
 
 
-def _scan_library_files(root_dir: Path) -> tuple[list[dict], int]:
+def _scan_library_files(root_dir: Path) -> tuple[list[_LibraryFile], int]:
     """Return ([{path, size}, ...], total_size) for *.md files under root_dir.
 
     Paths are relative to root_dir and sorted; total_size is the sum of bytes.
     """
-    files: list[dict] = []
+    files: list[_LibraryFile] = []
     total = 0
     if root_dir.exists() and root_dir.is_dir():
         for f in sorted(root_dir.rglob("*.md")):
@@ -455,7 +465,7 @@ def _run_docgen_library_background(
     log_entry.save()
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def docsource_generate_view(request: HttpRequest) -> HttpResponse:
     """Start documentation generation in a background thread.
@@ -463,6 +473,9 @@ def docsource_generate_view(request: HttpRequest) -> HttpResponse:
     Returns immediately with a log_id that the frontend polls for status.
     """
     import threading
+
+    if not isinstance(request.user, User):
+        return JsonResponse({"error": "Forbidden"}, status=403)
 
     doc_name = request.POST.get("doc_name", "").strip()
     doc_type = request.POST.get("doc_type")
@@ -475,6 +488,7 @@ def docsource_generate_view(request: HttpRequest) -> HttpResponse:
 
     if not all([doc_name, doc_type, agent_id, destination]):
         return JsonResponse({"success": False, "error": "Missing required fields."})
+    assert doc_type is not None
 
     destination = destination.replace("\\", "/")
     destination = "/".join(part for part in destination.split("/") if part and part != "..")
@@ -556,7 +570,7 @@ def docsource_generate_view(request: HttpRequest) -> HttpResponse:
         args=(
             log_entry.pk,
             prompt,
-            request.user.id,
+            request.user.pk,
             enabled_tools,
             selected_db_names,
             selected_doc_names,
@@ -576,7 +590,7 @@ def docsource_generate_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def docsource_generate_library_view(request: HttpRequest) -> HttpResponse:
     """Start AI documentation *library* generation in a background thread.
@@ -585,6 +599,9 @@ def docsource_generate_library_view(request: HttpRequest) -> HttpResponse:
     create_documentation calls. Returns a log_id the frontend polls for status.
     """
     import threading
+
+    if not isinstance(request.user, User):
+        return JsonResponse({"error": "Forbidden"}, status=403)
 
     library_name = request.POST.get("library_name", "").strip()
     source_doc_type = request.POST.get("source_doc_type", DocumentationSource.DocType.DATABASE)
@@ -679,7 +696,7 @@ def docsource_generate_library_view(request: HttpRequest) -> HttpResponse:
         args=(
             log_entry.pk,
             prompt,
-            request.user.id,
+            request.user.pk,
             enabled_tools,
             selected_db_names,
             selected_doc_names,
@@ -699,7 +716,7 @@ def docsource_generate_library_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-def _library_status_response(log_entry: DocGenerationLog, data: dict[str, object]) -> JsonResponse:
+def _library_status_response(log_entry: DocGenerationLog, data: dict[str, Any]) -> JsonResponse:
     """Build the status JSON for a library generation run (folder-level tracking)."""
     root_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR) / log_entry.destination
     files, total_size = _scan_library_files(root_dir)
@@ -732,12 +749,12 @@ def _library_status_response(log_entry: DocGenerationLog, data: dict[str, object
     return JsonResponse(data)
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def docsource_generate_status_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Poll endpoint for doc generation status. Returns current state of the log entry."""
     log_entry = get_object_or_404(DocGenerationLog, pk=pk)
 
-    data = {
+    data: dict[str, Any] = {
         "status": log_entry.status,
         "execution_time_ms": log_entry.execution_time_ms,
         "is_library": log_entry.is_library,

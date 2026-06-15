@@ -32,7 +32,7 @@ def _validate_graph(nodes: list[dict[str, object]], edges: list[dict[str, object
         kind = node.get("kind")
         if not isinstance(nid, str) or not nid:
             return f"Node #{i} missing string `id`."
-        if kind not in ALLOWED_KINDS:
+        if not isinstance(kind, str) or kind not in ALLOWED_KINDS:
             return f"Node {nid!r} has invalid kind {kind!r}."
         if nid in seen_ids:
             return f"Duplicate node id {nid!r}."
@@ -50,7 +50,7 @@ def _validate_graph(nodes: list[dict[str, object]], edges: list[dict[str, object
             continue
         if parent_id not in seen_ids:
             return f"Node {nid!r} references unknown parent_id {parent_id!r}."
-        expected = PARENT_KIND.get(kind)  # type: ignore[call-overload]
+        expected = PARENT_KIND.get(kind) if isinstance(kind, str) else None
         if expected and seen_ids[parent_id] != expected:
             return (
                 f"Node {nid!r} ({kind}) has parent of wrong kind "

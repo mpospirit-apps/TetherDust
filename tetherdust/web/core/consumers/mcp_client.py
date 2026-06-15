@@ -86,7 +86,12 @@ async def fetch_tools_called(token: str | None = None) -> list[dict[str, object]
             resp = await client.get(url, params={"token": token})
             resp.raise_for_status()
             data = resp.json()
-            return data.get("tools", [])
+            raw_tools = data.get("tools") or []
+            result: list[dict[str, object]] = []
+            for t in raw_tools:
+                if isinstance(t, dict):
+                    result.append(t)
+            return result
     except Exception as e:
         logger.warning(f"Failed to fetch tools-called from MCP: {e}")
         return []

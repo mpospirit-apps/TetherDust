@@ -132,14 +132,18 @@ def check_due_dashboard_refreshes() -> None:
         .exclude(refresh_interval="")
     )
 
+    from .models import Chart
+
     count = 0
     for dashboard in dashboards:
+        if not dashboard.refresh_interval:
+            continue
         try:
             interval_minutes = int(dashboard.refresh_interval)
-        except (ValueError, TypeError):
+        except ValueError:
             continue
 
-        for chart in dashboard.charts.filter(is_active=True):
+        for chart in Chart.objects.filter(dashboard=dashboard, is_active=True):
             if chart.last_refreshed_at is None or (
                 (now - chart.last_refreshed_at).total_seconds() > interval_minutes * 60
             ):

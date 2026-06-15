@@ -17,7 +17,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 API_VIEW = Path(__file__).resolve().parent.parent / "web" / "portal" / "views" / "api.py"
 
 
-def test_login_view_validates_next():
+def test_login_view_validates_next() -> None:
     """The view imports and calls url_has_allowed_host_and_scheme on `next`."""
     src = API_VIEW.read_text(encoding="utf-8")
     assert "url_has_allowed_host_and_scheme" in src, "validator not used in login view"
@@ -26,7 +26,7 @@ def test_login_view_validates_next():
     )
 
 
-def test_login_view_has_no_unvalidated_next_redirect():
+def test_login_view_has_no_unvalidated_next_redirect() -> None:
     """The old naive `redirect(next_url if next_url else ...)` is gone."""
     src = API_VIEW.read_text(encoding="utf-8")
     assert not re.search(r"redirect\(\s*next_url\s+if\s+next_url", src), (
@@ -53,14 +53,14 @@ ALLOWED = [
 ]
 
 
-def test_offsite_and_dangerous_next_rejected():
+def test_offsite_and_dangerous_next_rejected() -> None:
     for target in REJECTED:
         assert not url_has_allowed_host_and_scheme(
             target, allowed_hosts={HOST}, require_https=False
         ), f"should have rejected open-redirect target: {target!r}"
 
 
-def test_local_next_allowed():
+def test_local_next_allowed() -> None:
     for target in ALLOWED:
         assert url_has_allowed_host_and_scheme(target, allowed_hosts={HOST}, require_https=False), (
             f"should have allowed local target: {target!r}"

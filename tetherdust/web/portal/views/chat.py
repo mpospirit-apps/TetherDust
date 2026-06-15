@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from datetime import timedelta
+from typing import TYPE_CHECKING, cast
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.db.models import Count
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -12,10 +14,10 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 if TYPE_CHECKING:
-    from django.contrib.auth.base_user import AbstractBaseUser
+    from django.contrib.auth.models import AbstractUser
 
 
-def _user_can_chat(user: AbstractBaseUser) -> bool:
+def _user_can_chat(user: AbstractUser) -> bool:
     """Return True if the user may access the chat interface."""
     if user.is_staff:
         return True
@@ -30,7 +32,7 @@ def chat_view(request: HttpRequest) -> HttpResponse:
         request,
         "portal/chat.html",
         {
-            "has_chat_access": _user_can_chat(request.user),
+            "has_chat_access": _user_can_chat(cast("AbstractUser", request.user)),
         },
     )
 
@@ -39,11 +41,13 @@ def chat_view(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def sessions_list_view(request: HttpRequest) -> HttpResponse:
     """Return the current user's chat sessions as JSON."""
-    if not _user_can_chat(request.user):
+    if not _user_can_chat(cast("AbstractUser", request.user)):
         return JsonResponse({"sessions": []})
 
     from core.models import ChatSession
 
+    if not isinstance(request.user, User):
+        return JsonResponse({"sessions": []})
     sessions = (
         ChatSession.objects.filter(user=request.user)
         .annotate(message_count=Count("messages"))
@@ -53,7 +57,7 @@ def sessions_list_view(request: HttpRequest) -> HttpResponse:
 
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    yesterday_start = today_start - timezone.timedelta(days=1)
+    yesterday_start = today_start - timedelta(days=1)
 
     result = []
     for s in sessions:
@@ -71,11 +75,11 @@ def sessions_list_view(request: HttpRequest) -> HttpResponse:
 
         result.append(
             {
-                "id": s.id,
-                "title": s.title or f"Session {s.id}",
+                "id": s.pk,
+                "title": s.title or f"Session {s.pk}",
                 "group": group,
                 "updated_at": s.updated_at.isoformat(),
-                "message_count": s.message_count,
+                "message_count": getattr(s, "message_count", 0),
             }
         )
 
@@ -86,11 +90,13 @@ def sessions_list_view(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["DELETE"])
 def session_delete_view(request: HttpRequest, session_id: str) -> HttpResponse:
     """Delete a chat session owned by the current user."""
-    if not _user_can_chat(request.user):
+    if not _user_can_chat(cast("AbstractUser", request.user)):
         return JsonResponse({"error": "Forbidden"}, status=403)
 
     from core.models import ChatSession
 
+    if not isinstance(request.user, User):
+        return JsonResponse({"error": "Forbidden"}, status=403)
     try:
         session = ChatSession.objects.get(id=session_id, user=request.user)
         session.delete()

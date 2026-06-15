@@ -1,8 +1,11 @@
 """Forms for tether configuration."""
 
+from typing import cast
+
 from core.forms.base import _BaseForm
 from core.models import Codebase, DocumentationSource, Role, Tether
 from django import forms
+from django.forms import ModelChoiceField
 
 
 class TetherForm(_BaseForm):
@@ -30,8 +33,12 @@ class TetherForm(_BaseForm):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
-        self.fields["codebase"].queryset = Codebase.objects.filter(is_active=True)
-        self.fields["database_doc_source"].queryset = DocumentationSource.objects.filter(
+        cast(
+            ModelChoiceField[Codebase], self.fields["codebase"]
+        ).queryset = Codebase.objects.filter(is_active=True)
+        cast(
+            ModelChoiceField[DocumentationSource], self.fields["database_doc_source"]
+        ).queryset = DocumentationSource.objects.filter(
             doc_type=DocumentationSource.DocType.DATABASE,
             is_active=True,
         )

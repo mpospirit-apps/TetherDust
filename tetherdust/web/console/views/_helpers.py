@@ -5,12 +5,27 @@ import decimal
 import json
 import logging
 import os
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any, TypeVar
 
 from core.models import SystemConfiguration
 from django.conf import settings
+from django.contrib.admin.views.decorators import staff_member_required
 
 logger = logging.getLogger("console.views")
+
+_V = TypeVar("_V", bound=Callable[..., Any])
+
+
+def staff_required(view: _V) -> _V:
+    """Typed wrapper for staff_member_required(login_url='/login/').
+
+    The bare @staff_member_required(login_url=...) call matches the untyped
+    overload in django-stubs, making every decorated function untyped. By
+    passing view_func positionally, we hit the typed overload that preserves _V.
+    """
+    return staff_member_required(view, login_url="/login/")
 
 
 def _serialize_sql_value(val: object) -> object:
@@ -57,9 +72,9 @@ def _get_documentation_folder_choices() -> list[tuple[str, str]]:
     return choices
 
 
-def _parse_docgen_result(result_text: str) -> list[dict]:
+def _parse_docgen_result(result_text: str) -> list[dict[str, object]]:
     """Best-effort extraction of structured errors from MCP tool return."""
-    errors: list[dict] = []
+    errors: list[dict[str, object]] = []
     for line in result_text.splitlines():
         line = line.strip()
         if line.startswith("- Errors:"):

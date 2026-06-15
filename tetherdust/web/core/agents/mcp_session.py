@@ -13,29 +13,41 @@ flattens a tool result into a string for the message history.
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
+import httpx
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
 from mcp.types import CallToolResult, ListToolsResult
 
 
 @asynccontextmanager
 async def open_mcp_session(
     url: str, headers: dict[str, str] | None = None
-) -> AsyncIterator[ClientSession]:
+) -> AsyncGenerator[ClientSession, None]:
     """Open and initialize an MCP `ClientSession` against a streamable-HTTP URL.
 
     `url` is the tokenized (`.../mcp/<token>`) or unrestricted (`.../mcp`) MCP
     endpoint. The session and its transport are torn down on exit — including
     when the surrounding task is cancelled.
     """
-    async with streamablehttp_client(url, headers=headers) as (read_stream, write_stream, _):
-        async with ClientSession(read_stream, write_stream) as session:
-            await session.initialize()
-            yield session
+    if headers:
+        async with httpx.AsyncClient(headers=headers) as http_client:
+            async with streamable_http_client(url, http_client=http_client) as (
+                read_stream,
+                write_stream,
+                _,
+            ):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
+                    yield session
+    else:
+        async with streamable_http_client(url) as (read_stream, write_stream, _):
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                yield session
 
 
 def mcp_tools_to_openai(tools_result: ListToolsResult) -> list[dict[str, Any]]:

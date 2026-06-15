@@ -170,7 +170,7 @@ class ReportDefinitionForm(_BaseForm):
         error = validate_sql(sql, engine=db.engine if db else None)
         if error:
             raise forms.ValidationError(error)
-        return sql
+        return str(sql)
 
     def save(self, commit: bool = True) -> object:
         instance = super().save(commit=False)

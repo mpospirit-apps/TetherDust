@@ -32,7 +32,7 @@ from core.prompts.docs import (  # noqa: E402
 # --- single-file generation -------------------------------------------------
 
 
-def test_single_file_layers_principles_and_context_before_template():
+def test_single_file_layers_principles_and_context_before_template() -> None:
     prompt = build_doc_generation_prompt("architecture", [])
 
     assert prompt.startswith(CORE_PRINCIPLES)
@@ -44,7 +44,7 @@ def test_single_file_layers_principles_and_context_before_template():
     assert prompt.index(TETHERDUST_CONTEXT) < prompt.index(DOC_TEMPLATES["architecture"])
 
 
-def test_single_file_excludes_library_scaffolding():
+def test_single_file_excludes_library_scaffolding() -> None:
     """The multi-page playbook must never leak into single-file prompts."""
     prompt = build_doc_generation_prompt("database_table", [])
 
@@ -52,13 +52,13 @@ def test_single_file_excludes_library_scaffolding():
     assert "deep-dive" not in prompt.lower()
 
 
-def test_single_file_unknown_doc_type_falls_back_to_database_table():
+def test_single_file_unknown_doc_type_falls_back_to_database_table() -> None:
     prompt = build_doc_generation_prompt("not_a_real_type", [])
 
     assert DOC_TEMPLATES["database_table"] in prompt
 
 
-def test_single_file_appends_source_material_when_given():
+def test_single_file_appends_source_material_when_given() -> None:
     without = build_doc_generation_prompt("query_examples", [])
     with_src = build_doc_generation_prompt("query_examples", ["SCHEMA DUMP X"])
 
@@ -67,14 +67,14 @@ def test_single_file_appends_source_material_when_given():
     assert "SCHEMA DUMP X" in with_src
 
 
-def test_single_file_scope_embedded_when_given():
+def test_single_file_scope_embedded_when_given() -> None:
     prompt = build_doc_generation_prompt("architecture", [], scope="Focus on auth flow")
 
     assert "Scope and goals:" in prompt
     assert "Focus on auth flow" in prompt
 
 
-def test_single_file_blank_scope_omitted():
+def test_single_file_blank_scope_omitted() -> None:
     prompt = build_doc_generation_prompt("architecture", [], scope="   ")
 
     assert "Scope and goals:" not in prompt
@@ -83,7 +83,7 @@ def test_single_file_blank_scope_omitted():
 # --- library generation -----------------------------------------------------
 
 
-def test_library_includes_all_three_layers_in_order():
+def test_library_includes_all_three_layers_in_order() -> None:
     prompt = build_library_prompt("My Lib")
 
     assert prompt.startswith(CORE_PRINCIPLES)
@@ -96,13 +96,13 @@ def test_library_includes_all_three_layers_in_order():
     )
 
 
-def test_library_embeds_name():
+def test_library_embeds_name() -> None:
     prompt = build_library_prompt("Billing Docs")
 
     assert "Billing Docs" in prompt
 
 
-def test_database_library_uses_database_guide_not_codebase_playbook():
+def test_database_library_uses_database_guide_not_codebase_playbook() -> None:
     prompt = build_library_prompt("Orders", "database")
 
     # Shared layers stay; the task guide is swapped for the table-oriented one.
@@ -116,14 +116,14 @@ def test_database_library_uses_database_guide_not_codebase_playbook():
     assert "Tables/<TableName>.md" in prompt
 
 
-def test_codebase_library_keeps_subsystem_playbook():
+def test_codebase_library_keeps_subsystem_playbook() -> None:
     prompt = build_library_prompt("MyLib", "codebase")
 
     assert LIBRARY_GUIDE in prompt
     assert DATABASE_LIBRARY_GUIDE not in prompt
 
 
-def test_database_guide_is_domain_agnostic():
+def test_database_guide_is_domain_agnostic() -> None:
     """The guide is general purpose — no FinTech or fixed tech-stack assumptions leak in."""
     for term in (
         "Wallet",
@@ -141,7 +141,7 @@ def test_database_guide_is_domain_agnostic():
 # --- shared content guarantees ---------------------------------------------
 
 
-def test_both_modes_share_identical_principles_and_context():
+def test_both_modes_share_identical_principles_and_context() -> None:
     single = build_doc_generation_prompt("architecture", [])
     library = build_library_prompt("Lib")
 
@@ -150,7 +150,7 @@ def test_both_modes_share_identical_principles_and_context():
         assert shared in library
 
 
-def test_context_names_tetherdust_tools_and_rendering():
+def test_context_names_tetherdust_tools_and_rendering() -> None:
     """The agent must learn its actual tools, how output renders, and how to save."""
     assert "create_documentation" in TETHERDUST_CONTEXT
     assert "mermaid" in TETHERDUST_CONTEXT
@@ -159,7 +159,7 @@ def test_context_names_tetherdust_tools_and_rendering():
         assert tool in TETHERDUST_CONTEXT
 
 
-def test_citation_guidance_is_anti_pinning():
+def test_citation_guidance_is_anti_pinning() -> None:
     """TetherDust has no git access; the guidance must steer away from commit pins."""
     # The only mentions of pinning are explicit negations telling the agent not to.
     # (Match line-break-tolerant fragments rather than the full wrapped sentence.)

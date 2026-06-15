@@ -8,15 +8,15 @@ class ChatSession(models.Model):
     """Stores chat session history."""
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="chat_sessions")
-    title: models.CharField = models.CharField(max_length=200, blank=True)
-    created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
-    updated_at: models.DateTimeField = models.DateTimeField(auto_now=True)
+    title = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-updated_at"]
 
     def __str__(self) -> str:
-        return self.title or f"Session {self.id}"
+        return self.title or f"Session {self.pk}"
 
 
 class ChatMessage(models.Model):
@@ -29,24 +29,24 @@ class ChatMessage(models.Model):
     ]
 
     session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name="messages")
-    role: models.CharField = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    content: models.TextField = models.TextField()
-    tools_used: models.JSONField = models.JSONField(
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    content = models.TextField()
+    tools_used = models.JSONField(
         default=list,
         blank=True,
         help_text="List of MCP tool names used in this assistant message",
     )
-    sources_used: models.JSONField = models.JSONField(
+    sources_used = models.JSONField(
         default=list,
         blank=True,
         help_text="List of {uri, name} dicts for MCP sources attached to this user message",
     )
-    prompts_used: models.JSONField = models.JSONField(
+    prompts_used = models.JSONField(
         default=list,
         blank=True,
         help_text="List of {name, display_name} dicts for prompts attached to this user message",
     )
-    created_at: models.DateTimeField = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["created_at"]

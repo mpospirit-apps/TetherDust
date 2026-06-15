@@ -1,6 +1,12 @@
 """User-facing report views: viewer page, latest/history HTMX endpoints, downloads, email."""
 
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any, cast
+
 from django.contrib.auth.decorators import login_required
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractUser
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -14,7 +20,7 @@ def reports_view(request: HttpRequest) -> HttpResponse:
     """Reports viewer — sidebar listing + content area."""
     from core.models import ReportDefinition
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
 
     if user.is_staff:
         reports = ReportDefinition.objects.filter(is_active=True).select_related("database")
@@ -26,9 +32,9 @@ def reports_view(request: HttpRequest) -> HttpResponse:
 
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    yesterday_start = today_start - timezone.timedelta(days=1)
+    yesterday_start = today_start - timedelta(days=1)
 
-    def _report_group(dt):
+    def _report_group(dt: datetime | None) -> str:
         if dt is None:
             return "Never Run"
         if dt >= today_start:
@@ -49,7 +55,7 @@ def reports_view(request: HttpRequest) -> HttpResponse:
         group = _report_group(latest.started_at if latest else None)
         report_list.append(
             {
-                "id": report.id,
+                "id": report.pk,
                 "name": report.name,
                 "description": report.description,
                 "database": report.database.name,
@@ -61,13 +67,13 @@ def reports_view(request: HttpRequest) -> HttpResponse:
     group_order = []
     groups_map: dict[str, list[dict[str, object]]] = {}
     for r in report_list:
-        g = r["group"]
+        g = cast(str, r["group"])
         if g not in groups_map:
             groups_map[g] = []
             group_order.append(g)
         groups_map[g].append(r)
 
-    def _group_sort_key(label):
+    def _group_sort_key(label: str) -> tuple[int | str, ...]:
         if label == "Today":
             return (0,)
         if label == "Yesterday":
@@ -86,12 +92,11 @@ def reports_view(request: HttpRequest) -> HttpResponse:
             return (4, label)
 
     sorted_groups = sorted(group_order, key=_group_sort_key)
-    report_groups = [{"label": g, "reports": groups_map[g]} for g in sorted_groups]
 
     # Trimmed object for the client; rendered via {{ ...|json_script }} (safe).
     report_groups_data = [
-        {"label": g["label"], "reports": [{"id": r["id"], "name": r["name"]} for r in g["reports"]]}
-        for g in report_groups
+        {"label": g, "reports": [{"id": r["id"], "name": r["name"]} for r in groups_map[g]]}
+        for g in sorted_groups
     ]
 
     from core.engines.email_service import is_smtp_configured
@@ -113,7 +118,7 @@ def report_latest_view(request: HttpRequest, definition_id: int) -> HttpResponse
     """HTMX endpoint — returns latest successful execution as HTML table."""
     from core.models import ReportDefinition
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
     report = ReportDefinition.objects.filter(pk=definition_id, is_active=True).first()
     if not report:
         return HttpResponse("<p>Report not found.</p>", status=404)
@@ -148,7 +153,7 @@ def report_history_view(request: HttpRequest, definition_id: int) -> HttpRespons
     """HTMX endpoint — lists past executions for a report."""
     from core.models import ReportDefinition
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
     report = ReportDefinition.objects.filter(pk=definition_id, is_active=True).first()
     if not report:
         return HttpResponse("<p>Report not found.</p>", status=404)
@@ -195,7 +200,7 @@ def report_execution_content_view(request: HttpRequest, execution_id: int) -> Ht
     """HTMX endpoint — returns a specific execution's results."""
     from core.models import ReportExecution
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
     execution = ReportExecution.objects.select_related("definition").filter(pk=execution_id).first()
     if not execution:
         return HttpResponse("<p>Execution not found.</p>", status=404)
@@ -228,7 +233,7 @@ def report_download_view(request: HttpRequest, execution_id: int, fmt: str) -> H
 
     from core.models import ReportExecution
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
     execution = ReportExecution.objects.select_related("definition").filter(pk=execution_id).first()
     if not execution:
         return HttpResponse("Execution not found.", status=404)
@@ -266,6 +271,7 @@ def report_download_view(request: HttpRequest, execution_id: int, fmt: str) -> H
 
         wb = openpyxl.Workbook()
         ws = wb.active
+        assert ws is not None
         ws.title = safe_name[:31]
         ws.append(column_names)
         for row in rows:
@@ -290,7 +296,7 @@ def report_send_email_view(request: HttpRequest, execution_id: int) -> HttpRespo
     """Send report results to the logged-in user's email."""
     from core.models import ReportExecution
 
-    user = request.user
+    user = cast("AbstractUser", request.user)
     if not user.email:
         return JsonResponse({"error": "Your account has no email address configured."}, status=400)
 
@@ -313,5 +319,5 @@ def report_send_email_view(request: HttpRequest, execution_id: int) -> HttpRespo
 
     from core.tasks import send_report_email_task
 
-    send_report_email_task.delay(execution.pk, [user.email])
+    cast(Any, send_report_email_task).delay(execution.pk, [user.email])
     return JsonResponse({"message": f"Report will be sent to {user.email} shortly."})

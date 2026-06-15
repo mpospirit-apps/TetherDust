@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, cast
 
 from channels.db import database_sync_to_async
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser, User
+
+    from ..models import UserProfile
 
     class _Base:
-        user: Any
-        profile: Any
+        user: User | AnonymousUser
+        profile: UserProfile | None
 else:
     _Base = object
 
@@ -23,9 +26,13 @@ class PermissionsMixin(_Base):
     """
 
     @database_sync_to_async
-    def _get_user_profile(self) -> object | None:
+    def _get_user_profile(self) -> UserProfile | None:
+        from django.contrib.auth.models import User
+
         from ..models import UserProfile
 
+        if not isinstance(self.user, User):
+            return None
         try:
             return UserProfile.objects.select_related("role").get(user=self.user)
         except UserProfile.DoesNotExist:
@@ -41,7 +48,7 @@ class PermissionsMixin(_Base):
     def _get_allowed_tools(self) -> set[str]:
         if not self.profile:
             return set()
-        return self.profile.get_allowed_tools()
+        return self.profile.get_allowed_tools() or set()
 
     @database_sync_to_async
     def _get_all_enabled_tools(self) -> list[str]:
@@ -57,7 +64,7 @@ class PermissionsMixin(_Base):
     def _get_allowed_databases(self) -> set[str]:
         if not self.profile:
             return set()
-        return self.profile.get_allowed_databases()
+        return self.profile.get_allowed_databases() or set()
 
     @database_sync_to_async
     def _get_allowed_doc_sources(self) -> set[str] | None:
@@ -96,7 +103,7 @@ class PermissionsMixin(_Base):
         return self.profile.get_allowed_dashboards_names()
 
     @database_sync_to_async
-    def _get_allowed_tethers(self) -> set[int] | None:
+    def _get_allowed_tethers(self) -> set[str] | None:
         """Staff and admin-role users bypass filtering (return None = unrestricted)."""
         if self.user.is_staff:
             return None
@@ -148,7 +155,7 @@ class PermissionsMixin(_Base):
     def _get_max_row_limit(self) -> int | None:
         from ..models import SystemConfiguration
 
-        system_default = SystemConfiguration.get_value("max_row_limit", 100)
+        system_default = cast(int | None, SystemConfiguration.get_value("max_row_limit", 100))
         if not self.profile:
             return system_default
         return self.profile.get_max_row_limit()

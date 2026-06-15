@@ -1,5 +1,7 @@
 """Forms for agent configuration."""
 
+from typing import Any
+
 from core.forms.base import _BaseForm
 from core.models import AgentConfiguration
 from django import forms
@@ -108,8 +110,8 @@ class AgentConfigurationForm(_BaseForm):
             if settings.get("base_url"):
                 self.fields["base_url"].initial = settings["base_url"]
 
-    def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
         agent_type = cleaned.get("agent_type") or (
             self.instance.agent_type if self.instance and self.instance.pk else None
         )

@@ -15,12 +15,13 @@ from core.version import (
     latest_version,
     update_available,
 )
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
+from console.views._helpers import staff_required
 
-@staff_member_required(login_url="/login/")
+
+@staff_required
 def version_view(request: HttpRequest) -> HttpResponse:
     current = current_version()
 

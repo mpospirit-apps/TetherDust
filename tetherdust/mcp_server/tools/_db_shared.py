@@ -6,7 +6,7 @@ populated by the token-based filter middleware in ``server.py``.
 
 import functools
 from collections.abc import Awaitable, Callable
-from typing import TypeVar
+from typing import TypeVar, cast
 
 from .._context import (
     request_allowed_codebases,
@@ -133,12 +133,13 @@ def enforce_db_access(*, arg: str = "database") -> Callable[[_F], _F]:
     def decorator(func: _F) -> _F:
         @functools.wraps(func)
         async def wrapper(*args: object, **kwargs: object) -> str:
-            denied = check_database_access(kwargs.get(arg))  # type: ignore[arg-type]
+            db_arg = kwargs.get(arg)
+            denied = check_database_access(db_arg if isinstance(db_arg, str) else None)
             if denied is not None:
                 return denied
             return await func(*args, **kwargs)
 
         setattr(wrapper, DB_ACCESS_ATTR, arg)
-        return wrapper  # type: ignore[return-value]
+        return cast(_F, wrapper)
 
     return decorator

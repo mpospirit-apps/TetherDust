@@ -109,7 +109,7 @@ class CodexAgent(BaseAgent):
             [s.get("name") for s in custom_mcp_servers] if custom_mcp_servers else None,
         )
 
-        payload = {
+        payload: dict[str, object] = {
             "message": message,
             "session_id": session_id,
             "user_id": user_id,

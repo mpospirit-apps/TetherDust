@@ -4,6 +4,7 @@ import base64
 import datetime
 import json
 import os
+from typing import Any
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -12,7 +13,7 @@ from ._encryption import decrypt_value, encrypt_value
 from .connections import SystemConfiguration
 
 
-def _decode_jwt_claims(token: str | None) -> dict | None:
+def _decode_jwt_claims(token: str | None) -> dict[str, object] | None:
     """Best-effort decode of a JWT payload without signature verification.
 
     Used only to surface identity/expiry claims for display; we never trust
@@ -120,7 +121,7 @@ class AgentConfiguration(models.Model):
     def __str__(self) -> str:
         return f"{self.name} ({self.get_agent_type_display()})"
 
-    def save(self, *args: object, **kwargs: object) -> None:
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if self.is_active:
             # Deactivate all other agents when this one becomes active
             AgentConfiguration.objects.filter(is_active=True).exclude(pk=self.pk).update(
@@ -185,7 +186,7 @@ class AgentConfiguration(models.Model):
         """Encrypt and store the auth token."""
         self._auth_token = encrypt_value(value) if value else ""
 
-    def get_auth_info(self) -> dict | None:
+    def get_auth_info(self) -> dict[str, object] | None:
         """Decode the stored ChatGPT credential for display.
 
         Returns a dict with any of `email`, `plan`, `expires_at` (a timezone-aware
@@ -205,7 +206,7 @@ class AgentConfiguration(models.Model):
         if not isinstance(tokens, dict):
             return None
 
-        info: dict = {}
+        info: dict[str, object] = {}
         id_claims = _decode_jwt_claims(tokens.get("id_token"))
         if id_claims:
             email = id_claims.get("email")

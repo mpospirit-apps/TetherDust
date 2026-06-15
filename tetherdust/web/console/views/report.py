@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from core.models import ReportDefinition, ReportExecution
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from console.views._helpers import staff_required
+
 from ..forms import ReportDefinitionForm
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def report_list_view(request: HttpRequest) -> HttpResponse:
     reports = ReportDefinition.objects.select_related("database").all()
     for report in reports:
@@ -26,15 +30,16 @@ def report_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def report_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
     instance = get_object_or_404(ReportDefinition, pk=pk) if pk else None
     if request.method == "POST":
         form = ReportDefinitionForm(request.POST, instance=instance)
         if form.is_valid():
-            report: ReportDefinition = form.save(commit=False)  # type: ignore[assignment]
+            report = form.save(commit=False)
+            assert isinstance(report, ReportDefinition)
             if not instance:
-                report.created_by = request.user
+                report.created_by = cast(User, request.user)
             if report.schedule_type != "manual":
                 from core.engines.report_engine import compute_next_run
 
@@ -58,7 +63,7 @@ def report_form_view(request: HttpRequest, pk: int | None = None) -> HttpRespons
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def report_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     obj = get_object_or_404(ReportDefinition, pk=pk)
@@ -66,24 +71,26 @@ def report_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("console:report_list")
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def report_run_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Manually trigger a report execution."""
     from core.engines.report_engine import execute_report
 
     report = get_object_or_404(ReportDefinition, pk=pk)
-    execution = execute_report(report, triggered_by=request.user)
+    user = request.user if isinstance(request.user, User) else None
+    execution = execute_report(report, triggered_by=user)
     return redirect("console:report_execution_detail", pk=execution.pk)
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def report_preview_view(request: HttpRequest, pk: int) -> HttpResponse:
     """HTMX endpoint — runs report SQL with LIMIT 10, returns table fragment."""
     from core.engines.report_engine import execute_report
 
     report = get_object_or_404(ReportDefinition, pk=pk)
-    execution = execute_report(report, triggered_by=request.user, max_rows_override=10)
+    user = request.user if isinstance(request.user, User) else None
+    execution = execute_report(report, triggered_by=user, max_rows_override=10)
 
     if execution.status == "failed":
         return HttpResponse(
@@ -101,7 +108,7 @@ def report_preview_view(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 @require_POST
 def report_toggle_view(request: HttpRequest, pk: int) -> HttpResponse:
     """Toggle report active/inactive via HTMX."""
@@ -113,7 +120,7 @@ def report_toggle_view(request: HttpRequest, pk: int) -> HttpResponse:
     return HttpResponse(f'<span class="badge {css}">{status.upper()}</span>')
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def report_execution_list_view(request: HttpRequest) -> HttpResponse:
     executions = ReportExecution.objects.select_related("definition", "triggered_by").order_by(
         "-started_at"
@@ -128,7 +135,7 @@ def report_execution_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required(login_url="/login/")
+@staff_required
 def report_execution_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     execution = get_object_or_404(
         ReportExecution.objects.select_related("definition", "triggered_by"),

@@ -32,17 +32,17 @@ from core.integrations.github_client import (  # noqa: E402
         ("github.com/owner/repo", ("owner", "repo")),
     ],
 )
-def test_parse_owner_repo_valid(url, expected):
+def test_parse_owner_repo_valid(url: str, expected: tuple[str, str]) -> None:
     assert parse_owner_repo(url) == expected
 
 
 @pytest.mark.parametrize("url", ["", "https://github.com/owner", "not-a-url", "owner"])
-def test_parse_owner_repo_invalid(url):
+def test_parse_owner_repo_invalid(url: str) -> None:
     with pytest.raises(ValueError):
         parse_owner_repo(url)
 
 
-def _tree():
+def _tree() -> list[dict[str, object]]:
     return [
         {"path": "src/app.py", "type": "blob", "size": 100},
         {"path": "src/util.py", "type": "blob", "size": 50},
@@ -53,23 +53,23 @@ def _tree():
     ]
 
 
-def test_filter_tree_drops_trees_and_excludes():
+def test_filter_tree_drops_trees_and_excludes() -> None:
     result = filter_tree(_tree(), exclude_globs=["node_modules/*", "*.json"])
     assert {e["path"] for e in result} == {"src/app.py", "src/util.py", "README.md"}
     assert all(e["type"] == "file" for e in result)
 
 
-def test_filter_tree_include_only():
+def test_filter_tree_include_only() -> None:
     result = filter_tree(_tree(), include_globs=["*.py"])
     assert {e["path"] for e in result} == {"src/app.py", "src/util.py"}
 
 
-def test_filter_tree_subpath_relativizes():
+def test_filter_tree_subpath_relativizes() -> None:
     result = filter_tree(_tree(), subpath="src")
     assert {e["path"] for e in result} == {"app.py", "util.py"}
 
 
-def test_matches_any_nested_and_basename():
+def test_matches_any_nested_and_basename() -> None:
     assert matches_any("a/b/node_modules/x.js", ["node_modules/*"])
     assert matches_any("deep/path/file.lock", ["*.lock"])
     assert not matches_any("src/app.py", ["*.md"])

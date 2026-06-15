@@ -24,11 +24,12 @@ import re
 import shutil
 import tempfile
 import uuid
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -136,29 +137,29 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str
     user_id: int
-    allowed_tools: Optional[List[str]] = None
-    allowed_databases: Optional[List[str]] = None
-    allowed_doc_sources: Optional[List[str]] = None
-    max_row_limit: Optional[str] = None
-    auth_token: Optional[str] = None
+    allowed_tools: list[str] | None = None
+    allowed_databases: list[str] | None = None
+    allowed_doc_sources: list[str] | None = None
+    max_row_limit: str | None = None
+    auth_token: str | None = None
     # Provider API key for API-key auth (mutually exclusive with auth_token).
     # Injected as an env var for the subprocess; no auth.json is seeded.
-    api_key: Optional[str] = None
-    instructions: Optional[str] = None
+    api_key: str | None = None
+    instructions: str | None = None
     # Optional model + reasoning effort overrides for `codex exec`. Both are
     # passed as `-c` config overrides. When absent, Codex uses its built-in
     # defaults. `reasoning_effort` accepts Codex's values
     # (none|minimal|low|medium|high|xhigh); validation is enforced upstream.
-    model: Optional[str] = None
-    reasoning_effort: Optional[str] = None
+    model: str | None = None
+    reasoning_effort: str | None = None
     # Pre-tokenized MCP URL for the built-in tetherdust server, registered by
     # Django for restricted requests. Absent/None means unrestricted (the
     # default MCP_URL is used).
-    mcp_url: Optional[str] = None
+    mcp_url: str | None = None
     # Extra MCP servers the caller's role allows, injected into the per-request
     # config.toml alongside the built-in tetherdust block. Each entry has keys
     # `name`, `url`, `transport`, `auth_token`, `headers`.
-    custom_mcp_servers: Optional[List[Dict[str, Any]]] = None
+    custom_mcp_servers: list[dict[str, Any]] | None = None
 
 
 _RESERVED_MCP_KEYS = {"tetherdust"}
@@ -181,10 +182,10 @@ def _sanitize_mcp_key(name: str) -> str:
 
 def _toml_escape(value: str) -> str:
     """Escape a string for a TOML double-quoted literal."""
-    return value.replace("\\", "\\\\").replace("\"", "\\\"")
+    return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def _render_custom_mcp_blocks(servers: List[Dict[str, Any]]) -> str:
+def _render_custom_mcp_blocks(servers: list[dict[str, Any]]) -> str:
     """Render `[mcp_servers.<key>]` blocks for custom servers.
 
     Collisions on the sanitized key are resolved by suffixing `_2`, `_3`, …
@@ -204,7 +205,7 @@ def _render_custom_mcp_blocks(servers: List[Dict[str, Any]]) -> str:
             suffix += 1
         used.add(key)
 
-        headers: Dict[str, str] = dict(server.get("headers") or {})
+        headers: dict[str, str] = dict(server.get("headers") or {})
         auth_token = (server.get("auth_token") or "").strip()
         if auth_token and "Authorization" not in headers:
             headers["Authorization"] = f"Bearer {auth_token}"
@@ -214,14 +215,12 @@ def _render_custom_mcp_blocks(servers: List[Dict[str, Any]]) -> str:
             lines.append("")
             lines.append(f"[mcp_servers.{key}.http_headers]")
             for header_name, header_value in headers.items():
-                lines.append(
-                    f'"{_toml_escape(str(header_name))}" = "{_toml_escape(str(header_value))}"'
-                )
+                lines.append(f'"{_toml_escape(header_name)}" = "{_toml_escape(header_value)}"')
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
 
 
-def _redact_servers_for_log(servers: Optional[List[Dict[str, Any]]]) -> list:
+def _redact_servers_for_log(servers: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     """Strip secrets before logging."""
     if not servers:
         return []
@@ -236,7 +235,7 @@ def _redact_servers_for_log(servers: Optional[List[Dict[str, Any]]]) -> list:
     return redacted
 
 
-def _mcp_url_override_args(mcp_url: str) -> List[str]:
+def _mcp_url_override_args(mcp_url: str) -> list[str]:
     """Build `codex exec -c` args that inline the built-in tetherdust MCP URL.
 
     Lets a restricted request with no custom MCP servers run from the persistent
@@ -249,7 +248,7 @@ def _mcp_url_override_args(mcp_url: str) -> List[str]:
 
 def _setup_per_request_home(
     mcp_url: str | None,
-    custom_mcp_servers: List[Dict[str, Any]],
+    custom_mcp_servers: list[dict[str, Any]],
     api_key: str | None = None,
 ) -> str:
     """Create a temp HOME with an isolated .codex/config.toml for this request.
@@ -324,9 +323,12 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
         "Received request: allowed_tools=%s, allowed_databases=%s, "
         "allowed_doc_sources=%s, max_row_limit=%s, model=%s, reasoning_effort=%s, "
         "mcp_url=%s, custom_mcp_servers=%s",
-        request.allowed_tools, request.allowed_databases,
-        request.allowed_doc_sources, request.max_row_limit,
-        request.model, request.reasoning_effort,
+        request.allowed_tools,
+        request.allowed_databases,
+        request.allowed_doc_sources,
+        request.max_row_limit,
+        request.model,
+        request.reasoning_effort,
         "<tokenized>" if request.mcp_url else None,
         _redact_servers_for_log(request.custom_mcp_servers),
     )
@@ -344,7 +346,7 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
     #     volume; run from CODEX_HOME with no overrides.
     # Django enforces the per-request tool filter from the token in the mcp_url
     # path regardless of which path is taken here.
-    config_overrides: List[str] = []
+    config_overrides: list[str] = []
     # Model + reasoning effort overrides apply on every path (per-request home or
     # inline MCP override). Codex parses each `-c` value portion as TOML, so
     # string values are quoted.
@@ -352,7 +354,8 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
         config_overrides += ["-c", f'model="{_toml_escape(request.model)}"']
     if request.reasoning_effort:
         config_overrides += [
-            "-c", f'model_reasoning_effort="{_toml_escape(request.reasoning_effort)}"'
+            "-c",
+            f'model_reasoning_effort="{_toml_escape(request.reasoning_effort)}"',
         ]
     # API-key auth also needs a per-request home: the apikey auth.json must be
     # isolated to this request rather than written to the shared volume.
@@ -421,17 +424,17 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
             )
         except FileNotFoundError:
             logger.error("Codex CLI binary not found: %s", CODEX_COMMAND)
-            error_payload = json.dumps({
-                "text": "\n\nThe AI agent could not be started — the Codex CLI is not installed."
-            })
+            error_payload = json.dumps(
+                {"text": "\n\nThe AI agent could not be started — the Codex CLI is not installed."}
+            )
             yield f"data: {error_payload}\n\n"
             yield "data: [DONE]\n\n"
             return
         except OSError as e:
             logger.error("Failed to spawn Codex subprocess: %s", e)
-            error_payload = json.dumps({
-                "text": "\n\nThe AI agent could not be started due to a system error."
-            })
+            error_payload = json.dumps(
+                {"text": "\n\nThe AI agent could not be started due to a system error."}
+            )
             yield f"data: {error_payload}\n\n"
             yield "data: [DONE]\n\n"
             return
@@ -500,9 +503,13 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
                 # Reasoning items are excluded: their content is surfaced via
                 # "thinking" deltas above and must not overwrite the real answer.
                 elif event_type == "item.completed" and item_type not in (
-                    "tool_call", "function_call", "function_call_output",
-                    "tool_call_output", "tool_result",
-                    "reasoning", "thinking",
+                    "tool_call",
+                    "function_call",
+                    "function_call_output",
+                    "tool_call_output",
+                    "tool_result",
+                    "reasoning",
+                    "thinking",
                 ):
                     text = item.get("text", "") or item.get("content", "")
                     if text:
@@ -521,7 +528,9 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
             detail = error_detail or stderr_text
             logger.warning(
                 "Codex subprocess failed (session=%s, rc=%s): %s",
-                session_id, process.returncode, detail,
+                session_id,
+                process.returncode,
+                detail,
             )
             combined = f"{stderr_text}\n{error_detail}".lower()
             if "rate limit" in combined:
@@ -554,13 +563,14 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
         if process is not None and process.returncode is None:
             logger.info(
                 "Terminating Codex subprocess (pid=%s, session=%s)",
-                process.pid, session_id,
+                process.pid,
+                session_id,
             )
             try:
                 process.terminate()
                 try:
                     await asyncio.wait_for(process.wait(), timeout=5)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     process.kill()
                     await process.wait()
             except ProcessLookupError:
@@ -578,7 +588,7 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
 
 
 @app.post("/chat", dependencies=[Depends(_require_gateway_secret)])
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest) -> StreamingResponse:
     """Stream a Codex response as Server-Sent Events."""
     return StreamingResponse(
         _stream_codex(request),
@@ -591,7 +601,7 @@ async def chat(request: ChatRequest):
 
 
 @app.post("/abort/{session_id}", dependencies=[Depends(_require_gateway_secret)])
-async def abort(session_id: str):
+async def abort(session_id: str) -> dict[str, str]:
     """Abort a running Codex subprocess for the given session."""
     process = _active_processes.pop(session_id, None)
     if process is None or process.returncode is not None:
@@ -602,7 +612,7 @@ async def abort(session_id: str):
         process.terminate()
         try:
             await asyncio.wait_for(process.wait(), timeout=5)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             process.kill()
             await process.wait()
     except ProcessLookupError:
@@ -615,7 +625,7 @@ class UpdateAgentsMdRequest(BaseModel):
 
 
 @app.post("/update-agents-md", dependencies=[Depends(_require_gateway_secret)])
-async def update_agents_md(request: UpdateAgentsMdRequest):
+async def update_agents_md(request: UpdateAgentsMdRequest) -> dict[str, str]:
     """Update the AGENTS.md file that the Codex CLI reads on each invocation."""
     agents_path = Path("/app/AGENTS.md")
     agents_path.write_text(request.content, encoding="utf-8")
@@ -627,7 +637,7 @@ async def update_agents_md(request: UpdateAgentsMdRequest):
 # In-flight device logins keyed by a generated login_id. Each value holds:
 #   {status: "pending"|"complete"|"error", verification_url, user_code,
 #    auth_token?, error?, process}
-_device_logins: dict[str, dict] = {}
+_device_logins: dict[str, dict[str, Any]] = {}
 
 _DEVICE_URL_RE = re.compile(r"https?://[^\s'\"]+")
 _DEVICE_CODE_RE = re.compile(r"\b[A-Z0-9]{4,}-[A-Z0-9]{4,}\b")
@@ -658,7 +668,7 @@ def _parse_token_expiry(auth_json: str) -> str | None:
     exp = claims.get("exp") if isinstance(claims, dict) else None
     if not isinstance(exp, (int, float)):
         return None
-    return datetime.datetime.fromtimestamp(exp, tz=datetime.timezone.utc).isoformat()
+    return datetime.datetime.fromtimestamp(exp, tz=datetime.UTC).isoformat()
 
 
 async def _capture_device_prompt(
@@ -676,7 +686,7 @@ async def _capture_device_prompt(
             break
         try:
             line_bytes = await asyncio.wait_for(process.stdout.readline(), timeout=remaining)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             break
         if not line_bytes:
             break
@@ -722,8 +732,10 @@ async def _await_device_login(login_id: str, process: asyncio.subprocess.Process
         logger.warning("Device login %s failed: %s", login_id, state["error"])
 
 
-@app.post("/auth/device/start", dependencies=[Depends(_require_gateway_secret)])
-async def auth_device_start():
+@app.post(
+    "/auth/device/start", dependencies=[Depends(_require_gateway_secret)], response_model=None
+)
+async def auth_device_start() -> dict[str, Any] | Response:
     """Begin an in-app device-code login; return the verification URL + code.
 
     Runs `codex login --device-auth` against the persistent volume HOME so the
@@ -735,7 +747,9 @@ async def auth_device_start():
     env["CODEX_HOME"] = str(CODEX_HOME_DIR)
     try:
         process = await asyncio.create_subprocess_exec(
-            CODEX_COMMAND, "login", "--device-auth",
+            CODEX_COMMAND,
+            "login",
+            "--device-auth",
             stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
@@ -743,7 +757,9 @@ async def auth_device_start():
         )
     except (FileNotFoundError, OSError) as e:
         logger.error("Failed to start device login: %s", e)
-        return JSONResponse(status_code=503, content={"error": "Could not start the login process."})
+        return JSONResponse(
+            status_code=503, content={"error": "Could not start the login process."}
+        )
 
     url, code = await _capture_device_prompt(process)
     if url is None or code is None:
@@ -766,8 +782,12 @@ async def auth_device_start():
     return {"login_id": login_id, "verification_url": url, "user_code": code}
 
 
-@app.get("/auth/device/status/{login_id}", dependencies=[Depends(_require_gateway_secret)])
-async def auth_device_status(login_id: str):
+@app.get(
+    "/auth/device/status/{login_id}",
+    dependencies=[Depends(_require_gateway_secret)],
+    response_model=None,
+)
+async def auth_device_status(login_id: str) -> dict[str, Any] | Response:
     """Poll a device login. On a terminal state the entry is consumed."""
     state = _device_logins.get(login_id)
     if state is None:
@@ -788,7 +808,7 @@ async def auth_device_status(login_id: str):
 
 
 @app.post("/auth/device/cancel/{login_id}", dependencies=[Depends(_require_gateway_secret)])
-async def auth_device_cancel(login_id: str):
+async def auth_device_cancel(login_id: str) -> dict[str, str]:
     """Cancel a pending device login and terminate its subprocess."""
     state = _device_logins.pop(login_id, None)
     if state is None:
@@ -804,7 +824,7 @@ async def auth_device_cancel(login_id: str):
 
 
 @app.get("/auth/token", dependencies=[Depends(_require_gateway_secret)])
-async def auth_token():
+async def auth_token() -> dict[str, Any]:
     """Return the current volume credential (the live, possibly-refreshed token).
 
     Used by the Django Celery sync task to keep the encrypted DB backup current.
@@ -824,6 +844,6 @@ async def auth_token():
 
 
 @app.get("/healthz")
-async def healthz():
+async def healthz() -> dict[str, str]:
     """Liveness probe."""
     return {"status": "ok"}
