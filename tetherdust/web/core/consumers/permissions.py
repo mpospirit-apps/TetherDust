@@ -45,10 +45,10 @@ class PermissionsMixin(_Base):
         return bool(self.profile and self.profile.can_chat)
 
     @database_sync_to_async
-    def _get_allowed_tools(self) -> set[str]:
+    def _get_allowed_tools(self) -> set[str] | None:
         if not self.profile:
             return set()
-        return self.profile.get_allowed_tools() or set()
+        return self.profile.get_allowed_tools()
 
     @database_sync_to_async
     def _get_all_enabled_tools(self) -> list[str]:
@@ -61,10 +61,10 @@ class PermissionsMixin(_Base):
         )
 
     @database_sync_to_async
-    def _get_allowed_databases(self) -> set[str]:
+    def _get_allowed_databases(self) -> set[str] | None:
         if not self.profile:
             return set()
-        return self.profile.get_allowed_databases() or set()
+        return self.profile.get_allowed_databases()
 
     @database_sync_to_async
     def _get_allowed_doc_sources(self) -> set[str] | None:

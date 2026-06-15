@@ -41,14 +41,14 @@ repos:
 
       - id: mypy
         name: Mypy
-        entry: mypy tetherdust/ docker/
+        entry: .venv/bin/mypy tdmcp/ tetherdust/ docker/
         language: system
         types: [python]
         pass_filenames: false
 
       - id: pytest
         name: Pytest
-        entry: pytest tetherdust/tests/
+        entry: .venv/bin/pytest tetherdust/tests/
         language: system
         types: [python]
         pass_filenames: false

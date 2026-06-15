@@ -74,7 +74,7 @@ TetherDust uses SQLAlchemy for all database connections. To add support for a ne
 
 1. Add the driver as an optional dependency in `pyproject.toml` (e.g. `snowflake = ["snowflake-sqlalchemy>=..."]`).
 2. Add the engine to the `engine` choices in `web/core/models/connections.py`.
-3. Verify the SQL validator in `mcp_server/utils/db_service.py` handles the new dialect (SQLGlot dialect name).
+3. Verify the SQL validator in `tdmcp/utils/db_service.py` handles the new dialect (SQLGlot dialect name).
 4. Add the driver to `all-databases` extras so CI installs it.
 5. Test against a real instance and include a note in your PR about what was tested.
 

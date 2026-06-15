@@ -79,7 +79,7 @@ _active_processes: dict[str, asyncio.subprocess.Process] = {}
 CLAUDE_COMMAND = os.getenv("CLAUDE_COMMAND", "claude")
 # Default MCP URL for unrestricted requests (no filter token). Restricted
 # requests receive a pre-tokenized `mcp_url` from Django instead.
-MCP_URL = os.getenv("MCP_URL", "http://mcp:8001/mcp")
+MCP_URL = os.getenv("MCP_URL", "http://tdmcp:8001/mcp")
 # Writable config/home dir for the CLI (keeps it off /root). OAuth auth is via
 # env var, so nothing sensitive is persisted here.
 CLAUDE_CONFIG_DIR = Path(os.getenv("CLAUDE_CONFIG_DIR", "/var/claude-home/.claude"))

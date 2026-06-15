@@ -302,7 +302,7 @@ Verify your configuration with `python manage.py check --deploy`.
 ## Versioning & updates
 
 TetherDust tracks a single **product version** in the repo-root `VERSION` file
-(independent of the `mcp_server` package version in `pyproject.toml`).
+(independent of the `tdmcp` package version in `pyproject.toml`).
 Staff see it under **Console → Version**, along with per-release notes read from
 the `changelog/` directory (one `changelog/<version>.md` file per release) and an
 **update-available** indicator.

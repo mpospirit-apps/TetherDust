@@ -75,7 +75,7 @@ CODEX_COMMAND = os.getenv("CODEX_COMMAND", "codex")
 CODEX_SANDBOX_MODE = os.getenv("CODEX_SANDBOX_MODE", "read-only")
 # Default MCP URL for unrestricted requests (no filter token). Restricted
 # requests receive a pre-tokenized `mcp_url` from Django instead.
-MCP_URL = os.getenv("MCP_URL", "http://mcp:8001/mcp")
+MCP_URL = os.getenv("MCP_URL", "http://tdmcp:8001/mcp")
 # Directory for per-request Codex homes — must NOT be under /tmp because
 # Codex CLI refuses to create helper binaries under temporary directories,
 # which breaks MCP tool discovery.

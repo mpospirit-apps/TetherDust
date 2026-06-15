@@ -12,11 +12,12 @@ RUN apt-get update && \
 
 # Install Python dependencies
 COPY pyproject.toml ./
-RUN mkdir -p tetherdust/mcp_server && touch tetherdust/mcp_server/__init__.py
+RUN mkdir -p tdmcp && touch tdmcp/__init__.py
 RUN pip install --no-cache-dir -e ".[web,all-databases]"
 
 # Copy project files
 COPY tetherdust/ tetherdust/
+COPY tdmcp/ tdmcp/
 COPY documentations/ documentations/
 
 # Product release version + per-version changelog. Read at runtime by the

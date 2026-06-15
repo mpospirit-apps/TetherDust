@@ -9,8 +9,9 @@ import sys
 from pathlib import Path
 
 import pytest
-from mcp_server import server
-from mcp_server._context import request_filter_token
+
+from tdmcp import server
+from tdmcp._context import request_filter_token
 
 # Make the Django-side helper importable without Django settings.
 WEB = Path(__file__).resolve().parent.parent / "web"

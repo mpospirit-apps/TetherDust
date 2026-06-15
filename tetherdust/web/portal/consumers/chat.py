@@ -325,7 +325,7 @@ class ChatConsumer(SessionMixin, PermissionsMixin, BaseAgentConsumer):
             logger.warning("Agent error (session=%s): %s", self.chat_session.id, stream_error)
             await self._safe_save_message("system", f"Agent error: {stream_error}")
 
-        used_tools: list[dict[str, object]] = []
+        used_tools: list[str] = []
         try:
             # Scope the tool-call fetch to this turn's filter token so concurrent
             # chats never see each other's tool calls.

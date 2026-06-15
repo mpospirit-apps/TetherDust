@@ -102,7 +102,7 @@
             <p>If a field has never been saved, TetherDust falls back to the corresponding environment variable from your <code>docker-compose.yml</code>. Once you save a value through this page, the database value takes precedence over the environment variable.</p>
 
             <h3>Service URLs</h3>
-            <p><strong>Codex Service URL</strong> is the address of the Codex API gateway that the web app uses to communicate with the AI agent. <strong>MCP Base URL</strong> is the address of the MCP server that exposes database tools to the agent. These default to the Docker service hostnames (<code>http://codex:8002</code> and <code>http://mcp:8001</code>) and rarely need changing unless you are reconfiguring your deployment.</p>
+            <p><strong>Codex Service URL</strong> is the address of the Codex API gateway that the web app uses to communicate with the AI agent. <strong>MCP Base URL</strong> is the address of the MCP server that exposes database tools to the agent. These default to the Docker service hostnames (<code>http://codex:8002</code> and <code>http://tdmcp:8001</code>) and rarely need changing unless you are reconfiguring your deployment.</p>
 
             <h3>Timeouts</h3>
             <p>Doc Gen and Chart Gen timeouts control how long TetherDust waits for the AI to finish generating documentation or charts before giving up. The default is 1800 seconds (30 minutes). Increase this if generation tasks are being cut off prematurely on large datasets.</p>

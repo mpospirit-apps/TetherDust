@@ -84,10 +84,12 @@ def _record_tool_call(name: str) -> None:
     with no token (e.g. stdio transport) are not tracked — nothing fetches them.
     """
     token = request_filter_token.get()
+    logger.info(f"[_record_tool_call] Token retrieved: {token!r}")
     if not token:
         return
     with _tool_calls_lock:
         calls, _ = _tool_calls_by_token.setdefault(token, ([], time.time()))
+        logger.info(f"[_record_tool_call] Recording tool call: {name} for token: {token}")
         if name not in calls:
             calls.append(name)
 
@@ -244,6 +246,8 @@ class TetherDustMCP(FastMCP):
     async def call_tool(
         self, name: str, arguments: dict[str, Any]
     ) -> Sequence[ContentBlock] | dict[str, Any]:
+        token = request_filter_token.get()
+        logger.info(f"[TetherDustMCP.call_tool] Called tool: {name} with token: {token!r}")
         allowed = _get_allowed_tools()
         if allowed is not None and name not in allowed:
             return [TextContent(type="text", text=f"Tool '{name}' is not available for your role.")]

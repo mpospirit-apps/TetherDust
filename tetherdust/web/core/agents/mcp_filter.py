@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 def mcp_base_url() -> str:
     """Resolve the MCP server base URL (no trailing slash, no /mcp path)."""
-    return os.getenv("MCP_BASE_URL", "http://mcp:8001").rstrip("/")
+    return os.getenv("MCP_BASE_URL", "http://tdmcp:8001").rstrip("/")
 
 
 def _filter_auth_headers() -> dict[str, str]:

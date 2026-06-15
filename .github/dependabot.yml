@@ -39,7 +39,7 @@ updates:
   - package-ecosystem: docker
     directories:
       - /
-      - /docker/mcp
+      - /docker/tdmcp
       - /docker/local_mcp
       - /docker/codex
       - /docker/claude

@@ -1,6 +1,7 @@
 python-interpreter = ".venv/bin/python"
 
 project-includes = [
+    "tdmcp/**/*.py",
     "tetherdust/**/*.py",
     "docker/**/*.py",
 ]
@@ -8,4 +9,5 @@ project-includes = [
 search-path = [
     "tetherdust/web",
     "tetherdust",
+    ".",
 ]

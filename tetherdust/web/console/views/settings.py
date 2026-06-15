@@ -141,7 +141,7 @@ def general_settings_view(request: HttpRequest) -> HttpResponse:
                 "codex_service_url", os.getenv("CODEX_SERVICE_URL", "")
             ),
             "mcp_base_url": SystemConfiguration.get_value(
-                "mcp_base_url", os.getenv("MCP_BASE_URL", "http://mcp:8001")
+                "mcp_base_url", os.getenv("MCP_BASE_URL", "http://tdmcp:8001")
             ),
             "docgen_timeout": SystemConfiguration.get_value(
                 "docgen_timeout", int(os.getenv("DOCGEN_TIMEOUT", "1800"))

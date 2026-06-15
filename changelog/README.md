@@ -6,7 +6,7 @@ no version header needed. Files whose name does not parse as a version (like
 this `README.md`) are ignored by the Version console tab.
 
 These notes are what admins see under **Console → Version**, newest first. The
-version is independent of the `mcp_server` package version in
+version is independent of the `tdmcp` package version in
 `pyproject.toml`.
 
 ## How to release

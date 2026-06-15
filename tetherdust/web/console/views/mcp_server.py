@@ -321,12 +321,12 @@ def _builtin_tool_meta(tool_name: str) -> tuple[str | None, str | None]:
     try:
         from mcp.server.fastmcp.tools import Tool
 
-        # mcp_server lives alongside the Django project (…/tetherdust/mcp_server),
+        # tdmcp lives at the repository root (…/tdmcp),
         # which isn't on the web app's path by default.
-        tetherdust_root = str(Path(settings.BASE_DIR).parent)
-        if tetherdust_root not in sys.path:
-            sys.path.insert(0, tetherdust_root)
-        module = importlib.import_module(f"mcp_server.tools.{tool_name}")
+        repo_root = str(Path(settings.BASE_DIR).parent.parent)
+        if repo_root not in sys.path:
+            sys.path.insert(0, repo_root)
+        module = importlib.import_module(f"tdmcp.tools.{tool_name}")
         fn = getattr(module, tool_name)
         tool = Tool.from_function(fn)
         return json.dumps(tool.parameters, indent=2), (tool.description or "")

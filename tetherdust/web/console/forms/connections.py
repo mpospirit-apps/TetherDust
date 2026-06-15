@@ -407,7 +407,7 @@ class GeneralSettingsForm(forms.Form):
         max_length=500,
         required=False,
         label="MCP Base URL",
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "http://mcp:8001"}),
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "http://tdmcp:8001"}),
         help_text="Base URL of the MCP server.",
     )
     docgen_timeout = forms.IntegerField(

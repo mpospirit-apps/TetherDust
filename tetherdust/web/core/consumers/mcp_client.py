@@ -17,7 +17,7 @@ async def _mcp_base_url() -> str:
 
     return await database_sync_to_async(SystemConfiguration.get_value)(
         "mcp_base_url", ""
-    ) or os.environ.get("MCP_BASE_URL", "http://mcp:8001")
+    ) or os.environ.get("MCP_BASE_URL", "http://tdmcp:8001")
 
 
 async def read_mcp_resources(allowed_doc_sources: set[str] | None, uris: list[str]) -> str:
@@ -70,7 +70,7 @@ async def read_mcp_resources(allowed_doc_sources: set[str] | None, uris: list[st
     return "\n\n".join(parts)
 
 
-async def fetch_tools_called(token: str | None = None) -> list[dict[str, object]]:
+async def fetch_tools_called(token: str | None = None) -> list[str]:
     """Fetch the tools called for this turn from the MCP server.
 
     Scoped by the request's filter ``token`` so concurrent turns don't read each
@@ -87,11 +87,7 @@ async def fetch_tools_called(token: str | None = None) -> list[dict[str, object]
             resp.raise_for_status()
             data = resp.json()
             raw_tools = data.get("tools") or []
-            result: list[dict[str, object]] = []
-            for t in raw_tools:
-                if isinstance(t, dict):
-                    result.append(t)
-            return result
+            return [str(t) for t in raw_tools]
     except Exception as e:
         logger.warning(f"Failed to fetch tools-called from MCP: {e}")
         return []

@@ -12,17 +12,17 @@ RUN apt-get update && \
 
 # Install MCP server with SSE transport and all database drivers
 COPY pyproject.toml ./
-RUN mkdir -p tetherdust/mcp_server && touch tetherdust/mcp_server/__init__.py
+RUN mkdir -p tdmcp && touch tdmcp/__init__.py
 RUN pip install --no-cache-dir -e ".[sse,all-databases]"
 
 # Copy MCP server source
-COPY tetherdust/ tetherdust/
+COPY tdmcp/ tdmcp/
 
-COPY docker/mcp/entrypoint.sh /entrypoint.sh
+COPY docker/tdmcp/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Run from tetherdust/ so `python -m mcp_server.server` resolves correctly
-WORKDIR /app/tetherdust
+# Run from /app so `python -m tdmcp.server` resolves correctly
+WORKDIR /app
 
 EXPOSE 8001
 

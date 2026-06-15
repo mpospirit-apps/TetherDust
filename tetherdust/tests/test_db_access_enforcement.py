@@ -16,9 +16,10 @@ from typing import Any
 
 import pytest
 from mcp.server.fastmcp import FastMCP
-from mcp_server._context import request_allowed_databases
-from mcp_server.tools import _db_shared, register_tools
-from mcp_server.tools._db_shared import (
+
+from tdmcp._context import request_allowed_databases
+from tdmcp.tools import _db_shared, register_tools
+from tdmcp.tools._db_shared import (
     DB_ACCESS_ATTR,
     check_database_access,
     enforce_db_access,
