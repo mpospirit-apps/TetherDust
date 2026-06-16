@@ -19,7 +19,7 @@ VENDOR_PURIFY = WEB / "static" / "js" / "vendor" / "purify.min.js"
 RENDER_FILES = [
     WEB / "static" / "js" / "chat" / "markdown-renderer.js",
     WEB / "static" / "js" / "docsources" / "generate.js",
-    WEB / "console" / "templates" / "console" / "sessions" / "detail.html",
+    WEB / "management" / "templates" / "management" / "sessions" / "detail.html",
 ]
 
 

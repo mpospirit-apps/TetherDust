@@ -1,0 +1,59 @@
+{% extends "management/base.html" %}
+{% block title %}Quickstart{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Quickstart</h1>
+        <p>Get TetherDust up and running, one step at a time</p>
+    </div>
+</div>
+
+<!-- Steps -->
+<div style="display:flex;flex-direction:column;gap:var(--md)">
+    {% for step in steps %}
+    <div class="card{% if step.done %} is-done{% endif %}"
+         style="display:flex;gap:var(--md);align-items:flex-start;{% if step.done %}opacity:.75{% endif %}">
+        <span style="flex-shrink:0;font-size:1.5rem;line-height:1.2;{% if step.done %}color:var(--c-lime){% else %}color:var(--text-sec){% endif %}">
+            {% if step.done %}
+            <i class="fa-solid fa-circle-check"></i>
+            {% else %}
+            <i class="fa-regular fa-circle"></i>
+            {% endif %}
+        </span>
+        <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--md)">
+                <strong style="font-size:var(--text-lg)">{{ forloop.counter }}. {{ step.title }}</strong>
+                {% if step.cta_url and not step.done %}
+                <a href="{% url step.cta_url %}" class="btn btn-primary btn-sm">{{ step.cta_label }}</a>
+                {% endif %}
+            </div>
+            <p class="text-sec text-sm" style="margin:var(--xs) 0 0">{{ step.description }}</p>
+
+            {% if step.substeps %}
+            <div style="display:flex;flex-direction:column;gap:var(--sm);margin-top:var(--sm)">
+                {% for sub in step.substeps %}
+                <div style="display:flex;align-items:center;gap:var(--sm)">
+                    <span style="{% if sub.done %}color:var(--c-lime){% else %}color:var(--text-sec){% endif %}">
+                        {% if sub.done %}<i class="fa-solid fa-circle-check"></i>{% else %}<i class="fa-regular fa-circle"></i>{% endif %}
+                    </span>
+                    <span style="flex:1{% if sub.done %};text-decoration:line-through;color:var(--text-sec){% endif %}">{{ sub.title }}</span>
+                    {% if not sub.done %}
+                    <a href="{% url sub.cta_url %}" class="btn btn-ghost btn-sm">{{ sub.cta_label }}</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if step.is_finish and not step.done %}
+            <form method="post" action="{% url 'management:quickstart_finish' %}" style="margin-top:var(--sm)">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm">Finish onboarding</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

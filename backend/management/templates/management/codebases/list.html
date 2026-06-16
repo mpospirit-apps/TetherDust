@@ -1,0 +1,103 @@
+{% extends "management/base.html" %}
+{% block title %}Codebases{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Codebases</h1>
+        <p>Connect source-code repositories the AI agent can read and use as a source</p>
+    </div>
+    <div class="flex-gap">
+        <button class="btn btn-ghost" data-help-open="help-codebases">
+            <i class="fa-solid fa-circle-question"></i> Help
+        </button>
+        <a href="{% url 'management:codebase_add' %}" class="btn btn-primary">+ Add Codebase</a>
+    </div>
+</div>
+
+<div class="card">
+    {% if codebases %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Repository</th>
+                    <th>Branch</th>
+                    <th>Active</th>
+                    <th>Sync</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cb in codebases %}
+                <tr>
+                    <td><strong>{{ cb.name }}</strong></td>
+                    <td class="text-mono truncate" style="max-width:280px">{{ cb.repo_url }}</td>
+                    <td class="text-mono">{{ cb.branch|default:cb.default_branch|default:"—" }}</td>
+                    <td>
+                        {% if cb.is_active %}
+                        <span class="badge badge-success">ACTIVE</span>
+                        {% else %}
+                        <span class="badge badge-muted">INACTIVE</span>
+                        {% endif %}
+                    </td>
+                    <td>{% include "management/codebases/_status.html" with cb=cb %}</td>
+                    <td>
+                        <div class="flex-gap">
+                            <form method="post" action="{% url 'management:codebase_sync' cb.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-ghost btn-sm">Sync</button>
+                            </form>
+                            <a href="{% url 'management:codebase_edit' cb.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+                            <form method="post" action="{% url 'management:codebase_delete' cb.pk %}" class="delete-form"
+                                  data-confirm="Delete codebase {{ cb.name }}?">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="icon"><i class="fa-solid fa-code-branch"></i></div>
+        <h3>No Codebases Configured</h3>
+        <p class="text-sec">Connect a GitHub repository so the agent can read your code.</p>
+        <a href="{% url 'management:codebase_add' %}" class="btn btn-primary mt-md">+ Add Codebase</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="help-modal" id="help-codebases">
+    <div class="help-modal__panel">
+        <div class="help-modal__header">
+            <h2><i class="fa-solid fa-code-branch"></i> Codebases</h2>
+            <button class="btn btn-ghost btn-sm" data-help-close><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="help-modal__body">
+            <h3>What are Codebases?</h3>
+            <p>Codebases are source-code repositories that TetherDust exposes to AI agents as a <strong>source</strong>, alongside databases and documentation. The agent browses and reads files via the codebase MCP tools (<code>list_codebases</code>, <code>get_codebase_tree</code>, <code>read_codebase_file</code>, <code>search_codebase</code>) to answer questions about your code and to ground generated docs, dashboards, and tethers.</p>
+
+            <h3>GitHub (on-demand)</h3>
+            <p>The agent reads code live through the GitHub API — nothing is cloned to disk. On <strong>Sync</strong>, TetherDust validates access, resolves the default branch, and caches the repository's file tree so browsing is fast. File contents are fetched on demand.</p>
+
+            <h3>Fields</h3>
+            <ul>
+                <li><strong>Repository URL</strong> — e.g. <code>https://github.com/owner/repo</code>.</li>
+                <li><strong>Branch</strong> — leave blank to use the repository's default branch.</li>
+                <li><strong>Subpath</strong> — restrict to a sub-directory (useful for monorepos).</li>
+                <li><strong>Include / Exclude globs</strong> — JSON arrays scoping which files the agent sees. Excludes default to common build output and binaries so the agent isn't flooded.</li>
+                <li><strong>GitHub Token</strong> — optional, encrypted at rest. Required for private repositories; a read-only fine-grained PAT (<code>contents: read</code>) is sufficient. Even for public repos a token raises the API rate limit.</li>
+            </ul>
+
+            <div class="help-modal__tip">
+                <strong>Note:</strong> The agent can read anything committed to the repository, including secrets that were committed by mistake. Only connect repositories whose full contents are safe for the agent (and your users) to see.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

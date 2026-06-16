@@ -145,7 +145,7 @@ on chart shapes unless the user explicitly asks for rounded corners."""
         with engine.connect() as conn:
             # Verify dashboard exists
             dashboard = conn.execute(
-                text("SELECT id FROM core_dashboard WHERE id = :id"),
+                text("SELECT id FROM engine_dashboard WHERE id = :id"),
                 {"id": dashboard_id},
             ).fetchone()
             if not dashboard:
@@ -159,7 +159,8 @@ on chart shapes unless the user explicitly asks for rounded corners."""
             # Resolve database name to id
             db_row = conn.execute(
                 text(
-                    "SELECT id FROM core_databaseconnection WHERE name = :name AND is_active = true"
+                    "SELECT id FROM engine_databaseconnection "
+                    "WHERE name = :name AND is_active = true"
                 ),
                 {"name": database},
             ).fetchone()
@@ -174,7 +175,7 @@ on chart shapes unless the user explicitly asks for rounded corners."""
 
             result = conn.execute(
                 text(
-                    "INSERT INTO core_chart "
+                    "INSERT INTO engine_chart "
                     "(dashboard_id, title, description, sql_query, chart_type, chart_spec, "
                     "custom_d3_code, database_id, position, width, height, is_active, "
                     "cached_data, last_error, created_at, updated_at) "

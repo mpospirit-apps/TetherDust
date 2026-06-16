@@ -1,0 +1,24 @@
+{% extends "management/base.html" %}
+{% block title %}Choose Codebase Provider{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Add Codebase</h1>
+        <p>Choose where your source code lives</p>
+    </div>
+    <a href="{% url 'management:codebase_list' %}" class="btn btn-ghost">Back</a>
+</div>
+
+<div class="picker-grid">
+    {% for key, name in provider_choices %}
+    <a href="{% url 'management:codebase_add_provider' provider=key %}" class="picker-card">
+        <div class="picker-card-icon">
+            {% if key == 'github' %}<i class="fa-brands fa-github" style="font-size:48px"></i>
+            {% else %}<i class="fa-solid fa-code-branch" style="font-size:48px"></i>{% endif %}
+        </div>
+        <div class="picker-card-name">{{ name }}</div>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

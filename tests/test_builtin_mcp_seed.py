@@ -11,7 +11,7 @@ WEB = Path(__file__).resolve().parent.parent / "backend"
 if str(WEB) not in sys.path:
     sys.path.insert(0, str(WEB))
 
-from core.builtin_mcp import BUILTIN_TOOLS  # noqa: E402
+from engine.builtin_mcp import BUILTIN_TOOLS  # noqa: E402
 
 
 def test_builtin_seed_matches_registered_tools() -> None:

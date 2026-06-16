@@ -147,7 +147,7 @@ on chart shapes unless the user explicitly asks for rounded corners."""
     try:
         with engine.connect() as conn:
             existing = conn.execute(
-                text("SELECT id FROM core_chart WHERE id = :id"),
+                text("SELECT id FROM engine_chart WHERE id = :id"),
                 {"id": chart_id},
             ).fetchone()
             if not existing:
@@ -172,7 +172,7 @@ on chart shapes unless the user explicitly asks for rounded corners."""
             params = {**updates, "id": chart_id, "now": now}
 
             conn.execute(
-                text(f"UPDATE core_chart SET {', '.join(set_clauses)} WHERE id = :id"),
+                text(f"UPDATE engine_chart SET {', '.join(set_clauses)} WHERE id = :id"),
                 params,
             )
             conn.commit()

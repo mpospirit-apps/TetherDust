@@ -1,6 +1,6 @@
 """Tests for the documentation-generation prompt builders.
 
-``core/prompts/docs.py`` composes prompts from three layers — the shared
+``engine/prompts/docs.py`` composes prompts from three layers — the shared
 ``CORE_PRINCIPLES`` and ``TETHERDUST_CONTEXT``, plus a task layer that differs
 between single-file generation (a lean per-type template) and library
 generation (the ``LIBRARY_GUIDE`` playbook). These tests pin that layering so
@@ -19,7 +19,7 @@ WEB_DIR = Path(__file__).resolve().parent.parent / "backend"
 if str(WEB_DIR) not in sys.path:
     sys.path.insert(0, str(WEB_DIR))
 
-from core.prompts.docs import (  # noqa: E402
+from engine.prompts.docs import (  # noqa: E402
     CORE_PRINCIPLES,
     DATABASE_LIBRARY_GUIDE,
     DOC_TEMPLATES,

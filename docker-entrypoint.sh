@@ -34,7 +34,7 @@ echo "Syncing documentation sources..."
 python -c "
 import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 import django; django.setup()
-from core.models import DocumentationSource
+from engine.models import DocumentationSource
 result = DocumentationSource.sync_from_filesystem()
 if result['created']:
     print(f'  Created: {result[\"created\"]}')
@@ -50,7 +50,7 @@ python -c "
 import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 import django; django.setup()
 from django.contrib.auth import get_user_model
-from core.models import UserProfile, Role
+from engine.models import UserProfile, Role
 User = get_user_model()
 admin_role = Role.objects.filter(name='Admin').first()
 for user in User.objects.all():

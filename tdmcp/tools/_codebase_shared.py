@@ -69,7 +69,7 @@ def load_codebases() -> list[CodebaseConfig]:
                 text(
                     "SELECT name, repo_url, branch, subpath, include_globs, "
                     "exclude_globs, default_branch, cached_tree, access_token "
-                    "FROM core_codebase WHERE is_active = true ORDER BY name"
+                    "FROM engine_codebase WHERE is_active = true ORDER BY name"
                 )
             ).fetchall()
         engine.dispose()

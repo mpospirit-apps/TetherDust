@@ -239,7 +239,7 @@ class DatabaseService:
             import django
 
             django.setup()
-            from core.models import DatabaseConnection
+            from engine.models import DatabaseConnection
 
             connections = DatabaseConnection.objects.filter(is_active=True).order_by("name")
             for conn in connections:
@@ -280,7 +280,7 @@ class DatabaseService:
                     text(
                         "SELECT name, description, engine, host, port, database, "
                         "username, password, connection_string, extra_options, read_only "
-                        "FROM core_databaseconnection "
+                        "FROM engine_databaseconnection "
                         "WHERE is_active = true ORDER BY name"
                     )
                 )

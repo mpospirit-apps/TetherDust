@@ -51,8 +51,8 @@ Results are returned as a markdown table."""
             row = conn.execute(
                 text(
                     "SELECT rd.sql_query, dc.name AS database_name "
-                    "FROM core_reportdefinition rd "
-                    "LEFT JOIN core_databaseconnection dc ON dc.id = rd.database_id "
+                    "FROM engine_reportdefinition rd "
+                    "LEFT JOIN engine_databaseconnection dc ON dc.id = rd.database_id "
                     "WHERE rd.name = :name AND rd.is_active = true"
                 ),
                 {"name": report_name},

@@ -28,8 +28,8 @@ number of charts it contains."""
             rows = conn.execute(
                 text(
                     "SELECT d.name, d.description, COUNT(c.id) AS chart_count "
-                    "FROM core_dashboard d "
-                    "LEFT JOIN core_chart c ON c.dashboard_id = d.id "
+                    "FROM engine_dashboard d "
+                    "LEFT JOIN engine_chart c ON c.dashboard_id = d.id "
                     "WHERE d.is_active = true "
                     "GROUP BY d.id, d.name, d.description "
                     "ORDER BY d.name"

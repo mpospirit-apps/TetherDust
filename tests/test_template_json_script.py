@@ -14,11 +14,11 @@ WEB = Path(__file__).resolve().parent.parent / "backend"
 
 # (template path, json_script element id) — the converted injection sites.
 SITES = [
-    ("portal/templates/portal/reports.html", "report-groups-data"),
-    ("console/templates/console/dashboards/chart_form.html", "chart-cached-data"),
-    ("console/templates/console/docsources/form.html", "doc-type-descriptions"),
-    ("console/templates/console/docsources/generate.html", "dest-folders"),
-    ("console/templates/console/docsources/generate_library.html", "existing-folders"),
+    ("workspace/templates/workspace/reports.html", "report-groups-data"),
+    ("management/templates/management/dashboards/chart_form.html", "chart-cached-data"),
+    ("management/templates/management/docsources/form.html", "doc-type-descriptions"),
+    ("management/templates/management/docsources/generate.html", "dest-folders"),
+    ("management/templates/management/docsources/generate_library.html", "existing-folders"),
 ]
 
 
@@ -31,7 +31,7 @@ def test_sites_use_json_script_not_safe() -> None:
 
 # Templates that render pre-converted Markdown from repo-controlled files (not user input).
 _SAFE_FILTER_ALLOWLIST = {
-    Path("console/templates/console/version.html"),  # changelog .md files from changelog/
+    Path("management/templates/management/version.html"),  # changelog .md files from changelog/
 }
 
 

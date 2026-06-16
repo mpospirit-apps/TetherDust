@@ -1,0 +1,30 @@
+{% extends "management/base.html" %}
+{% block title %}Add Documentation{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Add Documentation</h1>
+        <p>Choose how you want to add a documentation source</p>
+    </div>
+    <a href="{% url 'management:docsource_list' %}" class="btn btn-ghost">Back</a>
+</div>
+
+<div class="picker-grid">
+    <a href="{% url 'management:docsource_register' %}" class="picker-card">
+        <div class="picker-card-icon"><i class="fa-solid fa-folder-open" style="font-size:42px;color:var(--c-cyan)"></i></div>
+        <div class="picker-card-name">Register from "/documentations" path</div>
+        <div class="picker-card-desc">Map an existing folder under <code>documentations/</code> as a source</div>
+    </a>
+    <a href="{% url 'management:docsource_generate_page' %}" class="picker-card">
+        <div class="picker-card-icon"><i class="fa-solid fa-wand-magic-sparkles" style="font-size:42px;color:var(--c-pink)"></i></div>
+        <div class="picker-card-name">Create with AI</div>
+        <div class="picker-card-desc">Generate a single documentation file from your databases and docs</div>
+    </a>
+    <a href="{% url 'management:docsource_library_page' %}" class="picker-card">
+        <div class="picker-card-icon"><i class="fa-solid fa-folder-tree" style="font-size:42px;color:var(--c-cyan)"></i></div>
+        <div class="picker-card-name">Create Documentation Library</div>
+        <div class="picker-card-desc">AI plans a folder tree of related docs from your databases and docs</div>
+    </a>
+</div>
+{% endblock %}

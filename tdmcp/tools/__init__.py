@@ -42,7 +42,7 @@ def _load_sources_from_admin_db() -> list[DocumentationSourceConfig] | None:
             rows = conn.execute(
                 text(
                     "SELECT folder_name, description, file_patterns "
-                    "FROM core_documentationsource "
+                    "FROM engine_documentationsource "
                     "WHERE is_active = true ORDER BY folder_name"
                 )
             ).fetchall()

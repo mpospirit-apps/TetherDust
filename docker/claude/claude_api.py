@@ -1,7 +1,7 @@
 """Thin FastAPI wrapper around the Claude Code CLI subprocess.
 
 The mirror of ``docker/codex/codex_api.py`` for Claude Code. It exposes the same
-contract to Django so :class:`core.agents.claude.ClaudeCodeAgent` (a subclass of
+contract to Django so :class:`engine.agents.claude.ClaudeCodeAgent` (a subclass of
 ``CodexAgent``) can talk to it unchanged:
 
   POST /chat              — stream the CLI response as SSE

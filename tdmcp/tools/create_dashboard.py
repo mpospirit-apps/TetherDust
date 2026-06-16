@@ -38,7 +38,7 @@ for add_chart calls."""
         with engine.connect() as conn:
             # Check for duplicate name
             existing = conn.execute(
-                text("SELECT id FROM core_dashboard WHERE name = :name"),
+                text("SELECT id FROM engine_dashboard WHERE name = :name"),
                 {"name": name},
             ).fetchone()
             if existing:
@@ -51,7 +51,7 @@ for add_chart calls."""
 
             result = conn.execute(
                 text(
-                    "INSERT INTO core_dashboard (name, description, is_active, "
+                    "INSERT INTO engine_dashboard (name, description, is_active, "
                     "auto_refresh, created_at, updated_at) "
                     "VALUES (:name, :description, true, false, :now, :now) "
                     "RETURNING id"

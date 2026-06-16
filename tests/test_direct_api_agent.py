@@ -22,8 +22,8 @@ WEB_DIR = Path(__file__).resolve().parent.parent / "backend"
 if str(WEB_DIR) not in sys.path:
     sys.path.insert(0, str(WEB_DIR))
 
-from core.agents import direct_api  # noqa: E402
-from core.agents.direct_api import (  # noqa: E402
+from engine.agents import direct_api  # noqa: E402
+from engine.agents.direct_api import (  # noqa: E402
     ClaudeConsoleAgent,
     OpenAICompatibleAgent,
     OpenAIPlatformAgent,
@@ -31,7 +31,7 @@ from core.agents.direct_api import (  # noqa: E402
     ProviderAPIError,
     _root_cause,
 )
-from core.agents.stream import TOOL_PREFIX, parse_chunk  # noqa: E402
+from engine.agents.stream import TOOL_PREFIX, parse_chunk  # noqa: E402
 
 # ── Fakes ─────────────────────────────────────────────────────────────────────
 
@@ -396,7 +396,7 @@ async def test_openrouter_sends_attribution_headers(monkeypatch: pytest.MonkeyPa
 
 def test_build_agent_maps_openrouter() -> None:
     """The factory resolves the openrouter type to OpenRouterAgent."""
-    from core.agents import build_agent
+    from engine.agents import build_agent
 
     config = cast(
         Any,
@@ -414,7 +414,7 @@ def test_build_agent_maps_openrouter() -> None:
 def test_build_agent_maps_direct_api_presets() -> None:
     """The factory resolves the OpenAI Platform / Claude Console presets, which
     share the OpenAICompatibleAgent backend but carry their own display names."""
-    from core.agents import build_agent
+    from engine.agents import build_agent
 
     def make(agent_type: str, base_url: str) -> Any:
         return cast(
@@ -432,10 +432,10 @@ def test_build_agent_maps_direct_api_presets() -> None:
     assert isinstance(platform, OpenAICompatibleAgent)
     assert platform.get_name() == "OpenAI Platform"
 
-    console = build_agent(make("claude_console", "https://api.anthropic.com/v1"))
-    assert isinstance(console, ClaudeConsoleAgent)
-    assert isinstance(console, OpenAICompatibleAgent)
-    assert console.get_name() == "Claude Console"
+    management = build_agent(make("claude_console", "https://api.anthropic.com/v1"))
+    assert isinstance(management, ClaudeConsoleAgent)
+    assert isinstance(management, OpenAICompatibleAgent)
+    assert management.get_name() == "Claude Console"
 
 
 async def test_cancel_closes_stream() -> None:

@@ -43,7 +43,7 @@ dashboard visualises or answer questions about specific charts."""
             # Verify the dashboard exists and is active
             dashboard = conn.execute(
                 text(
-                    "SELECT id, name, description FROM core_dashboard "
+                    "SELECT id, name, description FROM engine_dashboard "
                     "WHERE name = :name AND is_active = true"
                 ),
                 {"name": dashboard_name},
@@ -56,7 +56,7 @@ dashboard visualises or answer questions about specific charts."""
                 text(
                     "SELECT title, description, chart_type, sql_query, "
                     "       chart_spec, width "
-                    "FROM core_chart "
+                    "FROM engine_chart "
                     "WHERE dashboard_id = :dashboard_id "
                     "ORDER BY id"
                 ),

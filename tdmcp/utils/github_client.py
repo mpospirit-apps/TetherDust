@@ -1,7 +1,7 @@
 """Minimal GitHub REST API client for the MCP codebase tools.
 
 A standalone copy of the Django-side client (the ``mcp`` container cannot import
-``core``). Used for live tree/file/search reads against GitHub.
+``engine``). Used for live tree/file/search reads against GitHub.
 """
 
 from __future__ import annotations

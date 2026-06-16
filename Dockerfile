@@ -21,13 +21,13 @@ COPY tdmcp/ tdmcp/
 COPY documentations/ documentations/
 
 # Product release version + per-version changelog. Read at runtime by the
-# Version console tab (core/version.py). These live at the repo root — outside
+# Version management tab (engine/version.py). These live at the repo root — outside
 # the dev volume mount of web — so they must be copied explicitly.
 COPY VERSION ./VERSION
 COPY changelog/ changelog/
 
-# Default agent system prompts read by the console when seeding a new or empty
-# agent's system_prompt field (see console.views.agent._default_system_prompt_path).
+# Default agent system prompts read by the management when seeding a new or empty
+# agent's system_prompt field (see management.views.agent._default_system_prompt_path).
 # Only these two files are needed from docker/, not the rest of the build context.
 COPY docker/codex/AGENTS.md docker/codex/AGENTS.md
 COPY docker/claude/CLAUDE.md docker/claude/CLAUDE.md

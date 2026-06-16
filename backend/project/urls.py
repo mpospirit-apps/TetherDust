@@ -20,8 +20,8 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import URLPattern, URLResolver, include, path
 
 urlpatterns: list[URLPattern | URLResolver] = [
-    path("mission-control/", include("console.urls")),
-    path("", include("portal.urls")),
+    path("mission-control/", include("management.urls")),
+    path("", include("workspace.urls")),
 ]
 
 # Serve static files through Daphne in development

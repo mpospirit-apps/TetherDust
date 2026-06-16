@@ -1,0 +1,187 @@
+{% extends "workspace/base.html" %}
+{% load static %}
+{% block title %}{{ dashboard.name }} - Dashboards{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-view {
+    padding: var(--lg);
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.dashboard-view__header {
+    margin-bottom: var(--lg);
+}
+.dashboard-view__header h1 {
+    margin: 0;
+}
+.dashboard-view__header p {
+    margin: var(--xs) 0 0;
+    color: var(--text-sec);
+    font-size: var(--text-sm);
+}
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: var(--md);
+}
+.chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0;
+    overflow: hidden;
+}
+.chart-card__header {
+    padding: var(--sm) var(--md);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--sm);
+}
+.chart-card__header h4 {
+    margin: 0;
+    font-size: var(--text-sm);
+}
+.chart-card__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+.chart-card__refresh-info {
+    white-space: nowrap;
+}
+.chart-card__refresh-btn {
+    border: none;
+    background: none;
+    color: var(--text-sec);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: var(--text-xs);
+    border-radius: 0;
+    transition: color .15s;
+}
+.chart-card__refresh-btn:hover {
+    color: var(--c-cyan);
+}
+.chart-card__refresh-btn .fa-rotate.spinning {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.chart-card__body {
+    padding: var(--sm);
+}
+.chart-card__body .chart-container {
+    width: 100%;
+    overflow: hidden;
+    color: var(--text);
+}
+.chart-card__error {
+    color: var(--danger);
+    font-size: var(--text-xs);
+    padding: var(--md);
+    text-align: center;
+}
+.chart-card__loading {
+    text-align: center;
+    padding: var(--lg);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+}
+
+/* Theme-aware defaults for d3 svg elements */
+.chart-container svg text {
+    fill: currentColor;
+}
+.chart-container svg .domain,
+.chart-container svg .tick line {
+    stroke: var(--border);
+}
+.chart-container svg .tick text {
+    fill: var(--text-sec);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="docs-layout">
+    <aside class="docs-sidebar" id="docs-sidebar">
+        <div class="docs-sidebar-header">
+            <h3>Dashboards</h3>
+        </div>
+        <div class="history-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="dashboards-search" placeholder="Search dashboards..." autocomplete="off">
+        </div>
+        <div class="docs-tree">
+            {% for d in all_dashboards %}
+            <a href="{% url 'workspace:dashboard_detail' d.pk %}"
+               class="docs-file-btn{% if d.pk == current_dashboard_id %} active{% endif %}"
+               style="text-decoration:none">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>{{ d.name }}</span>
+            </a>
+            {% empty %}
+            <div style="padding:var(--md) var(--lg);color:var(--text-muted);font-size:var(--text-sm)">
+                No dashboards available
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <button class="docs-toggle-btn" id="docs-toggle" title="Toggle sidebar">
+        <i class="fa-solid fa-gauge"></i>
+    </button>
+
+    <div class="docs-content-area">
+        <div class="dashboard-view">
+            <div class="dashboard-view__header">
+                <h1>{{ dashboard.name }}</h1>
+                {% if dashboard.description %}
+                <p>{{ dashboard.description }}</p>
+                {% endif %}
+            </div>
+
+            {% if charts %}
+            <div class="dashboard-grid" data-chart-data-url-template="{% url 'workspace:chart_data_api' pk=0 %}">
+                {% for chart in charts %}
+                <div class="chart-card" style="grid-column: span {{ chart.width }}">
+                    <div class="chart-card__header">
+                        <h4>{{ chart.title }}</h4>
+                        <div class="chart-card__meta">
+                            <span class="chart-card__refresh-info" data-refresh-info="{{ chart.pk }}">
+                                {% if chart.last_refreshed_at %}<i class="fa-regular fa-clock"></i> {{ chart.last_refreshed_at|timesince }} ago{% else %}Not cached{% endif %}
+                            </span>
+                            <button type="button" class="chart-card__refresh-btn" data-refresh-chart="{{ chart.pk }}" title="Refresh data">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-card__body">
+                        <div class="chart-container"
+                             id="chart-{{ chart.pk }}"
+                             data-chart-id="{{ chart.pk }}"
+                             style="height:{{ chart.height }}px">
+                            <div class="chart-card__loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <template data-for-chart="{{ chart.pk }}">{{ chart.custom_d3_code }}</template>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:var(--xl);color:var(--text-sec)">
+                <p>This dashboard has no charts.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script type="module" src="{% static 'js/charts/dashboard.js' %}"></script>
+{% endblock %}

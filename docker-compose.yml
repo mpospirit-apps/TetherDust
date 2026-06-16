@@ -128,7 +128,7 @@ services:
   # (no persistent volume — OAuth auth needs no auth.json on disk).
   #
   # Runs by default (no profile) so switching the active agent between Codex and
-  # Claude in the console is a seamless DB flip — the target container is already
+  # Claude in the management is a seamless DB flip — the target container is already
   # up and healthy. Idle cost is just the FastAPI wrapper (~50–80 MB). It is
   # deliberately NOT in `web`'s depends_on: an unhealthy/missing agent must
   # surface as a runtime "service unavailable", never block web startup.

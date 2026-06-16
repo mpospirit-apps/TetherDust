@@ -1,0 +1,135 @@
+{% extends "management/base.html" %}
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>User Management</h1>
+        <p>Manage user roles and permissions</p>
+    </div>
+    <div class="flex-gap">
+        <button class="btn btn-ghost" data-help-open="help-users">
+            <i class="fa-solid fa-circle-question"></i> Help
+        </button>
+        <a href="{% url 'management:user_add' %}" class="btn btn-primary">+ Add User</a>
+    </div>
+</div>
+
+<div class="card">
+    {% if users %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Staff</th>
+                    <th>Active</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="flex-gap">
+                            <span style="width:32px;height:32px;background:linear-gradient(135deg,var(--c-cyan),var(--c-pink));color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">
+                                {{ u.username|make_list|first|upper }}
+                            </span>
+                            <strong>{{ u.username }}</strong>
+                        </div>
+                    </td>
+                    <td class="text-sec">{{ u.email|default:"—" }}</td>
+                    <td>
+                        {% if u.profile.role %}
+                        <span class="badge badge-orange">{{ u.profile.role.name }}</span>
+                        {% else %}
+                        <span class="badge badge-muted">NONE</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_staff %}
+                        <span class="badge badge-info">STAFF</span>
+                        {% else %}
+                        <span class="badge badge-muted">NO</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                        <span class="badge badge-success">ACTIVE</span>
+                        {% else %}
+                        <span class="badge badge-error">DISABLED</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-sec text-sm">{{ u.date_joined|date:"M d, Y" }}</td>
+                    <td>
+                        <div class="flex-gap">
+                            <a href="{% url 'management:user_edit' u.pk %}" class="btn btn-ghost btn-sm">Edit Profile</a>
+                            <form method="post" action="{% url 'management:user_delete' u.pk %}" class="delete-form"
+                                  data-confirm="Delete user {{ u.username }}?">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="icon"><i class="fa-solid fa-users"></i></div>
+        <h3>No Users</h3>
+        <p class="text-sec">No user accounts have been created yet.</p>
+        <a href="{% url 'management:user_add' %}" class="btn btn-primary mt-md">+ Add User</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="help-modal" id="help-users">
+    <div class="help-modal__panel">
+        <div class="help-modal__header">
+            <h2><i class="fa-solid fa-users"></i> User Management</h2>
+            <button class="btn btn-ghost btn-sm" data-help-close><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="help-modal__body">
+            <h3>What are Users?</h3>
+            <p>Users are everyone who logs in to TetherDust — both end users who interact through the chat interface and administrators who manage Mission Control. Each user account controls authentication, role assignment, and individual permission overrides.</p>
+
+            <h3>Role Assignment</h3>
+            <p>Every active user should have a role. A user without a role has no access to any tools or databases in the chat interface — they can log in, but queries will fail or return no results.</p>
+            <p>Roles define the permission boundary. Assign the most appropriate role first, then use per-user overrides for exceptions. See the <strong>Roles</strong> section for role configuration.</p>
+
+            <h3>Staff Access</h3>
+            <p>Staff users (Django <code>is_staff</code>) can access this Mission Control admin panel. Only grant staff status to administrators who genuinely need to manage system configuration.</p>
+            <p>Staff status is separate from role permissions — a staff user still needs a role for chat access. An admin who also uses the chat interface should have both staff status and an appropriate role.</p>
+
+            <h3>Per-User Overrides</h3>
+            <p>Beyond their role's default permissions, individual users can be granted access to specific additional tools or databases. This is useful for one-off exceptions without creating a dedicated role for a single person.</p>
+            <p>Overrides are additive — they extend role permissions but cannot remove them. To restrict a user below their role's level, assign them a more restrictive role instead.</p>
+
+            <h3>Account Status</h3>
+            <ul>
+                <li><strong>Active</strong> — The user can log in and use TetherDust normally.</li>
+                <li><strong>Disabled</strong> — The user cannot log in. All their chat history, sessions, and audit log entries are preserved. Re-activate to restore access.</li>
+            </ul>
+
+            <h3>Creating a New User</h3>
+            <p>Click <strong>+ Add User</strong> to create a new account. You will set:</p>
+            <ul>
+                <li>Username and initial password (the user can change this from their profile)</li>
+                <li>Email address (optional but recommended for notifications)</li>
+                <li>Role assignment</li>
+                <li>Staff status if the user needs admin panel access</li>
+            </ul>
+
+            <div class="help-modal__tip">
+                <strong>Tip:</strong> Disable accounts rather than deleting them when a user leaves. Deletion removes their audit log entries and chat history, which may be needed for compliance or debugging.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

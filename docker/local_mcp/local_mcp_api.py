@@ -68,7 +68,7 @@ def _load_servers() -> list[dict[str, Any]]:
         cur.execute(
             """
             SELECT id, name, command, args, command_env
-            FROM core_mcpserverconfiguration
+            FROM engine_mcpserverconfiguration
             WHERE is_active = TRUE AND is_builtin = FALSE AND command <> ''
             """
         )

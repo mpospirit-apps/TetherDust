@@ -154,7 +154,7 @@ it to the tether's current_version. Returns a JSON status string."""
     try:
         with engine.connect() as conn:
             row = conn.execute(
-                text("SELECT tether_id, started_at FROM core_tetherversion WHERE id = :id"),
+                text("SELECT tether_id, started_at FROM engine_tetherversion WHERE id = :id"),
                 {"id": version_id},
             ).fetchone()
             if row is None:
@@ -177,7 +177,7 @@ it to the tether's current_version. Returns a JSON status string."""
 
             conn.execute(
                 text(
-                    "UPDATE core_tetherversion SET "
+                    "UPDATE engine_tetherversion SET "
                     "graph_json = :graph, status = 'success', completed_at = :now, "
                     "execution_time_ms = COALESCE(:elapsed, execution_time_ms), "
                     "error_message = '' "
@@ -192,7 +192,7 @@ it to the tether's current_version. Returns a JSON status string."""
             )
             conn.execute(
                 text(
-                    "UPDATE core_tether SET current_version_id = :vid,"  # noqa: E501
+                    "UPDATE engine_tether SET current_version_id = :vid,"  # noqa: E501
                     " updated_at = :now WHERE id = :tid"
                 ),
                 {"vid": version_id, "now": now, "tid": tether_id},

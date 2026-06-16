@@ -66,7 +66,7 @@ CODEX_COMMAND = os.getenv("CODEX_COMMAND", "codex")
 # Default "read-only": the model's shell commands cannot write files or open
 # network connections, so a prompt-injected or malicious request can't use the
 # shell to exfiltrate the container's credential or reach internal hosts (e.g.
-# the MCP server's bare endpoint). MCP tool calls are made by Codex core, not by
+# the MCP server's bare endpoint). MCP tool calls are made by Codex engine, not by
 # the sandboxed shell, so database/doc access is unaffected. Set to
 # "danger-full-access" only as an escape hatch where the host kernel can't
 # enforce the sandbox (Landlock/seccomp unavailable). Residual: a read-only
@@ -378,7 +378,7 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
 
     # Build command args. The agent runs sandboxed (see CODEX_SANDBOX_MODE):
     # commands the model executes are confined, while MCP tool calls — made by
-    # Codex core, not the sandboxed shell — keep working. `codex exec` is already
+    # Codex engine, not the sandboxed shell — keep working. `codex exec` is already
     # non-interactive (it never prompts for approval), so a command the sandbox
     # denies simply fails rather than blocking — no approval flag is needed or
     # accepted (`exec` only takes `--sandbox <mode>`).

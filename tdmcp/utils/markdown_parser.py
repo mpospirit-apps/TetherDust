@@ -91,7 +91,7 @@ def _load_sources_from_django() -> list[DocumentationSourceConfig] | None:
         import django
 
         django.setup()
-        from core.models import DocumentationSource
+        from engine.models import DocumentationSource
 
         sources = DocumentationSource.objects.filter(is_active=True).order_by("folder_name")
         return [

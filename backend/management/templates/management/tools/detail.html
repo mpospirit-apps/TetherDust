@@ -1,0 +1,96 @@
+{% extends "management/base.html" %}
+{% load static %}
+{% block title %}{{ tool.display_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ tool.display_name }}</h1>
+        <p>Tool on {{ server.name }}</p>
+    </div>
+    <div class="flex-gap">
+        <a href="{% url 'management:mcp_server_detail' server.pk %}" class="btn btn-ghost">Back</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="server-meta">
+        <div class="meta-item">
+            <span class="meta-label">Tool Name</span>
+            <span class="meta-value text-mono">{{ tool.tool_name }}</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-label">Category</span>
+            <span class="meta-value">{{ tool.category_label }}</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-label">Status</span>
+            <span class="meta-value">
+                {% if tool.is_enabled %}
+                <span class="badge badge-success">ENABLED</span>
+                {% else %}
+                <span class="badge badge-muted">DISABLED</span>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top:var(--md)">
+    <h3 style="margin:0 0 var(--md)">Description <span class="text-sec" style="font-weight:400;font-size:13px">— what the agent sees</span></h3>
+    <div style="padding:10px 12px;background:var(--bg-sec);border-radius:6px;white-space:pre-wrap">{{ tool_description }}</div>
+</div>
+
+<div class="card" style="margin-top:var(--md)">
+    <h3 style="margin:0 0 var(--md)">Input Schema</h3>
+    <pre class="code-readonly"><code class="language-json">{{ input_schema_display }}</code></pre>
+</div>
+
+<div class="card" style="margin-top:var(--md)">
+    <h3 style="margin:0 0 var(--md)">Handler Code</h3>
+    {% if handler_source %}
+    <pre class="code-readonly"><code class="language-python">{{ handler_source }}</code></pre>
+    {% else %}
+    <p class="text-sec" style="margin:0">Source not available.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link id="hljs-theme" rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+<style>
+    /* Mirror the doc renderer's code-block styling and override the global
+       `pre` rule (chat.css) that adds a light background, cyan border, and shadow. */
+    .code-readonly {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        border-radius: var(--radius);
+        box-shadow: none;
+        overflow: auto;
+        max-height: 540px;
+        font-size: var(--text-sm);
+    }
+    .code-readonly code.hljs {
+        display: block;
+        padding: var(--md);
+        border-radius: var(--radius);
+        font-family: var(--font-mono);
+        tab-size: 4;
+        background: #f6f8fa;
+    }
+    [data-theme="dark"] .code-readonly code.hljs {
+        background: #131310;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script>
+    document.querySelectorAll('.code-readonly code').forEach(function (el) {
+        window.hljs.highlightElement(el);
+    });
+</script>
+{% endblock %}

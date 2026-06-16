@@ -14,7 +14,7 @@ WEB_DIR = Path(__file__).resolve().parent.parent / "backend"
 if str(WEB_DIR) not in sys.path:
     sys.path.insert(0, str(WEB_DIR))
 
-from core.integrations.github_client import (  # noqa: E402
+from engine.integrations.github_client import (  # noqa: E402
     filter_tree,
     matches_any,
     parse_owner_repo,

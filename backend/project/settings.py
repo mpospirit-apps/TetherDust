@@ -65,9 +65,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "channels",
-    "core",
-    "portal",
-    "console",
+    "engine",
+    "workspace",
+    "management",
 ]
 
 MIDDLEWARE = [
@@ -96,13 +96,13 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "portal.context_processors.docs_access",
-                "portal.context_processors.reports_access",
-                "portal.context_processors.dashboards_access",
-                "portal.context_processors.chat_access",
-                "portal.context_processors.tethers_access",
-                "console.context_processors.user_management_access",
-                "console.context_processors.update_status",
+                "workspace.context_processors.docs_access",
+                "workspace.context_processors.reports_access",
+                "workspace.context_processors.dashboards_access",
+                "workspace.context_processors.chat_access",
+                "workspace.context_processors.tethers_access",
+                "management.context_processors.user_management_access",
+                "management.context_processors.update_status",
             ],
         },
     },
@@ -194,19 +194,19 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:63
 CELERY_TASK_IGNORE_RESULT = True
 CELERY_BEAT_SCHEDULE = {
     "check-due-reports": {
-        "task": "core.tasks.check_due_reports",
+        "task": "engine.tasks.check_due_reports",
         "schedule": 60.0,
     },
     "refresh-dashboard-charts": {
-        "task": "core.tasks.check_due_dashboard_refreshes",
+        "task": "engine.tasks.check_due_dashboard_refreshes",
         "schedule": 60.0,
     },
     "sync-codex-auth-token": {
-        "task": "core.tasks.sync_codex_auth_token",
+        "task": "engine.tasks.sync_codex_auth_token",
         "schedule": 3600.0,
     },
     "check-for-updates": {
-        "task": "core.tasks.check_for_updates",
+        "task": "engine.tasks.check_for_updates",
         "schedule": 21600.0,  # every 6 hours
     },
 }
@@ -235,53 +235,53 @@ LOGGING = {
         },
     },
     "handlers": {
-        "console": {
+        "management": {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
     },
     "root": {
-        "handlers": ["console"],
+        "handlers": ["management"],
         "level": "WARNING",
     },
     "loggers": {
         "django": {
-            "handlers": ["console"],
+            "handlers": ["management"],
             "level": "WARNING",
             "propagate": False,
         },
         "django.request": {
-            "handlers": ["console"],
+            "handlers": ["management"],
             "level": "ERROR",
             "propagate": False,
         },
-        "core": {
-            "handlers": ["console"],
+        "engine": {
+            "handlers": ["management"],
             "level": LOG_LEVEL,
             "propagate": False,
         },
-        "portal": {
-            "handlers": ["console"],
+        "workspace": {
+            "handlers": ["management"],
             "level": LOG_LEVEL,
             "propagate": False,
         },
-        "console": {
-            "handlers": ["console"],
+        "management": {
+            "handlers": ["management"],
             "level": LOG_LEVEL,
             "propagate": False,
         },
-        "portal.consumers": {
-            "handlers": ["console"],
+        "workspace.consumers": {
+            "handlers": ["management"],
             "level": LOG_LEVEL,
             "propagate": False,
         },
-        "core.consumers": {
-            "handlers": ["console"],
+        "engine.consumers": {
+            "handlers": ["management"],
             "level": LOG_LEVEL,
             "propagate": False,
         },
-        "core.agents": {
-            "handlers": ["console"],
+        "engine.agents": {
+            "handlers": ["management"],
             "level": LOG_LEVEL,
             "propagate": False,
         },

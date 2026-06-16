@@ -72,7 +72,7 @@ def test_ttl_purges_stale_buffers(monkeypatch: pytest.MonkeyPatch) -> None:
 
 async def test_fetch_tools_called_requires_token() -> None:
     """The Django client returns [] (no network call) when no token is given."""
-    from core.consumers.mcp_client import fetch_tools_called
+    from engine.consumers.mcp_client import fetch_tools_called
 
     assert await fetch_tools_called(None) == []
     assert await fetch_tools_called("") == []

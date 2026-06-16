@@ -1,6 +1,6 @@
 """Guards for the login open-redirect fix.
 
-`portal.views.api.login_view` honors a `?next=` target after authentication.
+`workspace.views.api.login_view` honors a `?next=` target after authentication.
 Without validation, `/login/?next=https://evil.com` would bounce the user
 off-site after a real login. The view must validate `next` with Django's
 `url_has_allowed_host_and_scheme` against the current host.
@@ -14,7 +14,7 @@ from pathlib import Path
 
 from django.utils.http import url_has_allowed_host_and_scheme
 
-API_VIEW = Path(__file__).resolve().parent.parent / "backend" / "portal" / "views" / "api.py"
+API_VIEW = Path(__file__).resolve().parent.parent / "backend" / "workspace" / "views" / "api.py"
 
 
 def test_login_view_validates_next() -> None:
