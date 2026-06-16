@@ -14,8 +14,9 @@ import json as _json
 import logging
 import os
 import threading
-import time as time
+import time
 from collections.abc import AsyncGenerator, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
@@ -163,8 +164,6 @@ _DOC_RESOURCES_CACHE_TTL = 300  # seconds
 
 def _build_doc_resources_index() -> list[dict[str, str]]:
     """Walk all documentation sources and return metadata for every file."""
-    from pathlib import Path
-
     from .tools import get_shared_parser
 
     parser = get_shared_parser()
@@ -275,8 +274,6 @@ class TetherDustMCP(FastMCP):
 
     async def read_resource(self, uri: object) -> list[ReadResourceContents]:
         """Read a documentation file by its docs:// URI, enforcing role access."""
-        from pathlib import Path
-
         uri_str = str(uri)
         if not uri_str.startswith("docs://"):
             return list(await super().read_resource(uri_str))

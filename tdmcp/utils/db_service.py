@@ -9,6 +9,7 @@ import os
 import re
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import quote_plus
 
 import sqlglot
 from sqlalchemy import create_engine, event, text
@@ -190,8 +191,6 @@ class DatabaseConfig:
 
         port_str = f":{self.port}" if self.port else ""
         # URL-encode password to handle special characters
-        from urllib.parse import quote_plus
-
         password = quote_plus(self.password) if self.password else ""
         auth = f"{self.username}:{password}@" if self.username else ""
         return f"{driver}://{auth}{self.host}{port_str}/{self.database}"

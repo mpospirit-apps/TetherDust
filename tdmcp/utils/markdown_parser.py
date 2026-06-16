@@ -13,12 +13,15 @@ Supports:
   based on a configurable interval (TETHERDUST_HOT_RELOAD_INTERVAL env var)
 """
 
+import logging
 import os
 import re
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -113,10 +116,6 @@ def _load_sources_from_env() -> list[DocumentationSourceConfig]:
     Scans the directory for top-level folders, each becoming a source.
     Falls back to DOCS_PATH for legacy single-path setups.
     """
-    import logging
-
-    _logger = logging.getLogger(__name__)
-
     # Auto-discover from documentations directory
     docs_dir = os.environ.get("TETHERDUST_DOCUMENTATIONS_DIR", "").strip()
     if docs_dir:
@@ -132,7 +131,7 @@ def _load_sources_from_env() -> list[DocumentationSourceConfig]:
                         )
                     )
             if sources:
-                _logger.info(
+                logger.info(
                     "Auto-discovered %d doc sources from %s: %s",
                     len(sources),
                     docs_dir,
@@ -200,18 +199,14 @@ class DocumentationParser:
         if self._sources:
             return self._sources
 
-        import logging
-
-        _logger = logging.getLogger(__name__)
-
         # Try Django first, then auto-discover from filesystem
         django_sources = _load_sources_from_django()
         if django_sources is not None:
             self._sources = django_sources
-            _logger.info("Using Django doc sources: %d", len(self._sources))
+            logger.info("Using Django doc sources: %d", len(self._sources))
         else:
             self._sources = _load_sources_from_env()
-            _logger.info("Using env doc sources: %d", len(self._sources))
+            logger.info("Using env doc sources: %d", len(self._sources))
 
         return self._sources
 
@@ -521,7 +516,7 @@ class DocumentationParser:
                         continue
 
                     # Score against section body + heading + file name combined
-                    searchable = (f"{current_heading}\n{section}\n{file_stem}").lower()
+                    searchable = f"{current_heading}\n{section}\n{file_stem}".lower()
                     score = sum(1 for term in query_terms if term in searchable)
 
                     if score > 0:
