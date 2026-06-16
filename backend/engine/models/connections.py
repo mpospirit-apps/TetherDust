@@ -1,6 +1,7 @@
 """Database, documentation source, MCP server, tool, prompt, system config, and query audit models."""  # noqa: E501
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,8 @@ from django.db import models
 
 from ..integrations.github_client import parse_owner_repo as parse_owner_repo
 from ._encryption import decrypt_value, encrypt_value
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseConnection(models.Model):
@@ -327,10 +330,6 @@ class DocumentationSource(models.Model):
         Marks sources as inactive if their folder no longer exists.
         Returns dict with 'created' and 'deactivated' folder name lists.
         """
-        import logging
-
-        logger = logging.getLogger(__name__)
-
         docs_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR)
         result: dict[str, list[str]] = {"created": [], "deactivated": []}
 
@@ -451,9 +450,7 @@ class MCPServerConfiguration(models.Model):
         if not raw:
             return {}
         try:
-            import json as _json
-
-            parsed = _json.loads(raw)
+            parsed = json.loads(raw)
             if not isinstance(parsed, dict):
                 return {}
             return {str(k): str(v) for k, v in parsed.items()}
@@ -462,9 +459,7 @@ class MCPServerConfiguration(models.Model):
 
     @command_env.setter
     def command_env(self, value: dict[str, str]) -> None:
-        import json as _json
-
-        self._command_env = encrypt_value(_json.dumps(value)) if value else ""
+        self._command_env = encrypt_value(json.dumps(value)) if value else ""
 
     @property
     def is_local(self) -> bool:

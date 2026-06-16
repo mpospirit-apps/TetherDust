@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import re
 from html import escape
 from typing import TYPE_CHECKING, cast
 
@@ -191,8 +192,6 @@ def send_report_email(execution_id: int, recipients: list[str]) -> bool:
 
         # Attach CSV if there's data
         if column_names and rows:
-            import re
-
             safe_name = re.sub(r"[^\w\-]", "_", report.name)
             csv_bytes = _build_csv_attachment(report.name, column_names, rows)
             email.attach(f"{safe_name}.csv", csv_bytes, "text/csv")

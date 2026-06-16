@@ -3,6 +3,7 @@
 import base64
 import datetime
 import json
+import logging
 import os
 from typing import Any
 
@@ -11,6 +12,8 @@ from django.db import models
 
 from ._encryption import decrypt_value, encrypt_value
 from .connections import SystemConfiguration
+
+logger = logging.getLogger(__name__)
 
 
 def _decode_jwt_claims(token: str | None) -> dict[str, object] | None:
@@ -138,11 +141,9 @@ class AgentConfiguration(models.Model):
         # AGENTS.md. The system prompt is sent inline per request instead.
         if self.agent_type in self.DIRECT_API_AGENT_TYPES:
             return
-        import logging
 
         import httpx
 
-        logger = logging.getLogger(__name__)
         # Prefer this agent's own service_url so a non-default container (e.g. the
         # profiled codex-api service) receives its prompt; fall back to the
         # system-wide URL / env var for this agent type when left blank. The

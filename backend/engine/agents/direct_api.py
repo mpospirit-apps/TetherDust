@@ -21,7 +21,7 @@ import os
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 
-import httpx as httpx
+import httpx
 
 from .base import BaseAgent
 from .history import HistoryMessages
