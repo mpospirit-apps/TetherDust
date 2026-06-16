@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import os
+import shutil
 import tempfile
 import uuid
 from collections.abc import AsyncGenerator
@@ -137,8 +138,6 @@ class _ServerProxy:
         self._ready.clear()
 
     async def _run(self) -> None:
-        import shutil
-
         merged_env = {**os.environ, **self.env}
         path_in_use = merged_env.get("PATH", "<not set>")
 
