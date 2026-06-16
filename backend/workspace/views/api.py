@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 from typing import TYPE_CHECKING, cast
 
+import httpx
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import connection
@@ -111,9 +113,6 @@ def readyz_view(request: HttpRequest) -> JsonResponse:
 @login_required
 def agent_status_view(request: HttpRequest) -> JsonResponse:
     """Return the active agent name and whether its service is reachable and authenticated."""
-    import datetime
-
-    import httpx
     from engine.models import AgentConfiguration, SystemConfiguration
 
     agent_config = AgentConfiguration.get_active()
@@ -218,8 +217,6 @@ def doc_sources_api_view(request: HttpRequest) -> JsonResponse:
     Queries the MCP server's /list-resources endpoint, passing the user's
     allowed doc sources as a filter so the response is role-restricted.
     """
-    import httpx
-
     user = cast("AbstractUser", request.user)
 
     allowed_names = None

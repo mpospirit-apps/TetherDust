@@ -1,5 +1,8 @@
 """User-facing report views: viewer page, latest/history HTMX endpoints, downloads, email."""
 
+import csv
+import io
+import re
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
@@ -84,9 +87,7 @@ def reports_view(request: HttpRequest) -> HttpResponse:
         if label in weekdays:
             return (2, weekdays.index(label))
         try:
-            from datetime import datetime as _dt
-
-            d = _dt.strptime(label, "%B %Y")
+            d = datetime.strptime(label, "%B %Y")
             return (3, -d.year, -d.month)
         except ValueError:
             return (4, label)
@@ -227,10 +228,6 @@ def report_execution_content_view(request: HttpRequest, execution_id: int) -> Ht
 @login_required
 def report_download_view(request: HttpRequest, execution_id: int, fmt: str) -> HttpResponse:
     """Download a report execution as CSV or Excel."""
-    import csv
-    import io
-    import re
-
     from engine.models import ReportExecution
 
     user = cast("AbstractUser", request.user)
