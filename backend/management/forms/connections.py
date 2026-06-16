@@ -1,9 +1,11 @@
 """Forms for database, documentation, MCP, tool, prompt, and system-settings configuration."""
 
 import json
+from pathlib import Path
 from typing import Any
 
 from django import forms
+from django.conf import settings
 from engine.forms.base import _BaseForm
 from engine.models import (
     Codebase,
@@ -90,10 +92,6 @@ class DocumentationSourceForm(_BaseForm):
 
     def clean_folder_name(self) -> str:
         """Validate that the selected folder exists."""
-        from pathlib import Path
-
-        from django.conf import settings
-
         folder_name = self.cleaned_data["folder_name"]
         path = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR) / folder_name
 
@@ -109,10 +107,6 @@ class DocumentationSourceForm(_BaseForm):
         file_patterns = cleaned_data.get("file_patterns") or ["*.md"]
 
         if folder_name:
-            from pathlib import Path
-
-            from django.conf import settings
-
             path = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR) / folder_name
             if path.exists() and path.is_dir():
                 file_count = sum(len(list(path.rglob(p))) for p in file_patterns)

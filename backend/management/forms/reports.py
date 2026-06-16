@@ -1,6 +1,10 @@
 """Forms for report definitions and scheduling."""
 
+from datetime import time as dt_time
+
 from django import forms
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_email
 from engine.forms.base import _BaseForm
 from engine.models import ReportDefinition, Role
 
@@ -135,8 +139,6 @@ class ReportDefinitionForm(_BaseForm):
         val = self.cleaned_data.get("email_recipients", "").strip()
         if not val:
             return []
-        from django.core.exceptions import ValidationError as DjangoValidationError
-        from django.core.validators import validate_email
 
         emails = []
         errors = []
@@ -157,7 +159,6 @@ class ReportDefinitionForm(_BaseForm):
         val = self.cleaned_data.get("schedule_time")
         if not val:
             return None
-        from datetime import time as dt_time
 
         h, m = val.split(":")
         return dt_time(int(h), int(m))
