@@ -1,5 +1,7 @@
-# NOTICE: DO NOT CONTRIBUTE YET
-This repository is undergoing a major refactor and is not currently suitable for development. Please stay tuned for version 1.0.0.
+# NOTICE: DO NOT CONTRIBUTE YET OR DEPLOY YET
+This repository is undergoing a major refactor and is not currently suitable for development.
+
+Feel free to test its capabilities, but expect **breaking behavior and a complete redeploy** before version **1.0.0**. Stay tuned.
 
 ---
 ---
