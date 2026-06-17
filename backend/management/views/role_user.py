@@ -18,11 +18,11 @@ from management.views._helpers import staff_required
 from ..forms import RoleForm, UserCreateForm, UserProfileForm
 
 
-def _posted_pk_set(data: QueryDict, key: str) -> set[int]:
+def _posted_pk_set(data: QueryDict, key: str) -> set[str]:
     values = set()
     for value in data.getlist(key):
         try:
-            values.add(int(value))
+            values.add(value)
         except (TypeError, ValueError):
             pass
     return values
@@ -46,7 +46,7 @@ def role_list_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def role_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
+def role_form_view(request: HttpRequest, pk: str | None = None) -> HttpResponse:
     instance = get_object_or_404(Role, pk=pk) if pk else None
     if request.method == "POST":
         form = RoleForm(request.POST, instance=instance)
@@ -93,7 +93,7 @@ def role_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
 
 @staff_required
 @require_POST
-def role_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
+def role_delete_view(request: HttpRequest, pk: str) -> HttpResponse:
     from django.contrib import messages
     from django.db.models.deletion import ProtectedError
 
@@ -158,7 +158,7 @@ def user_create_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def user_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
+def user_edit_view(request: HttpRequest, pk: str) -> HttpResponse:
     if err := _require_user_management(request):
         return err
     user_obj = get_object_or_404(User, pk=pk)
@@ -185,7 +185,7 @@ def user_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 @staff_required
 @require_POST
-def user_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
+def user_delete_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Delete a user account."""
     if err := _require_user_management(request):
         return err

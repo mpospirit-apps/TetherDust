@@ -9,7 +9,8 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from engine.agents.gateway import gateway_auth_headers as _gateway_auth_headers
-from engine.models import AgentConfiguration, SystemConfiguration
+from engine.models import AgentConfiguration
+from engine.services import AgentService, SystemConfigService, get
 
 from management.views._helpers import staff_required
 
@@ -31,7 +32,7 @@ def _default_system_prompt_path(agent_type: str | None) -> Path:
 def _resolve_codex_url(config: object = None) -> str:
     """Resolve the Codex service URL (per-config override → system config → env)."""
     config_url = (getattr(config, "service_url", "") or "") if config else ""
-    db_url = SystemConfiguration.get_value("codex_service_url", "") or ""
+    db_url = get(SystemConfigService).get_value("codex_service_url", "") or ""
     return (config_url or db_url or os.environ.get("CODEX_SERVICE_URL", "")).rstrip("/")
 
 
@@ -40,7 +41,7 @@ async def _resolve_codex_url_async(config: object = None) -> str:
     from asgiref.sync import sync_to_async
 
     config_url = (getattr(config, "service_url", "") or "") if config else ""
-    db_url = await sync_to_async(SystemConfiguration.get_value)("codex_service_url", "") or ""
+    db_url = await sync_to_async(get(SystemConfigService).get_value)("codex_service_url", "") or ""
     return (config_url or db_url or os.environ.get("CODEX_SERVICE_URL", "")).rstrip("/")
 
 
@@ -80,7 +81,7 @@ def agent_type_picker_view(request: HttpRequest) -> HttpResponse:
 
 @staff_required
 def agent_form_view(
-    request: HttpRequest, pk: int | None = None, agent_type: str | None = None
+    request: HttpRequest, pk: str | None = None, agent_type: str | None = None
 ) -> HttpResponse:
     instance = get_object_or_404(AgentConfiguration, pk=pk) if pk else None
 
@@ -100,12 +101,12 @@ def agent_form_view(
                 "claude_code_api",
             } | AgentConfiguration.DIRECT_API_AGENT_TYPES
             if obj.agent_type in api_key_types and api_key:
-                obj.set_api_key(api_key)
+                obj.api_key = api_key
             # Claude Code stores a subscription OAuth token (pasted, not a device
             # flow). A blank field on edit keeps the existing token.
             oauth_token = form.cleaned_data.get("oauth_token")
             if obj.agent_type == "claude_code" and oauth_token:
-                obj.set_auth_token(oauth_token)
+                obj.auth_token = oauth_token
             # Direct API agents store model / base_url in the settings JSON.
             if obj.agent_type in AgentConfiguration.DIRECT_API_AGENT_TYPES:
                 agent_settings = obj.settings if isinstance(obj.settings, dict) else {}
@@ -127,7 +128,7 @@ def agent_form_view(
                 agent_settings = obj.settings if isinstance(obj.settings, dict) else {}
                 agent_settings["model"] = form.cleaned_data.get("model", "").strip()
                 obj.settings = agent_settings
-            obj.save()
+            get(AgentService).save_config(obj)
             return redirect("management:agent_list")
     else:
         initial = {"agent_type": agent_type} if agent_type else {}
@@ -182,12 +183,12 @@ def agent_form_view(
     # form can show who is signed in instead of a bare "Sign in" button.
     auth_info = None
     if instance and instance.agent_type == "codex":
-        auth_info = instance.get_auth_info()
+        auth_info = get(AgentService).get_auth_info(instance)
 
     # Whether a Claude Code OAuth token is already stored (so the form can show
     # "leave blank to keep" instead of implying none is set).
     claude_token_set = bool(
-        instance and instance.agent_type == "claude_code" and instance.get_auth_token()
+        instance and instance.agent_type == "claude_code" and instance.auth_token
     )
 
     return render(
@@ -210,7 +211,7 @@ def agent_form_view(
 
 @staff_required
 @require_POST
-def agent_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
+def agent_delete_view(request: HttpRequest, pk: str) -> HttpResponse:
     obj = get_object_or_404(AgentConfiguration, pk=pk)
     if obj.is_active:
         return redirect("management:agent_list")
@@ -220,7 +221,7 @@ def agent_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 @staff_required
 @require_POST
-async def agent_device_login_start(request: HttpRequest, pk: int) -> HttpResponse:
+async def agent_device_login_start(request: HttpRequest, pk: str) -> HttpResponse:
     """Begin an in-app device-code login by proxying to the Codex service."""
     from django.shortcuts import aget_object_or_404
 
@@ -247,7 +248,7 @@ async def agent_device_login_start(request: HttpRequest, pk: int) -> HttpRespons
 
 
 @staff_required
-async def agent_device_login_status(request: HttpRequest, pk: int, login_id: str) -> HttpResponse:
+async def agent_device_login_status(request: HttpRequest, pk: str, login_id: str) -> HttpResponse:
     """Poll a device login; persist the credential on completion."""
     from django.shortcuts import aget_object_or_404
 
@@ -272,8 +273,8 @@ async def agent_device_login_status(request: HttpRequest, pk: int, login_id: str
         if token:
             from asgiref.sync import sync_to_async
 
-            await sync_to_async(config.set_auth_token)(token)
-            await config.asave()
+            config.auth_token = token
+            await sync_to_async(get(AgentService).save_config)(config)
         return JsonResponse({"status": "complete"})
     if status == "error":
         return JsonResponse({"status": "error", "error": data.get("error", "")})
@@ -288,11 +289,11 @@ async def agent_device_login_status(request: HttpRequest, pk: int, login_id: str
 
 @staff_required
 @require_POST
-def agent_activate_view(request: HttpRequest, pk: int) -> HttpResponse:
+def agent_activate_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Activate an agent via HTMX — returns updated status badge."""
     obj = get_object_or_404(AgentConfiguration, pk=pk)
     obj.is_active = True
-    obj.save()
+    get(AgentService).save_config(obj)
     response = HttpResponse()
     response["HX-Redirect"] = request.META.get("HTTP_REFERER", "/control/agents/")
     return response

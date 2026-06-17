@@ -39,15 +39,15 @@ class ClaudeCodeAgent(CodexAgent):
     def __init__(self, config: AgentConfiguration | None = None) -> None:
         self._config = config
         self._system_prompt = config.system_prompt if config else ""
-        self._auth_token = config.get_auth_token() if config else ""
+        self._auth_token = config.auth_token if config else ""
 
         # Resolve the service URL with a Claude-specific fallback chain so this
         # agent never routes to the Codex container by accident.
         config_service_url = (getattr(config, "service_url", "") or "") if config else ""
 
-        from ..models import SystemConfiguration
+        from engine.services import SystemConfigService, get
 
-        db_service_url = SystemConfiguration.get_value("claude_service_url", "") or ""
+        db_service_url = get(SystemConfigService).get_value("claude_service_url", "") or ""
         self._service_url = (
             config_service_url or db_service_url or os.getenv("CLAUDE_SERVICE_URL", "")
         ).rstrip("/")
@@ -78,15 +78,15 @@ class ClaudeCodeApiAgent(ClaudeCodeAgent):
         self._system_prompt = config.system_prompt if config else ""
         # API-key auth never uses the subscription OAuth token.
         self._auth_token = ""
-        self._api_key = config.get_api_key() if config else ""
+        self._api_key = config.api_key if config else ""
 
         # Resolve the service URL with a distinct fallback chain so this agent
         # never routes to the OAuth-token Claude container by accident.
         config_service_url = (getattr(config, "service_url", "") or "") if config else ""
 
-        from ..models import SystemConfiguration
+        from engine.services import SystemConfigService, get
 
-        db_service_url = SystemConfiguration.get_value("claude_api_service_url", "") or ""
+        db_service_url = get(SystemConfigService).get_value("claude_api_service_url", "") or ""
         self._service_url = (
             config_service_url or db_service_url or os.getenv("CLAUDE_API_SERVICE_URL", "")
         ).rstrip("/")

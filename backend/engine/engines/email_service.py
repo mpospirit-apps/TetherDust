@@ -16,6 +16,8 @@ from typing import TYPE_CHECKING, cast
 
 from django.core.mail import EmailMessage, get_connection
 
+from engine.services import SystemConfigService, get
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -30,29 +32,28 @@ def get_smtp_config() -> dict[str, object] | None:
     Returns a dict with host/port/username/password/use_tls/from_email,
     or None if SMTP is not configured (smtp_host missing).
     """
-    from ..models import SystemConfiguration, decrypt_value
+    from ..models import decrypt_value
 
-    host = SystemConfiguration.get_value("smtp_host", "")
+    host = get(SystemConfigService).get_value("smtp_host", "")
     if not host:
         return None
 
-    encrypted_password = SystemConfiguration.get_value("smtp_password", "")
+    encrypted_password = get(SystemConfigService).get_value("smtp_password", "")
 
     return {
         "host": host,
-        "port": SystemConfiguration.get_value("smtp_port", 587),
-        "username": SystemConfiguration.get_value("smtp_username", ""),
+        "port": get(SystemConfigService).get_value("smtp_port", 587),
+        "username": get(SystemConfigService).get_value("smtp_username", ""),
         "password": decrypt_value(encrypted_password) if encrypted_password else "",
-        "use_tls": SystemConfiguration.get_value("smtp_use_tls", True),
-        "from_email": SystemConfiguration.get_value("smtp_from_email", ""),
+        "use_tls": get(SystemConfigService).get_value("smtp_use_tls", True),
+        "from_email": get(SystemConfigService).get_value("smtp_from_email", ""),
     }
 
 
 def is_smtp_configured() -> bool:
     """Return True if SMTP host is set in SystemConfiguration."""
-    from ..models import SystemConfiguration
 
-    return bool(SystemConfiguration.get_value("smtp_host", ""))
+    return bool(get(SystemConfigService).get_value("smtp_host", ""))
 
 
 def get_email_connection(config: dict[str, object] | None = None) -> BaseEmailBackend | None:
@@ -124,10 +125,9 @@ def _build_csv_attachment(
     report_name: str, column_names: list[str], rows: list[list[object]], max_rows: int | None = None
 ) -> bytes:
     """Build a CSV file as bytes for email attachment."""
-    from ..models import SystemConfiguration
 
     if max_rows is None:
-        max_rows = SystemConfiguration.get_value("email_max_rows", 10000)
+        max_rows = get(SystemConfigService).get_value("email_max_rows", 10000)
 
     buf = io.StringIO()
     writer = csv.writer(buf)
@@ -136,7 +136,7 @@ def _build_csv_attachment(
     return buf.getvalue().encode("utf-8")
 
 
-def send_report_email(execution_id: int, recipients: list[str]) -> bool:
+def send_report_email(execution_id: str, recipients: list[str]) -> bool:
     """Send a report execution's results as an email.
 
     Args:

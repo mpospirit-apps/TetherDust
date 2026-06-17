@@ -40,7 +40,7 @@ def database_engine_picker_view(request: HttpRequest) -> HttpResponse:
 
 @staff_required
 def database_form_view(
-    request: HttpRequest, pk: int | None = None, engine: str | None = None
+    request: HttpRequest, pk: str | None = None, engine: str | None = None
 ) -> HttpResponse:
     instance = get_object_or_404(DatabaseConnection, pk=pk) if pk else None
 
@@ -79,14 +79,14 @@ def database_form_view(
 
 @staff_required
 @require_POST
-def database_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
+def database_delete_view(request: HttpRequest, pk: str) -> HttpResponse:
     obj = get_object_or_404(DatabaseConnection, pk=pk)
     obj.delete()
     return redirect("management:database_list")
 
 
 @staff_required
-def database_test_view(request: HttpRequest, pk: int) -> HttpResponse:
+def database_test_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Test a database connection and return HTMX fragment."""
     from engine.engines.db_runner import ping
 

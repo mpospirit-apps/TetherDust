@@ -55,7 +55,7 @@
                 {% endif %}
             </span>
         </div>
-        {% if server.is_local %}
+        {% if is_local %}
         <div class="meta-item">
             <span class="meta-label">Type</span>
             <span class="meta-value"><span class="badge badge-muted">LOCAL SUBPROCESS</span></span>
@@ -108,11 +108,11 @@
                 </tr>
             </thead>
             <tbody>
-                {% regroup tools by category_label as tool_groups %}
+                {% regroup tools by get_category_display as tool_groups %}
                 {% for group in tool_groups %}
                 <tr class="table-group-row">
                     <td colspan="4" style="background:var(--bg-sec);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-sec);font-weight:600">
-                        {{ group.grouper }} <span class="text-sec" style="font-weight:400">· {{ group.list|length }}</span>
+                        {{ group.grouper|default:"Other" }} <span class="text-sec" style="font-weight:400">· {{ group.list|length }}</span>
                     </td>
                 </tr>
                 {% for tool in group.list %}
@@ -206,7 +206,7 @@
 {% else %}
 <div class="card">
     <p class="text-sec" style="margin:0">
-        {% if server.is_local %}
+        {% if is_local %}
         Tools and prompts for this local subprocess MCP server are discovered at runtime by the agent.
         Use <strong>Test Connection</strong> above to verify the subprocess started and see what it advertises.
         {% else %}

@@ -11,7 +11,7 @@ from typing import Any, TypeVar
 
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
-from engine.models import SystemConfiguration
+from engine.services import SystemConfigService, get
 
 logger = logging.getLogger("management.views")
 
@@ -40,7 +40,7 @@ def _serialize_sql_value(val: object) -> object:
 
 
 def _get_docgen_timeout() -> float:
-    val = SystemConfiguration.get_value("docgen_timeout", None)
+    val = get(SystemConfigService).get_value("docgen_timeout", None)
     if val is not None:
         return float(val)
     return float(os.getenv("DOCGEN_TIMEOUT", "1800"))
@@ -48,14 +48,14 @@ def _get_docgen_timeout() -> float:
 
 def _get_doclibgen_timeout() -> float:
     """Timeout for AI library generation (longer than single-file docgen)."""
-    val = SystemConfiguration.get_value("doclibgen_timeout", None)
+    val = get(SystemConfigService).get_value("doclibgen_timeout", None)
     if val is not None:
         return float(val)
     return float(os.getenv("DOCLIBGEN_TIMEOUT", "3600"))
 
 
 def _get_chartgen_timeout() -> float:
-    val = SystemConfiguration.get_value("chartgen_timeout", None)
+    val = get(SystemConfigService).get_value("chartgen_timeout", None)
     if val is not None:
         return float(val)
     return float(os.getenv("CHARTGEN_TIMEOUT", "1800"))

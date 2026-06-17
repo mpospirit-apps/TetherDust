@@ -20,7 +20,9 @@ def build_agent(config: AgentConfiguration) -> BaseAgent:
     Raises:
         ValueError: If the config's agent type is unknown
     """
-    # Import agents lazily to avoid circular imports
+    # Import the backends lazily so a bare `import engine.agents` stays light:
+    # their httpx / gateway / MCP dependency chains load only when an agent is
+    # actually built. (No cycles exist — none of them import this package.)
     from .claude import ClaudeCodeAgent, ClaudeCodeApiAgent
     from .codex import CodexAgent, CodexApiAgent
     from .direct_api import (
@@ -64,9 +66,9 @@ def get_agent() -> BaseAgent:
     Raises:
         ValueError: If configured agent type is unknown
     """
-    from ..models import AgentConfiguration
+    from engine.services import AgentService, get
 
-    config = AgentConfiguration.get_active()
+    config = get(AgentService).get_active()
     if not config:
         from .codex import CodexAgent
 

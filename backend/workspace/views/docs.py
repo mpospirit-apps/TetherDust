@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from engine.services import DocSourceService, PermissionService, get
 from markdown import Markdown
 from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
@@ -84,7 +85,7 @@ class WikiLinkInlineProcessor(InlineProcessor):
         super().__init__(pattern, md)
         self.user = user
         self.current_source = current_source
-        self._source_cache: dict[str, int | None] = {}
+        self._source_cache: dict[str, str | None] = {}
         self._allowed_sources: set[str] | None = None
         self._allowed_sources_loaded: bool = False
 
@@ -106,11 +107,11 @@ class WikiLinkInlineProcessor(InlineProcessor):
             self._allowed_sources = set()
             self._allowed_sources_loaded = True
             return self._allowed_sources
-        self._allowed_sources = profile.get_allowed_doc_sources()
+        self._allowed_sources = get(PermissionService).get_allowed_doc_sources(profile)
         self._allowed_sources_loaded = True
         return self._allowed_sources
 
-    def _resolve_source(self, folder_name: str) -> int | None:
+    def _resolve_source(self, folder_name: str) -> str | None:
         """Look up DocumentationSource id by folder_name, with caching."""
         if folder_name in self._source_cache:
             return self._source_cache[folder_name]
@@ -261,9 +262,9 @@ def docs_view(request: HttpRequest) -> HttpResponse:
         sources = DocumentationSource.objects.filter(is_active=True).order_by("folder_name")
     else:
         profile = getattr(user, "profile", None)
-        if not profile or not profile.can_view_docs:
+        if not profile or not get(PermissionService).can_view_docs(profile):
             return render(request, "workspace/docs.html", {"sources": [], "has_access": False})
-        allowed_names = profile.get_allowed_doc_sources()
+        allowed_names = get(PermissionService).get_allowed_doc_sources(profile)
         if allowed_names is None:
             sources = DocumentationSource.objects.filter(is_active=True).order_by("folder_name")
         else:
@@ -272,7 +273,7 @@ def docs_view(request: HttpRequest) -> HttpResponse:
             ).order_by("folder_name")
     source_trees = []
     for src in sources:
-        base = Path(src.resolved_path)
+        base = Path(get(DocSourceService).resolved_path(src))
         tree = _build_file_tree(base, src.file_patterns or ["*.md"])
         source_trees.append(
             {
@@ -312,7 +313,7 @@ def docs_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def docs_content_view(request: HttpRequest, source_id: int, file_path: str) -> HttpResponse:
+def docs_content_view(request: HttpRequest, source_id: str, file_path: str) -> HttpResponse:
     """HTMX endpoint — returns server-rendered markdown HTML for a doc file."""
     from engine.models import DocumentationSource
 
@@ -326,7 +327,7 @@ def docs_content_view(request: HttpRequest, source_id: int, file_path: str) -> H
         profile = getattr(user, "profile", None)
         if not profile:
             return HttpResponse("<p>Access denied.</p>", status=403)
-        allowed_names = profile.get_allowed_doc_sources()
+        allowed_names = get(PermissionService).get_allowed_doc_sources(profile)
         if allowed_names is None:
             allowed_ids = set(
                 DocumentationSource.objects.filter(is_active=True).values_list("id", flat=True)
@@ -341,7 +342,7 @@ def docs_content_view(request: HttpRequest, source_id: int, file_path: str) -> H
         return HttpResponse("<p>Access denied.</p>", status=403)
 
     source = DocumentationSource.objects.get(id=source_id)
-    base = Path(source.resolved_path)
+    base = Path(get(DocSourceService).resolved_path(source))
     docs_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR)
 
     target = (base / file_path).resolve()

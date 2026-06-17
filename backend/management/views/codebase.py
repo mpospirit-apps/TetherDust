@@ -41,7 +41,7 @@ def codebase_provider_picker_view(request: HttpRequest) -> HttpResponse:
 
 @staff_required
 def codebase_form_view(
-    request: HttpRequest, pk: int | None = None, provider: str | None = None
+    request: HttpRequest, pk: str | None = None, provider: str | None = None
 ) -> HttpResponse:
     instance = get_object_or_404(Codebase, pk=pk) if pk else None
 
@@ -81,7 +81,7 @@ def codebase_form_view(
 
 @staff_required
 @require_POST
-def codebase_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
+def codebase_delete_view(request: HttpRequest, pk: str) -> HttpResponse:
     obj = get_object_or_404(Codebase, pk=pk)
     obj.delete()
     return redirect("management:codebase_list")
@@ -89,7 +89,7 @@ def codebase_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 @staff_required
 @require_POST
-def codebase_sync_view(request: HttpRequest, pk: int) -> HttpResponse:
+def codebase_sync_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Mark a codebase as syncing, enqueue the sync, and return to the list.
 
     The list row then polls ``codebase_status`` until the sync settles.
@@ -103,14 +103,14 @@ def codebase_sync_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @staff_required
-def codebase_status_view(request: HttpRequest, pk: int) -> HttpResponse:
+def codebase_status_view(request: HttpRequest, pk: str) -> HttpResponse:
     """HTMX poll target: returns the current sync-status cell."""
     obj = get_object_or_404(Codebase, pk=pk)
     html = render_to_string("management/codebases/_status.html", {"cb": obj}, request=request)
     return HttpResponse(html)
 
 
-def _enqueue_sync(codebase_id: int) -> None:
+def _enqueue_sync(codebase_id: str) -> None:
     """Dispatch the sync task, falling back to inline run if Celery is down."""
     from engine.tasks import sync_codebase
 

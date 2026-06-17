@@ -15,6 +15,8 @@ from pathlib import Path
 from django.conf import settings
 from packaging.version import InvalidVersion, Version
 
+from engine.services import SystemConfigService, get
+
 logger = logging.getLogger(__name__)
 
 GITHUB_REPOSITORY = "mpospirit-apps/TetherDust"
@@ -79,9 +81,8 @@ def changelog_entries() -> list[dict[str, str]]:
 
 def latest_version() -> str:
     """Latest release tag cached by the update-check task (``""`` if unknown)."""
-    from engine.models import SystemConfiguration
 
-    return (SystemConfiguration.get_value(LATEST_VERSION_KEY, "") or "").strip()
+    return (get(SystemConfigService).get_value(LATEST_VERSION_KEY, "") or "").strip()
 
 
 def _normalize(tag: str) -> str:

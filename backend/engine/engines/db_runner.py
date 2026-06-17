@@ -10,6 +10,8 @@ from typing import Any
 
 from sqlalchemy import create_engine, text
 
+from engine.services import ConnectionService, get
+
 
 def run_query(db: Any, sql: str) -> tuple[list[str], list[list[Any]]]:
     """Execute `sql` against `db` and return (columns, rows-as-lists)."""
@@ -54,7 +56,7 @@ def ping(db: Any, *, timeout: int = 10) -> None:
         connect_args[timeout_kwarg] = timeout
 
     engine = create_engine(
-        db.get_connection_url(),
+        get(ConnectionService).get_connection_url(db),
         connect_args=connect_args,
     )
     try:
@@ -83,7 +85,7 @@ def _run_clickhouse(db: Any, sql: str) -> tuple[list[str], list[list[Any]]]:
 
 def _run_sqlalchemy(db: Any, sql: str) -> tuple[list[str], list[list[Any]]]:
     engine = create_engine(
-        db.get_connection_url(),
+        get(ConnectionService).get_connection_url(db),
         pool_pre_ping=True,
         connect_args=db.extra_options or {},
     )

@@ -17,6 +17,7 @@ from engine.models import (
     PromptConfiguration,
     ToolConfiguration,
 )
+from engine.services import McpServerService, SystemConfigService, get
 
 from management.views._helpers import staff_required
 
@@ -41,7 +42,7 @@ def mcp_server_list_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def mcp_server_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
+def mcp_server_detail_view(request: HttpRequest, pk: str) -> HttpResponse:
     server = get_object_or_404(MCPServerConfiguration, pk=pk)
     tools = ToolConfiguration.objects.filter(mcp_server=server)
     prompts = PromptConfiguration.objects.filter(mcp_server=server)
@@ -50,6 +51,7 @@ def mcp_server_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
         "management/mcp_servers/detail.html",
         {
             "server": server,
+            "is_local": get(McpServerService).is_local(server),
             "tools": tools,
             "prompts": prompts,
             "section": "mcp_servers",
@@ -64,9 +66,8 @@ def _notify_local_mcp_reload() -> None:
     def _do_reload() -> None:
         try:
             import httpx
-            from engine.models import SystemConfiguration as SysConf
 
-            base = SysConf.get_value("local_mcp_base_url", "") or os.getenv(
+            base = get(SystemConfigService).get_value("local_mcp_base_url", "") or os.getenv(
                 "LOCAL_MCP_BASE_URL", "http://local-mcp:8003"
             )
             httpx.post(f"{base.rstrip('/')}/reload", timeout=5.0)
@@ -77,7 +78,7 @@ def _notify_local_mcp_reload() -> None:
 
 
 @staff_required
-def mcp_server_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
+def mcp_server_form_view(request: HttpRequest, pk: str | None = None) -> HttpResponse:
     instance = get_object_or_404(MCPServerConfiguration, pk=pk) if pk else None
     if instance and instance.is_builtin:
         return redirect("management:mcp_server_detail", pk=instance.pk)
@@ -86,7 +87,7 @@ def mcp_server_form_view(request: HttpRequest, pk: int | None = None) -> HttpRes
         if form.is_valid():
             saved = form.save()
             assert isinstance(saved, MCPServerConfiguration)
-            if saved.is_local:
+            if get(McpServerService).is_local(saved):
                 _notify_local_mcp_reload()
             return redirect("management:mcp_server_list")
     else:
@@ -104,11 +105,11 @@ def mcp_server_form_view(request: HttpRequest, pk: int | None = None) -> HttpRes
 
 @staff_required
 @require_POST
-def mcp_server_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
+def mcp_server_delete_view(request: HttpRequest, pk: str) -> HttpResponse:
     obj = get_object_or_404(MCPServerConfiguration, pk=pk)
     if obj.is_builtin:
         return redirect("management:mcp_server_detail", pk=obj.pk)
-    was_local = obj.is_local
+    was_local = get(McpServerService).is_local(obj)
     obj.delete()
     if was_local:
         _notify_local_mcp_reload()
@@ -117,7 +118,7 @@ def mcp_server_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 @staff_required
 @require_POST
-def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
+def mcp_server_test_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Probe a remote MCP server with initialize + tools/list and report back."""
     import time
     import uuid
@@ -134,10 +135,8 @@ def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
             status=400,
         )
 
-    if server.is_local:
-        from engine.models import SystemConfiguration as SysConf
-
-        base = SysConf.get_value("local_mcp_base_url", "") or os.getenv(
+    if get(McpServerService).is_local(server):
+        base = get(SystemConfigService).get_value("local_mcp_base_url", "") or os.getenv(
             "LOCAL_MCP_BASE_URL", "http://local-mcp:8003"
         )
         url = f"{base.rstrip('/')}/mcp/{server.pk}/"
@@ -151,7 +150,7 @@ def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
         "Content-Type": "application/json",
         "Accept": "application/json, text/event-stream",
     }
-    if not server.is_local:
+    if not get(McpServerService).is_local(server):
         for k, v in (server.headers or {}).items():
             headers[str(k)] = str(v)
         token = server.auth_token
@@ -201,13 +200,13 @@ def mcp_server_test_view(request: HttpRequest, pk: int) -> HttpResponse:
     result: dict[str, Any] = {
         "url": url,
         "transport": "streamable-http"
-        if server.is_local
+        if get(McpServerService).is_local(server)
         else (server.transport or "streamable-http"),
         "has_auth_token": bool(token),
         "header_keys": sorted(k for k in headers if k.lower() not in ("content-type", "accept")),
     }
 
-    http_timeout = 120.0 if server.is_local else 15.0
+    http_timeout = 120.0 if get(McpServerService).is_local(server) else 15.0
     try:
         start = time.monotonic()
         with httpx.Client(timeout=http_timeout, follow_redirects=True) as client:
@@ -336,7 +335,7 @@ def _builtin_tool_meta(tool_name: str) -> tuple[str | None, str | None]:
 
 
 @staff_required
-def tool_detail_view(request: HttpRequest, server_pk: int, pk: int) -> HttpResponse:
+def tool_detail_view(request: HttpRequest, server_pk: str, pk: str) -> HttpResponse:
     """Read-only view of a tool. Built-in tools are a fixed mirror of the code, so
     there is nothing to edit, add, or delete — the agent-facing description, input
     schema, and handler code are shown live from the function/module."""
@@ -371,7 +370,7 @@ def tool_detail_view(request: HttpRequest, server_pk: int, pk: int) -> HttpRespo
 
 
 @staff_required
-def prompt_form_view(request: HttpRequest, server_pk: int, pk: int | None = None) -> HttpResponse:
+def prompt_form_view(request: HttpRequest, server_pk: str, pk: str | None = None) -> HttpResponse:
     server = get_object_or_404(MCPServerConfiguration, pk=server_pk)
     instance = get_object_or_404(PromptConfiguration, pk=pk, mcp_server=server) if pk else None
 
@@ -399,7 +398,7 @@ def prompt_form_view(request: HttpRequest, server_pk: int, pk: int | None = None
 
 @staff_required
 @require_POST
-def prompt_toggle_view(request: HttpRequest, server_pk: int, pk: int) -> HttpResponse:
+def prompt_toggle_view(request: HttpRequest, server_pk: str, pk: str) -> HttpResponse:
     """Toggle prompt enabled/disabled via HTMX."""
     obj = get_object_or_404(PromptConfiguration, pk=pk, mcp_server_id=server_pk)
     obj.is_enabled = not obj.is_enabled
@@ -411,7 +410,7 @@ def prompt_toggle_view(request: HttpRequest, server_pk: int, pk: int) -> HttpRes
 
 @staff_required
 @require_POST
-def prompt_delete_view(request: HttpRequest, server_pk: int, pk: int) -> HttpResponse:
+def prompt_delete_view(request: HttpRequest, server_pk: str, pk: str) -> HttpResponse:
     obj = get_object_or_404(PromptConfiguration, pk=pk, mcp_server_id=server_pk)
     obj.delete()
     return redirect("management:mcp_server_detail", pk=server_pk)

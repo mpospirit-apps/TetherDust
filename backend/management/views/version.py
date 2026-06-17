@@ -8,7 +8,7 @@ read from the repo-root ``changelog/`` directory.
 import markdown
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
-from engine.models import SystemConfiguration
+from engine.services import SystemConfigService, get
 from engine.version import (
     LATEST_CHECKED_AT_KEY,
     LATEST_RELEASE_URL_KEY,
@@ -45,8 +45,8 @@ def version_view(request: HttpRequest) -> HttpResponse:
             "current_version": current,
             "latest_version": latest_version(),
             "update_available": update_available(),
-            "latest_release_url": SystemConfiguration.get_value(LATEST_RELEASE_URL_KEY, ""),
-            "latest_checked_at": SystemConfiguration.get_value(LATEST_CHECKED_AT_KEY, ""),
+            "latest_release_url": get(SystemConfigService).get_value(LATEST_RELEASE_URL_KEY, ""),
+            "latest_checked_at": get(SystemConfigService).get_value(LATEST_CHECKED_AT_KEY, ""),
             "changelog_entries": entries,
         },
     )

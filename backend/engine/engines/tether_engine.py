@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING
 
 from django.utils import timezone
 
+from engine.services import AgentService, get
+
 from ..agents.stream import parse_chunk, scrub_markers, tool_status_label
 from ..prompts import build_tether_prompt
 
@@ -302,7 +304,7 @@ def generate_tether(version: TetherVersion) -> None:
             allowed_relationships=ALLOWED_RELATIONSHIPS,
         )
 
-        agent_config = AgentConfiguration.get_active()
+        agent_config = get(AgentService).get_active()
         if agent_config is None:
             raise RuntimeError("No active AgentConfiguration; cannot generate tether.")
         agent_config_clone = AgentConfiguration(
@@ -313,8 +315,8 @@ def generate_tether(version: TetherVersion) -> None:
             settings=agent_config.settings,
         )
         # Carry both credentials so the clone authenticates for either agent type.
-        agent_config_clone._auth_token = agent_config._auth_token
-        agent_config_clone._api_key = agent_config._api_key
+        agent_config_clone.auth_token = agent_config.auth_token
+        agent_config_clone.api_key = agent_config.api_key
         agent = build_agent(agent_config_clone)
 
         # Grant the agent every enabled MCP tool plus save_tether_graph.

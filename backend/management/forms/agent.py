@@ -119,7 +119,7 @@ class AgentConfigurationForm(_BaseForm):
         # existing", so only require it when no key is stored yet.
         api_key_types = {"codex_api", "claude_code_api"} | AgentConfiguration.DIRECT_API_AGENT_TYPES
         if agent_type in api_key_types and not cleaned.get("api_key"):
-            existing = self.instance.get_api_key() if (self.instance and self.instance.pk) else ""
+            existing = self.instance.api_key if (self.instance and self.instance.pk) else ""
             if not existing:
                 self.add_error("api_key", "An API key is required for this agent type.")
         return cleaned

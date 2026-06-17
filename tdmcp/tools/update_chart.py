@@ -177,7 +177,7 @@ on chart shapes unless the user explicitly asks for rounded corners."""
             )
             conn.commit()
 
-        logger.info("Updated chart id=%d fields=%s", chart_id, updated_fields)
+        logger.info("Updated chart id=%s fields=%s", chart_id, updated_fields)
         return json.dumps(
             {
                 "success": True,
@@ -186,5 +186,5 @@ on chart shapes unless the user explicitly asks for rounded corners."""
             }
         )
     except Exception as e:
-        logger.error("Failed to update chart %d: %s", chart_id, e, exc_info=True)
+        logger.error("Failed to update chart %s: %s", chart_id, e, exc_info=True)
         return json.dumps({"success": False, "error": str(e)})

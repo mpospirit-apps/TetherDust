@@ -21,6 +21,7 @@ from engine.models import (
     ToolConfiguration,
 )
 from engine.prompts import DASHBOARD_TEMPLATES
+from engine.services import AgentService, get
 from sqlalchemy.exc import SQLAlchemyError
 
 from management.views._helpers import staff_required
@@ -43,7 +44,7 @@ def dashboard_list_view_admin(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def dashboard_form_view_admin(request: HttpRequest, pk: int | None = None) -> HttpResponse:
+def dashboard_form_view_admin(request: HttpRequest, pk: str | None = None) -> HttpResponse:
     instance = get_object_or_404(Dashboard, pk=pk) if pk else None
 
     if request.method == "POST":
@@ -71,14 +72,14 @@ def dashboard_form_view_admin(request: HttpRequest, pk: int | None = None) -> Ht
 
 @staff_required
 @require_POST
-def dashboard_delete_view_admin(request: HttpRequest, pk: int) -> HttpResponse:
+def dashboard_delete_view_admin(request: HttpRequest, pk: str) -> HttpResponse:
     obj = get_object_or_404(Dashboard, pk=pk)
     obj.delete()
     return redirect("management:dashboard_list")
 
 
 @staff_required
-def dashboard_detail_view_admin(request: HttpRequest, pk: int) -> HttpResponse:
+def dashboard_detail_view_admin(request: HttpRequest, pk: str) -> HttpResponse:
     dashboard = get_object_or_404(Dashboard, pk=pk)
     charts = Chart.objects.filter(dashboard=dashboard, is_active=True).select_related("database")
     return render(
@@ -93,7 +94,7 @@ def dashboard_detail_view_admin(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @staff_required
-def chart_form_view(request: HttpRequest, dashboard_pk: int, pk: int | None = None) -> HttpResponse:
+def chart_form_view(request: HttpRequest, dashboard_pk: str, pk: str | None = None) -> HttpResponse:
     dashboard = get_object_or_404(Dashboard, pk=dashboard_pk)
     instance = get_object_or_404(Chart, pk=pk, dashboard=dashboard) if pk else None
 
@@ -120,7 +121,7 @@ def chart_form_view(request: HttpRequest, dashboard_pk: int, pk: int | None = No
                 "refreshed_at": instance.cached_data.get("refreshed_at"),
             }
 
-    active_agent = AgentConfiguration.get_active()
+    active_agent = get(AgentService).get_active()
     active_agent_name = active_agent.name if active_agent else "agent"
 
     return render(
@@ -139,7 +140,7 @@ def chart_form_view(request: HttpRequest, dashboard_pk: int, pk: int | None = No
 
 @staff_required
 @require_POST
-def chart_delete_view(request: HttpRequest, dashboard_pk: int, pk: int) -> HttpResponse:
+def chart_delete_view(request: HttpRequest, dashboard_pk: str, pk: str) -> HttpResponse:
     chart = get_object_or_404(Chart, pk=pk, dashboard__pk=dashboard_pk)
     dashboard_id = chart.dashboard_id
     chart.delete()
@@ -390,7 +391,7 @@ def dashboard_generate_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def dashboard_generate_status_view(request: HttpRequest, pk: int) -> HttpResponse:
+def dashboard_generate_status_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Poll endpoint for dashboard generation status."""
     log_entry = get_object_or_404(ChartGenerationLog, pk=pk)
 
@@ -424,7 +425,7 @@ def dashboard_generate_status_view(request: HttpRequest, pk: int) -> HttpRespons
 
 @staff_required
 @require_POST
-def chart_preview_view(request: HttpRequest, dashboard_pk: int) -> HttpResponse:
+def chart_preview_view(request: HttpRequest, dashboard_pk: str) -> HttpResponse:
     """Execute an ad-hoc SQL query for the edit-page preview.
 
     Accepts unsaved form values: {database_id, sql_query}. Validates the
@@ -465,7 +466,7 @@ def chart_preview_view(request: HttpRequest, dashboard_pk: int) -> HttpResponse:
 
 
 @staff_required
-def chart_state_view(request: HttpRequest, dashboard_pk: int, pk: int) -> HttpResponse:
+def chart_state_view(request: HttpRequest, dashboard_pk: str, pk: str) -> HttpResponse:
     """Return the current editable state of a chart as JSON.
 
     Used by the edit page to re-read chart fields after the AI agent
@@ -483,7 +484,7 @@ def chart_state_view(request: HttpRequest, dashboard_pk: int, pk: int) -> HttpRe
 
 
 @staff_required
-def chart_data_view(request: HttpRequest, pk: int) -> HttpResponse:
+def chart_data_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Return chart data as JSON. Uses cached data unless ?refresh=1 is set."""
     chart = get_object_or_404(Chart.objects.select_related("database"), pk=pk)
     force_refresh = request.GET.get("refresh") == "1"

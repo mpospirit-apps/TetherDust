@@ -110,7 +110,7 @@ class OpenAICompatibleAgent(BaseAgent):
     def __init__(self, config: AgentConfiguration | None = None) -> None:
         self._config = config
         self._system_prompt = config.system_prompt if config else ""
-        self._api_key = config.get_api_key() if config else ""
+        self._api_key = config.api_key if config else ""
         settings = (getattr(config, "settings", None) or {}) if config else {}
         if not isinstance(settings, dict):
             settings = {}

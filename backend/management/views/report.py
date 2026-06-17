@@ -9,6 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from engine.models import ReportDefinition, ReportExecution
+from engine.services import ReportService, get
 
 from management.views._helpers import staff_required
 
@@ -19,7 +20,7 @@ from ..forms import ReportDefinitionForm
 def report_list_view(request: HttpRequest) -> HttpResponse:
     reports = ReportDefinition.objects.select_related("database").all()
     for report in reports:
-        report.latest_exec = report.get_latest_execution()
+        report.latest_exec = get(ReportService).get_latest_execution(report)
     return render(
         request,
         "management/reports/list.html",
@@ -31,7 +32,7 @@ def report_list_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def report_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
+def report_form_view(request: HttpRequest, pk: str | None = None) -> HttpResponse:
     instance = get_object_or_404(ReportDefinition, pk=pk) if pk else None
     if request.method == "POST":
         form = ReportDefinitionForm(request.POST, instance=instance)
@@ -65,7 +66,7 @@ def report_form_view(request: HttpRequest, pk: int | None = None) -> HttpRespons
 
 @staff_required
 @require_POST
-def report_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
+def report_delete_view(request: HttpRequest, pk: str) -> HttpResponse:
     obj = get_object_or_404(ReportDefinition, pk=pk)
     obj.delete()
     return redirect("management:report_list")
@@ -73,7 +74,7 @@ def report_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 @staff_required
 @require_POST
-def report_run_view(request: HttpRequest, pk: int) -> HttpResponse:
+def report_run_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Manually trigger a report execution."""
     from engine.engines.report_engine import execute_report
 
@@ -84,7 +85,7 @@ def report_run_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @staff_required
-def report_preview_view(request: HttpRequest, pk: int) -> HttpResponse:
+def report_preview_view(request: HttpRequest, pk: str) -> HttpResponse:
     """HTMX endpoint — runs report SQL with LIMIT 10, returns table fragment."""
     from engine.engines.report_engine import execute_report
 
@@ -102,6 +103,8 @@ def report_preview_view(request: HttpRequest, pk: int) -> HttpResponse:
         "workspace/reports_result_table.html",
         {
             "execution": execution,
+            "column_names": get(ReportService).column_names(execution),
+            "result_data": get(ReportService).result_data(execution),
             "report": report,
             "is_preview": True,
         },
@@ -110,7 +113,7 @@ def report_preview_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 @staff_required
 @require_POST
-def report_toggle_view(request: HttpRequest, pk: int) -> HttpResponse:
+def report_toggle_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Toggle report active/inactive via HTMX."""
     obj = get_object_or_404(ReportDefinition, pk=pk)
     obj.is_active = not obj.is_active
@@ -136,7 +139,7 @@ def report_execution_list_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def report_execution_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
+def report_execution_detail_view(request: HttpRequest, pk: str) -> HttpResponse:
     execution = get_object_or_404(
         ReportExecution.objects.select_related("definition", "triggered_by"),
         pk=pk,
@@ -146,6 +149,8 @@ def report_execution_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
         "management/reports/execution_detail.html",
         {
             "execution": execution,
+            "column_names": get(ReportService).column_names(execution),
+            "result_data": get(ReportService).result_data(execution),
             "section": "report_runs",
         },
     )

@@ -8,6 +8,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 from engine.models import SystemConfiguration
+from engine.services import SystemConfigService, get
 
 from management.views._helpers import staff_required
 
@@ -23,38 +24,38 @@ def smtp_settings_view(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             for key in ("smtp_host", "smtp_username", "smtp_from_email"):
                 val = form.cleaned_data.get(key, "")
-                SystemConfiguration.set_value(key, val, value_type="string")
+                get(SystemConfigService).set_value(key, val, value_type="string")
             port = form.cleaned_data.get("smtp_port")
             if port is not None:
-                SystemConfiguration.set_value("smtp_port", port, value_type="integer")
-            SystemConfiguration.set_value(
+                get(SystemConfigService).set_value("smtp_port", port, value_type="integer")
+            get(SystemConfigService).set_value(
                 "smtp_use_tls",
                 form.cleaned_data.get("smtp_use_tls", True),
                 value_type="boolean",
             )
             pw = form.cleaned_data.get("smtp_password", "")
             if pw:
-                SystemConfiguration.set_value(
+                get(SystemConfigService).set_value(
                     "smtp_password",
                     encrypt_value(pw),
                     value_type="string",
                 )
             email_max_rows = form.cleaned_data.get("email_max_rows")
             if email_max_rows is not None:
-                SystemConfiguration.set_value(
+                get(SystemConfigService).set_value(
                     "email_max_rows", email_max_rows, value_type="integer"
                 )
             return redirect("management:settings_email")
     else:
         initial = {
-            "smtp_host": SystemConfiguration.get_value("smtp_host", ""),
-            "smtp_port": SystemConfiguration.get_value("smtp_port", 587),
-            "smtp_username": SystemConfiguration.get_value("smtp_username", ""),
-            "smtp_use_tls": SystemConfiguration.get_value("smtp_use_tls", True),
-            "smtp_from_email": SystemConfiguration.get_value("smtp_from_email", ""),
-            "email_max_rows": SystemConfiguration.get_value("email_max_rows", 10000),
+            "smtp_host": get(SystemConfigService).get_value("smtp_host", ""),
+            "smtp_port": get(SystemConfigService).get_value("smtp_port", 587),
+            "smtp_username": get(SystemConfigService).get_value("smtp_username", ""),
+            "smtp_use_tls": get(SystemConfigService).get_value("smtp_use_tls", True),
+            "smtp_from_email": get(SystemConfigService).get_value("smtp_from_email", ""),
+            "email_max_rows": get(SystemConfigService).get_value("email_max_rows", 10000),
         }
-        has_password = bool(SystemConfiguration.get_value("smtp_password", ""))
+        has_password = bool(get(SystemConfigService).get_value("smtp_password", ""))
         form = SMTPSettingsForm(initial=initial)
         if has_password:
             form.fields["smtp_password"].widget.attrs["placeholder"] = (
@@ -123,37 +124,37 @@ def general_settings_view(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             cd = form.cleaned_data
             for key in ("codex_service_url", "mcp_base_url"):
-                SystemConfiguration.set_value(key, cd.get(key, "") or "", value_type="string")
+                get(SystemConfigService).set_value(key, cd.get(key, "") or "", value_type="string")
             for key in ("docgen_timeout", "doclibgen_timeout", "chartgen_timeout"):
                 val = cd.get(key)
                 if val is not None:
-                    SystemConfiguration.set_value(key, val, value_type="integer")
+                    get(SystemConfigService).set_value(key, val, value_type="integer")
             for key in ("max_row_limit", "hot_reload_interval"):
                 val = cd.get(key)
                 if val is not None:
-                    SystemConfiguration.set_value(key, val, value_type="integer")
+                    get(SystemConfigService).set_value(key, val, value_type="integer")
                 else:
                     SystemConfiguration.objects.filter(key=key).delete()
             return redirect("management:settings")
     else:
         initial = {
-            "codex_service_url": SystemConfiguration.get_value(
+            "codex_service_url": get(SystemConfigService).get_value(
                 "codex_service_url", os.getenv("CODEX_SERVICE_URL", "")
             ),
-            "mcp_base_url": SystemConfiguration.get_value(
+            "mcp_base_url": get(SystemConfigService).get_value(
                 "mcp_base_url", os.getenv("MCP_BASE_URL", "http://tdmcp:8001")
             ),
-            "docgen_timeout": SystemConfiguration.get_value(
+            "docgen_timeout": get(SystemConfigService).get_value(
                 "docgen_timeout", int(os.getenv("DOCGEN_TIMEOUT", "1800"))
             ),
-            "doclibgen_timeout": SystemConfiguration.get_value(
+            "doclibgen_timeout": get(SystemConfigService).get_value(
                 "doclibgen_timeout", int(os.getenv("DOCLIBGEN_TIMEOUT", "3600"))
             ),
-            "chartgen_timeout": SystemConfiguration.get_value(
+            "chartgen_timeout": get(SystemConfigService).get_value(
                 "chartgen_timeout", int(os.getenv("CHARTGEN_TIMEOUT", "1800"))
             ),
-            "max_row_limit": SystemConfiguration.get_value("max_row_limit", None),
-            "hot_reload_interval": SystemConfiguration.get_value(
+            "max_row_limit": get(SystemConfigService).get_value("max_row_limit", None),
+            "hot_reload_interval": get(SystemConfigService).get_value(
                 "hot_reload_interval",
                 int(_hri) if (_hri := os.getenv("TETHERDUST_HOT_RELOAD_INTERVAL")) else None,
             ),

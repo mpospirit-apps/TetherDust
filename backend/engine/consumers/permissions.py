@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, cast
 
 from channels.db import database_sync_to_async
 
+from engine.services import McpServerService, PermissionService, SystemConfigService, get
+
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser, User
 
@@ -42,13 +44,13 @@ class PermissionsMixin(_Base):
     def _user_can_chat(self) -> bool:
         if self.user.is_staff:
             return True
-        return bool(self.profile and self.profile.can_chat)
+        return bool(self.profile and get(PermissionService).can_chat(self.profile))
 
     @database_sync_to_async
     def _get_allowed_tools(self) -> set[str] | None:
         if not self.profile:
             return set()
-        return self.profile.get_allowed_tools()
+        return get(PermissionService).get_allowed_tools(self.profile)
 
     @database_sync_to_async
     def _get_all_enabled_tools(self) -> list[str]:
@@ -64,7 +66,7 @@ class PermissionsMixin(_Base):
     def _get_allowed_databases(self) -> set[str] | None:
         if not self.profile:
             return set()
-        return self.profile.get_allowed_databases()
+        return get(PermissionService).get_allowed_databases(self.profile)
 
     @database_sync_to_async
     def _get_allowed_doc_sources(self) -> set[str] | None:
@@ -73,7 +75,7 @@ class PermissionsMixin(_Base):
             return None
         if not self.profile:
             return set()
-        return self.profile.get_allowed_doc_sources()
+        return get(PermissionService).get_allowed_doc_sources(self.profile)
 
     @database_sync_to_async
     def _get_allowed_codebases(self) -> set[str] | None:
@@ -82,7 +84,7 @@ class PermissionsMixin(_Base):
             return None
         if not self.profile:
             return set()
-        return self.profile.get_allowed_codebases()
+        return get(PermissionService).get_allowed_codebases(self.profile)
 
     @database_sync_to_async
     def _get_allowed_reports(self) -> set[str] | None:
@@ -91,7 +93,7 @@ class PermissionsMixin(_Base):
             return None
         if not self.profile:
             return set()
-        return self.profile.get_allowed_reports_names()
+        return get(PermissionService).get_allowed_reports_names(self.profile)
 
     @database_sync_to_async
     def _get_allowed_dashboards(self) -> set[str] | None:
@@ -100,7 +102,7 @@ class PermissionsMixin(_Base):
             return None
         if not self.profile:
             return set()
-        return self.profile.get_allowed_dashboards_names()
+        return get(PermissionService).get_allowed_dashboards_names(self.profile)
 
     @database_sync_to_async
     def _get_allowed_tethers(self) -> set[str] | None:
@@ -109,7 +111,7 @@ class PermissionsMixin(_Base):
             return None
         if not self.profile:
             return set()
-        return self.profile.get_allowed_tethers_ids()
+        return get(PermissionService).get_allowed_tethers_ids(self.profile)
 
     @database_sync_to_async
     def _get_allowed_mcp_servers(self) -> list[dict[str, object]]:
@@ -121,15 +123,14 @@ class PermissionsMixin(_Base):
         """
         if not self.profile:
             return []
-        from ..models import SystemConfiguration
 
-        servers = self.profile.get_allowed_mcp_servers()
+        servers = get(PermissionService).get_allowed_mcp_servers(self.profile)
         result: list[dict[str, object]] = []
-        local_mcp_base = SystemConfiguration.get_value("local_mcp_base_url", "") or os.environ.get(
-            "LOCAL_MCP_BASE_URL", "http://local-mcp:8003"
-        )
+        local_mcp_base = get(SystemConfigService).get_value(
+            "local_mcp_base_url", ""
+        ) or os.environ.get("LOCAL_MCP_BASE_URL", "http://local-mcp:8003")
         for server in servers:
-            if server.is_local:
+            if get(McpServerService).is_local(server):
                 result.append(
                     {
                         "name": server.name,
@@ -153,9 +154,8 @@ class PermissionsMixin(_Base):
 
     @database_sync_to_async
     def _get_max_row_limit(self) -> int | None:
-        from ..models import SystemConfiguration
 
-        system_default = cast(int | None, SystemConfiguration.get_value("max_row_limit", 100))
+        system_default = cast(int | None, get(SystemConfigService).get_value("max_row_limit", 100))
         if not self.profile:
             return system_default
-        return self.profile.get_max_row_limit()
+        return get(PermissionService).get_max_row_limit(self.profile)

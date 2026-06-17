@@ -49,20 +49,22 @@ for add_chart calls."""
                     }
                 )
 
+            from engine.ids import generate_dsh_id
+
             result = conn.execute(
                 text(
-                    "INSERT INTO engine_dashboard (name, description, is_active, "
+                    "INSERT INTO engine_dashboard (id, name, description, is_active, "
                     "auto_refresh, created_at, updated_at) "
-                    "VALUES (:name, :description, true, false, :now, :now) "
+                    "VALUES (:id, :name, :description, true, false, :now, :now) "
                     "RETURNING id"
                 ),
-                {"name": name, "description": description, "now": now},
+                {"id": generate_dsh_id(), "name": name, "description": description, "now": now},
             )
             _row = result.fetchone()
             dashboard_id = _row[0] if _row is not None else None
             conn.commit()
 
-        logger.info("Created dashboard '%s' (id=%d)", name, dashboard_id)
+        logger.info("Created dashboard '%s' (id=%s)", name, dashboard_id)
         return json.dumps(
             {
                 "success": True,

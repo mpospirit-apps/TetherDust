@@ -23,6 +23,8 @@ import httpx
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+from engine.services import AgentService, SystemConfigService, get
+
 from ..agents.stream import parse_chunk, tool_status_label
 
 if TYPE_CHECKING:
@@ -95,9 +97,9 @@ class BaseAgentConsumer(AsyncWebsocketConsumer):
         if not session_id:
             return
 
-        from ..models import AgentConfiguration, SystemConfiguration
+        from ..models import AgentConfiguration
 
-        config = await database_sync_to_async(AgentConfiguration.get_active)()
+        config = await database_sync_to_async(get(AgentService).get_active)()
         agent_type = config.agent_type if config else "codex"
         if config and agent_type in AgentConfiguration.DIRECT_API_AGENT_TYPES:
             return  # no subprocess gateway to abort
@@ -112,7 +114,7 @@ class BaseAgentConsumer(AsyncWebsocketConsumer):
             config_key, env_key = "codex_service_url", "CODEX_SERVICE_URL"
         service_url = (
             (config.service_url if config else "")
-            or await database_sync_to_async(SystemConfiguration.get_value)(config_key, "")
+            or await database_sync_to_async(get(SystemConfigService).get_value)(config_key, "")
             or os.environ.get(env_key, "")
         ).rstrip("/")
         if not service_url:

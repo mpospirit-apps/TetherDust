@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from django.contrib.auth.models import User
 from django.db import models
+
+from ..ids import generate_tth_id, generate_tvr_id
 
 if TYPE_CHECKING:
     from .auth import Role
@@ -16,8 +18,31 @@ from .connections import Codebase, DocumentationSource
 class Tether(models.Model):
     """A codebase × database visual link, with N generated versions."""
 
+    class Meta:
+        verbose_name = "tether"
+        verbose_name_plural = "tethers"
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["is_active", "name"], name="idx_%(class)s_active_name"),
+        ]
+
+    __prefix__: ClassVar[str] = "tth"
+
+    # Identifiers
+    id = models.CharField(max_length=64, primary_key=True, default=generate_tth_id, editable=False)
+
+    # Time
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # State
+    is_active = models.BooleanField(verbose_name="is active", default=True)
+
+    # Domain
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+
+    # Relations
     codebase = models.ForeignKey(
         Codebase,
         on_delete=models.PROTECT,
@@ -40,17 +65,9 @@ class Tether(models.Model):
     allowed_roles: models.ManyToManyField[Role, Role] = models.ManyToManyField(
         "Role", blank=True, related_name="allowed_tethers"
     )
-    is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_tethers"
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["name"]
-        verbose_name = "Tether"
-        verbose_name_plural = "Tethers"
 
     def __str__(self) -> str:
         return self.name
@@ -59,31 +76,49 @@ class Tether(models.Model):
 class TetherVersion(models.Model):
     """One generation run of a Tether."""
 
-    STATUS_CHOICES = [
+    class Meta:
+        verbose_name = "tether version"
+        verbose_name_plural = "tether versions"
+        ordering = ["-version_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tether", "version_number"], name="uq_%(class)s_tether_version"
+            ),
+        ]
+
+    STATUS_CHOICES: ClassVar[list[tuple[str, str]]] = [
         ("running", "Running"),
         ("success", "Success"),
         ("failed", "Failed"),
     ]
 
-    tether = models.ForeignKey(Tether, on_delete=models.CASCADE, related_name="versions")
-    version_number = models.IntegerField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="running")
-    started_at = models.DateTimeField(auto_now_add=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
-    execution_time_ms = models.IntegerField(null=True, blank=True)
-    graph_json = models.JSONField(default=dict, blank=True)
-    error_message = models.TextField(blank=True)
-    agent_log_excerpt = models.TextField(
-        blank=True, help_text="Last ~4kB of Codex stream for debugging"
-    )
-    prompt_used = models.TextField(blank=True)
-    triggered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    __prefix__: ClassVar[str] = "tvr"
 
-    class Meta:
-        ordering = ["-version_number"]
-        unique_together = [("tether", "version_number")]
-        verbose_name = "Tether Version"
-        verbose_name_plural = "Tether Versions"
+    # Identifiers
+    id = models.CharField(max_length=64, primary_key=True, default=generate_tvr_id, editable=False)
+
+    # Time
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(verbose_name="completed at", null=True, blank=True)
+
+    # State
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="running")
+
+    # Domain
+    version_number = models.IntegerField(verbose_name="version number")
+    execution_time_ms = models.IntegerField(verbose_name="execution time ms", null=True, blank=True)
+    graph_json = models.JSONField(verbose_name="graph JSON", default=dict, blank=True)
+    error_message = models.TextField(verbose_name="error message", blank=True)
+    agent_log_excerpt = models.TextField(
+        verbose_name="agent log excerpt",
+        blank=True,
+        help_text="Last ~4kB of Codex stream for debugging",
+    )
+    prompt_used = models.TextField(verbose_name="prompt used", blank=True)
+
+    # Relations
+    tether = models.ForeignKey(Tether, on_delete=models.CASCADE, related_name="versions")
+    triggered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self) -> str:
         return f"{self.tether.name} v{self.version_number} ({self.status})"

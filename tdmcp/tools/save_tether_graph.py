@@ -200,7 +200,7 @@ it to the tether's current_version. Returns a JSON status string."""
             conn.commit()
 
         logger.info(
-            "Saved tether graph: version_id=%d, nodes=%d, edges=%d",
+            "Saved tether graph: version_id=%s, nodes=%d, edges=%d",
             version_id,
             len(nodes),
             len(edges),
@@ -214,5 +214,5 @@ it to the tether's current_version. Returns a JSON status string."""
             }
         )
     except Exception as e:
-        logger.error("Failed to save tether graph for version %d: %s", version_id, e, exc_info=True)
+        logger.error("Failed to save tether graph for version %s: %s", version_id, e, exc_info=True)
         return json.dumps({"success": False, "error": str(e)})

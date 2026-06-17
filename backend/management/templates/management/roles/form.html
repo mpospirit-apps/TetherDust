@@ -58,10 +58,10 @@
                         <i class="fa-solid fa-server" style="font-size:10px;margin-right:4px"></i> {{ server.name }}
                     </strong>
                     {% if server.is_builtin %}
-                        {% regroup server.tools.all by category_label as tool_groups %}
+                        {% regroup server.tools.all by get_category_display as tool_groups %}
                         {% for group in tool_groups %}
                         <div style="margin:0 0 6px 12px">
-                            <span style="display:block;font-size:11px;letter-spacing:.03em;color:var(--text-sec);margin-bottom:2px">{{ group.grouper }}</span>
+                            <span style="display:block;font-size:11px;letter-spacing:.03em;color:var(--text-sec);margin-bottom:2px">{{ group.grouper|default:"Other" }}</span>
                             <div class="checkbox-list">
                                 {% for tool in group.list %}
                                 <label>

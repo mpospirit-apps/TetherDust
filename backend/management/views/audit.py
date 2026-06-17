@@ -59,7 +59,7 @@ def docgen_log_list_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def docgen_log_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
+def docgen_log_detail_view(request: HttpRequest, pk: str) -> HttpResponse:
     log_entry = get_object_or_404(
         DocGenerationLog.objects.select_related("user", "agent"),
         pk=pk,
@@ -88,7 +88,7 @@ def chartgen_log_list_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def chartgen_log_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
+def chartgen_log_detail_view(request: HttpRequest, pk: str) -> HttpResponse:
     log_entry = get_object_or_404(ChartGenerationLog.objects.select_related("user", "agent"), pk=pk)
     return render(
         request,
@@ -123,7 +123,7 @@ def session_list_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def session_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
+def session_detail_view(request: HttpRequest, pk: str) -> HttpResponse:
     session = get_object_or_404(ChatSession.objects.select_related("user"), pk=pk)
     # NB: don't name this "messages" — that key collides with the
     # django.contrib.messages context variable that base.html renders as flash

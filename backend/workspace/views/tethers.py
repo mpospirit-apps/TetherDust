@@ -3,6 +3,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
+from engine.services import PermissionService, get
 
 
 @login_required
@@ -21,7 +22,12 @@ def tethers_list_view(request: HttpRequest) -> HttpResponse:
                 "current_tether_id": None,
             },
         )
-    tethers = profile.get_allowed_tethers().select_related("current_version").order_by("name")
+    tethers = (
+        get(PermissionService)
+        .get_allowed_tethers(profile)
+        .select_related("current_version")
+        .order_by("name")
+    )
     return render(
         request,
         "workspace/tethers/list.html",
@@ -34,15 +40,17 @@ def tethers_list_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def tether_view(request: HttpRequest, pk: int) -> HttpResponse:
+def tether_view(request: HttpRequest, pk: str) -> HttpResponse:
     from engine.models import UserProfile
 
     try:
         profile = getattr(request.user, "profile")
     except UserProfile.DoesNotExist:
         raise Http404
-    allowed = profile.get_allowed_tethers().select_related(
-        "current_version", "codebase", "database_doc_source"
+    allowed = (
+        get(PermissionService)
+        .get_allowed_tethers(profile)
+        .select_related("current_version", "codebase", "database_doc_source")
     )
     tether = allowed.filter(pk=pk).first()
     if tether is None:
@@ -61,14 +69,20 @@ def tether_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required
-def tether_graph_json_view(request: HttpRequest, pk: int) -> HttpResponse:
+def tether_graph_json_view(request: HttpRequest, pk: str) -> HttpResponse:
     from engine.models import UserProfile
 
     try:
         profile = getattr(request.user, "profile")
     except UserProfile.DoesNotExist:
         raise Http404
-    tether = profile.get_allowed_tethers().select_related("current_version").filter(pk=pk).first()
+    tether = (
+        get(PermissionService)
+        .get_allowed_tethers(profile)
+        .select_related("current_version")
+        .filter(pk=pk)
+        .first()
+    )
     if tether is None:
         raise Http404
     if tether.current_version is None:

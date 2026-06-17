@@ -5,6 +5,7 @@ import decimal
 from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth.decorators import login_required
+from engine.services import PermissionService, get
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -40,7 +41,7 @@ def dashboards_view(request: HttpRequest) -> HttpResponse:
         )
     else:
         profile = getattr(user, "profile", None)
-        if not profile or not profile.can_view_dashboards:
+        if not profile or not get(PermissionService).can_view_dashboards(profile):
             return render(
                 request,
                 "workspace/dashboards.html",
@@ -51,7 +52,10 @@ def dashboards_view(request: HttpRequest) -> HttpResponse:
                 },
             )
         dashboards = (
-            profile.get_allowed_dashboards().annotate(chart_count=Count("charts")).order_by("name")
+            get(PermissionService)
+            .get_allowed_dashboards(profile)
+            .annotate(chart_count=Count("charts"))
+            .order_by("name")
         )
 
     return render(
@@ -67,7 +71,7 @@ def dashboards_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required(login_url="/login/")
-def dashboard_detail_view_user(request: HttpRequest, pk: int) -> HttpResponse:
+def dashboard_detail_view_user(request: HttpRequest, pk: str) -> HttpResponse:
     """Dashboard detail with d3.js chart rendering — role-checked."""
     from engine.models import Dashboard
 
@@ -78,11 +82,11 @@ def dashboard_detail_view_user(request: HttpRequest, pk: int) -> HttpResponse:
         all_dashboards = Dashboard.objects.filter(is_active=True).order_by("name")
     else:
         profile = getattr(user, "profile", None)
-        if not profile or not profile.can_view_dashboards:
+        if not profile or not get(PermissionService).can_view_dashboards(profile):
             return redirect("workspace:dashboards")
-        if not profile.get_allowed_dashboards().filter(pk=pk).exists():
+        if not get(PermissionService).get_allowed_dashboards(profile).filter(pk=pk).exists():
             return redirect("workspace:dashboards")
-        all_dashboards = profile.get_allowed_dashboards().order_by("name")
+        all_dashboards = get(PermissionService).get_allowed_dashboards(profile).order_by("name")
 
     charts = cast(Any, dashboard).charts.filter(is_active=True).select_related("database")
 
@@ -100,7 +104,7 @@ def dashboard_detail_view_user(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required(login_url="/login/")
-def chart_data_api_view(request: HttpRequest, pk: int) -> HttpResponse:
+def chart_data_api_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Chart data API for user-facing dashboards. Role-checked."""
     from engine.engines.db_runner import run_query
     from engine.models import Chart
@@ -113,7 +117,10 @@ def chart_data_api_view(request: HttpRequest, pk: int) -> HttpResponse:
         profile = getattr(req_user, "profile", None)
         if (
             not profile
-            or not profile.get_allowed_dashboards().filter(pk=chart.dashboard_id).exists()
+            or not get(PermissionService)
+            .get_allowed_dashboards(profile)
+            .filter(pk=chart.dashboard_id)
+            .exists()
         ):
             return JsonResponse({"error": "Access denied"}, status=403)
 

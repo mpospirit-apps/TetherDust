@@ -2,7 +2,7 @@
 <div class="report-meta">
     <div class="report-title-row">
         <h2 class="docs-title">{{ report.name }}</h2>
-        {% if execution.column_names and execution.result_data %}
+        {% if column_names and result_data %}
         <div class="report-download-btns">
             <button class="btn btn-ghost btn-sm" onclick="downloadReport(this, '{{ execution.id }}', 'csv')" title="Download CSV">
                 <i class="fa-solid fa-file-csv"></i> CSV
@@ -57,7 +57,7 @@
 </div>
 {% endif %}
 
-{% if execution.column_names and execution.result_data %}
+{% if column_names and result_data %}
 {% if execution.row_count > 25 %}
 <div class="report-preview-notice">
     <i class="fa-solid fa-circle-info"></i>
@@ -68,13 +68,13 @@
     <table class="report-table">
         <thead>
             <tr>
-                {% for col in execution.column_names %}
+                {% for col in column_names %}
                 <th>{{ col }}</th>
                 {% endfor %}
             </tr>
         </thead>
         <tbody>
-            {% for row in execution.result_data|slice:":25" %}
+            {% for row in result_data|slice:":25" %}
             <tr>
                 {% for val in row %}
                 <td>{% if val is None %}<span class="text-muted">NULL</span>{% else %}{{ val }}{% endif %}</td>

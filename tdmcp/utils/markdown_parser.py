@@ -95,12 +95,14 @@ def _load_sources_from_django() -> list[DocumentationSourceConfig] | None:
 
         django.setup()
         from engine.models import DocumentationSource
+        from engine.services import DocSourceService, get
 
         sources = DocumentationSource.objects.filter(is_active=True).order_by("folder_name")
+        doc_service = get(DocSourceService)
         return [
             DocumentationSourceConfig(
                 name=src.folder_name,
-                path=src.resolved_path,
+                path=doc_service.resolved_path(src),
                 description=src.description,
                 file_patterns=src.file_patterns if src.file_patterns else ["*.md"],
             )

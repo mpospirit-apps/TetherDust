@@ -13,17 +13,16 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from engine.models import (
-    AgentConfiguration,
     ChatSession,
     Codebase,
     DatabaseConnection,
     DocumentationSource,
     QueryAuditLog,
     Role,
-    SystemConfiguration,
     Tether,
     ToolConfiguration,
 )
+from engine.services import AgentService, SystemConfigService, get
 
 from management.views._helpers import staff_required
 
@@ -156,7 +155,7 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
     for row in top_databases:
         row["pct"] = round(row["count"] / max_db * 100, 1)
 
-    agent = AgentConfiguration.get_active()
+    agent = get(AgentService).get_active()
     if agent is None:
         health: dict[str, object] = {
             "status": "setup",
@@ -213,7 +212,7 @@ def _quickstart_steps() -> list[dict[str, Any]]:
         {
             "title": "Configure an AI agent",
             "description": "Set up and activate an agent to handle chat queries.",
-            "done": AgentConfiguration.get_active() is not None,
+            "done": get(AgentService).get_active() is not None,
             "cta_url": "management:agent_add",
             "cta_label": "Configure agent",
         },
@@ -263,7 +262,7 @@ def _quickstart_steps() -> list[dict[str, Any]]:
         {
             "title": "Explore dashboards & reports",
             "description": "Build AI-generated dashboards and schedule reports, then finish.",
-            "done": SystemConfiguration.get_value("onboarding_finished", False),
+            "done": get(SystemConfigService).get_value("onboarding_finished", False),
             "is_finish": True,
         },
     ]
@@ -295,7 +294,7 @@ def quickstart_view(request: HttpRequest) -> HttpResponse:
 @require_POST
 def quickstart_finish_view(request: HttpRequest) -> HttpResponse:
     """Mark the informational final onboarding step as acknowledged."""
-    SystemConfiguration.set_value(
+    get(SystemConfigService).set_value(
         "onboarding_finished",
         True,
         value_type="boolean",

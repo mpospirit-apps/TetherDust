@@ -31,7 +31,7 @@ def _start_tether_generation(tether: Tether, user: User) -> TetherVersion:
         triggered_by=user,
     )
 
-    def _run(version_pk: int) -> None:
+    def _run(version_pk: str) -> None:
         import django
 
         django.setup()
@@ -71,7 +71,7 @@ def tether_list_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def tether_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
+def tether_form_view(request: HttpRequest, pk: str | None = None) -> HttpResponse:
     instance = get_object_or_404(Tether, pk=pk) if pk else None
 
     if not isinstance(request.user, User):
@@ -102,7 +102,7 @@ def tether_form_view(request: HttpRequest, pk: int | None = None) -> HttpRespons
 
 
 @staff_required
-def tether_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
+def tether_detail_view(request: HttpRequest, pk: str) -> HttpResponse:
     tether = get_object_or_404(
         Tether.objects.select_related("codebase", "database_doc_source", "current_version"),
         pk=pk,
@@ -123,7 +123,7 @@ def tether_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 @staff_required
 @require_POST
-def tether_regenerate_view(request: HttpRequest, pk: int) -> HttpResponse:
+def tether_regenerate_view(request: HttpRequest, pk: str) -> HttpResponse:
     if not isinstance(request.user, User):
         return JsonResponse({"error": "Forbidden"}, status=403)
     tether = get_object_or_404(Tether, pk=pk)
@@ -133,14 +133,14 @@ def tether_regenerate_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 @staff_required
 @require_POST
-def tether_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
+def tether_delete_view(request: HttpRequest, pk: str) -> HttpResponse:
     tether = get_object_or_404(Tether, pk=pk)
     tether.delete()
     return redirect("management:tether_list")
 
 
 @staff_required
-def tether_version_detail_view(request: HttpRequest, pk: int, version_pk: int) -> HttpResponse:
+def tether_version_detail_view(request: HttpRequest, pk: str, version_pk: str) -> HttpResponse:
     tether = get_object_or_404(Tether, pk=pk)
     version = get_object_or_404(
         TetherVersion.objects.select_related("triggered_by"),
@@ -159,7 +159,7 @@ def tether_version_detail_view(request: HttpRequest, pk: int, version_pk: int) -
 
 
 @staff_required
-def tether_status_view(request: HttpRequest, pk: int) -> HttpResponse:
+def tether_status_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Polling endpoint: latest version status + live agent thoughts."""
     tether = get_object_or_404(Tether.objects.select_related("current_version"), pk=pk)
     latest = TetherVersion.objects.filter(tether=tether).order_by("-version_number").first()

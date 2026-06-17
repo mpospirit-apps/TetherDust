@@ -21,7 +21,7 @@
         </div>
         <div class="meta-item">
             <span class="meta-label">Category</span>
-            <span class="meta-value">{{ tool.category_label }}</span>
+            <span class="meta-value">{{ tool.get_category_display|default:"Other" }}</span>
         </div>
         <div class="meta-item">
             <span class="meta-label">Status</span>

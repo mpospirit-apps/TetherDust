@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, cast
 
 from django.http import HttpRequest
 from engine.models import Dashboard, DocumentationSource, ReportDefinition, Tether, UserProfile
+from engine.services import PermissionService, get
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -24,7 +25,7 @@ def docs_access(request: HttpRequest) -> dict[str, object]:
     except UserProfile.DoesNotExist:
         return {"can_view_docs": False}
 
-    return {"can_view_docs": profile.can_view_docs}
+    return {"can_view_docs": get(PermissionService).can_view_docs(profile)}
 
 
 def reports_access(request: HttpRequest) -> dict[str, object]:
@@ -42,7 +43,7 @@ def reports_access(request: HttpRequest) -> dict[str, object]:
     except UserProfile.DoesNotExist:
         return {"can_view_reports": False}
 
-    return {"can_view_reports": profile.can_view_reports}
+    return {"can_view_reports": get(PermissionService).can_view_reports(profile)}
 
 
 def dashboards_access(request: HttpRequest) -> dict[str, object]:
@@ -60,7 +61,7 @@ def dashboards_access(request: HttpRequest) -> dict[str, object]:
     except UserProfile.DoesNotExist:
         return {"can_view_dashboards": False}
 
-    return {"can_view_dashboards": profile.can_view_dashboards}
+    return {"can_view_dashboards": get(PermissionService).can_view_dashboards(profile)}
 
 
 def chat_access(request: HttpRequest) -> dict[str, object]:
@@ -77,7 +78,7 @@ def chat_access(request: HttpRequest) -> dict[str, object]:
     except UserProfile.DoesNotExist:
         return {"can_chat": False}
 
-    return {"can_chat": profile.can_chat}
+    return {"can_chat": get(PermissionService).can_chat(profile)}
 
 
 def tethers_access(request: HttpRequest) -> dict[str, object]:
@@ -95,4 +96,4 @@ def tethers_access(request: HttpRequest) -> dict[str, object]:
     except UserProfile.DoesNotExist:
         return {"can_view_tethers": False}
 
-    return {"can_view_tethers": profile.can_view_tethers}
+    return {"can_view_tethers": get(PermissionService).can_view_tethers(profile)}

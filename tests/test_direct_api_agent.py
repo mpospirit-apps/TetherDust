@@ -47,10 +47,7 @@ class FakeConfig:
     ) -> None:
         self.system_prompt = "You are a test agent."
         self.settings = {"model": model, "base_url": base_url}
-        self._api_key = api_key
-
-    def get_api_key(self) -> str:
-        return self._api_key
+        self.api_key = api_key
 
 
 class FakeSession:
@@ -404,7 +401,7 @@ def test_build_agent_maps_openrouter() -> None:
             agent_type="openrouter",
             system_prompt="",
             settings={"model": "openai/gpt-4o", "base_url": "https://openrouter.ai/api/v1"},
-            get_api_key=lambda: "sk-test",
+            api_key="sk-test",
         ),
     )
     agent = build_agent(config)
@@ -423,7 +420,7 @@ def test_build_agent_maps_direct_api_presets() -> None:
                 agent_type=agent_type,
                 system_prompt="",
                 settings={"model": "x", "base_url": base_url},
-                get_api_key=lambda: "sk-test",
+                api_key="sk-test",
             ),
         )
 

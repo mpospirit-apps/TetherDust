@@ -34,8 +34,8 @@ echo "Syncing documentation sources..."
 python -c "
 import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 import django; django.setup()
-from engine.models import DocumentationSource
-result = DocumentationSource.sync_from_filesystem()
+from engine.services import DocSourceService, get
+result = get(DocSourceService).sync_from_filesystem()
 if result['created']:
     print(f'  Created: {result[\"created\"]}')
 if result['deactivated']:

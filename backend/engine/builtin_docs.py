@@ -1,7 +1,7 @@
 """Register filesystem documentation folders on startup (post_migrate).
 
 Documentation sources are normally discovered lazily by
-``DocumentationSource.sync_from_filesystem()`` when a staff user opens the
+``get(DocSourceService).sync_from_filesystem()`` when a staff user opens the
 management docsources list. That means a folder dropped into ``documentations/``
 (including the docs that ship with TetherDust) stays invisible — to everyone —
 until someone happens to open that page.
@@ -13,6 +13,8 @@ see registered sources immediately; non-admins still need a role grant.
 """
 
 from __future__ import annotations
+
+from engine.services import DocSourceService, get
 
 # Folder name (under documentations/) of the docs that ship with the app.
 SHIPPED_DOC_FOLDER = "TetherDust Documentation"
@@ -59,7 +61,7 @@ def ensure_shipped_docs(using: str | None = None) -> None:
 
         # Register any other folders present on disk (and reactivate/deactivate
         # per the filesystem), so manual additions appear without a page visit.
-        DocumentationSource.sync_from_filesystem()
+        get(DocSourceService).sync_from_filesystem()
     except (OperationalError, ProgrammingError):
         # Tables not migrated yet (mid-bootstrap). The next migrate run will
         # fire post_migrate again once the schema exists.

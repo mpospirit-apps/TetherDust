@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth.decorators import login_required
+from engine.services import PermissionService, ReportService, get
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -29,9 +30,9 @@ def reports_view(request: HttpRequest) -> HttpResponse:
         reports = ReportDefinition.objects.filter(is_active=True).select_related("database")
     else:
         profile = getattr(user, "profile", None)
-        if not profile or not profile.can_view_reports:
+        if not profile or not get(PermissionService).can_view_reports(profile):
             return render(request, "workspace/reports.html", {"reports": [], "has_access": False})
-        reports = profile.get_allowed_reports().select_related("database")
+        reports = get(PermissionService).get_allowed_reports(profile).select_related("database")
 
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -52,20 +53,19 @@ def reports_view(request: HttpRequest) -> HttpResponse:
             else:
                 return dt.strftime("%B %Y")
 
-    report_list = []
+    report_list: list[dict[str, object]] = []
     for report in reports:
-        latest = report.get_latest_execution()
+        latest = get(ReportService).get_latest_execution(report)
         group = _report_group(latest.started_at if latest else None)
-        report_list.append(
-            {
-                "id": report.pk,
-                "name": report.name,
-                "description": report.description,
-                "database": report.database.name,
-                "latest_exec": latest,
-                "group": group,
-            }
-        )
+        entry: dict[str, object] = {
+            "id": report.pk,
+            "name": report.name,
+            "description": report.description,
+            "database": report.database.name,
+            "latest_exec": latest,
+            "group": group,
+        }
+        report_list.append(entry)
 
     group_order = []
     groups_map: dict[str, list[dict[str, object]]] = {}
@@ -115,7 +115,7 @@ def reports_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def report_latest_view(request: HttpRequest, definition_id: int) -> HttpResponse:
+def report_latest_view(request: HttpRequest, definition_id: str) -> HttpResponse:
     """HTMX endpoint — returns latest successful execution as HTML table."""
     from engine.models import ReportDefinition
 
@@ -126,10 +126,16 @@ def report_latest_view(request: HttpRequest, definition_id: int) -> HttpResponse
 
     if not user.is_staff:
         profile = getattr(user, "profile", None)
-        if not profile or not profile.get_allowed_reports().filter(pk=definition_id).exists():
+        if (
+            not profile
+            or not get(PermissionService)
+            .get_allowed_reports(profile)
+            .filter(pk=definition_id)
+            .exists()
+        ):
             return HttpResponse("<p>Access denied.</p>", status=403)
 
-    execution = report.get_latest_execution()
+    execution = get(ReportService).get_latest_execution(report)
     if not execution:
         return HttpResponse(
             '<div class="docs-empty-state">'  # noqa: E501
@@ -143,6 +149,8 @@ def report_latest_view(request: HttpRequest, definition_id: int) -> HttpResponse
         "workspace/reports_result_table.html",
         {
             "execution": execution,
+            "column_names": get(ReportService).column_names(execution),
+            "result_data": get(ReportService).result_data(execution),
             "report": {"name": report.name, "description": report.description},
             "email_enabled": is_smtp_configured(),
         },
@@ -150,7 +158,7 @@ def report_latest_view(request: HttpRequest, definition_id: int) -> HttpResponse
 
 
 @login_required
-def report_history_view(request: HttpRequest, definition_id: int) -> HttpResponse:
+def report_history_view(request: HttpRequest, definition_id: str) -> HttpResponse:
     """HTMX endpoint — lists past executions for a report."""
     from engine.models import ReportDefinition
 
@@ -161,7 +169,13 @@ def report_history_view(request: HttpRequest, definition_id: int) -> HttpRespons
 
     if not user.is_staff:
         profile = getattr(user, "profile", None)
-        if not profile or not profile.get_allowed_reports().filter(pk=definition_id).exists():
+        if (
+            not profile
+            or not get(PermissionService)
+            .get_allowed_reports(profile)
+            .filter(pk=definition_id)
+            .exists()
+        ):
             return HttpResponse("<p>Access denied.</p>", status=403)
 
     executions = report.executions.order_by("-started_at")[:20]
@@ -197,7 +211,7 @@ def report_history_view(request: HttpRequest, definition_id: int) -> HttpRespons
 
 
 @login_required
-def report_execution_content_view(request: HttpRequest, execution_id: int) -> HttpResponse:
+def report_execution_content_view(request: HttpRequest, execution_id: str) -> HttpResponse:
     """HTMX endpoint — returns a specific execution's results."""
     from engine.models import ReportExecution
 
@@ -209,7 +223,10 @@ def report_execution_content_view(request: HttpRequest, execution_id: int) -> Ht
     report = execution.definition
     if not user.is_staff:
         profile = getattr(user, "profile", None)
-        if not profile or not profile.get_allowed_reports().filter(pk=report.pk).exists():
+        if (
+            not profile
+            or not get(PermissionService).get_allowed_reports(profile).filter(pk=report.pk).exists()
+        ):
             return HttpResponse("<p>Access denied.</p>", status=403)
 
     from engine.engines.email_service import is_smtp_configured
@@ -219,6 +236,8 @@ def report_execution_content_view(request: HttpRequest, execution_id: int) -> Ht
         "workspace/reports_result_table.html",
         {
             "execution": execution,
+            "column_names": get(ReportService).column_names(execution),
+            "result_data": get(ReportService).result_data(execution),
             "report": {"name": report.name, "description": report.description},
             "email_enabled": is_smtp_configured(),
         },
@@ -226,7 +245,7 @@ def report_execution_content_view(request: HttpRequest, execution_id: int) -> Ht
 
 
 @login_required
-def report_download_view(request: HttpRequest, execution_id: int, fmt: str) -> HttpResponse:
+def report_download_view(request: HttpRequest, execution_id: str, fmt: str) -> HttpResponse:
     """Download a report execution as CSV or Excel."""
     from engine.models import ReportExecution
 
@@ -238,7 +257,10 @@ def report_download_view(request: HttpRequest, execution_id: int, fmt: str) -> H
     report = execution.definition
     if not user.is_staff:
         profile = getattr(user, "profile", None)
-        if not profile or not profile.get_allowed_reports().filter(pk=report.pk).exists():
+        if (
+            not profile
+            or not get(PermissionService).get_allowed_reports(profile).filter(pk=report.pk).exists()
+        ):
             return HttpResponse("Access denied.", status=403)
 
     from engine.engines.result_storage import load_meta, load_rows
@@ -289,7 +311,7 @@ def report_download_view(request: HttpRequest, execution_id: int, fmt: str) -> H
 
 @login_required
 @require_http_methods(["POST"])
-def report_send_email_view(request: HttpRequest, execution_id: int) -> HttpResponse:
+def report_send_email_view(request: HttpRequest, execution_id: str) -> HttpResponse:
     """Send report results to the logged-in user's email."""
     from engine.models import ReportExecution
 
@@ -311,7 +333,10 @@ def report_send_email_view(request: HttpRequest, execution_id: int) -> HttpRespo
     report = execution.definition
     if not user.is_staff:
         profile = getattr(user, "profile", None)
-        if not profile or not profile.get_allowed_reports().filter(pk=report.pk).exists():
+        if (
+            not profile
+            or not get(PermissionService).get_allowed_reports(profile).filter(pk=report.pk).exists()
+        ):
             return JsonResponse({"error": "Access denied."}, status=403)
 
     from engine.tasks import send_report_email_task

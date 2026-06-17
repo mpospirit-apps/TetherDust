@@ -12,6 +12,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from engine.services import PermissionService, get
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -22,7 +23,7 @@ def _user_can_chat(user: AbstractUser) -> bool:
     if user.is_staff:
         return True
     profile = getattr(user, "profile", None)
-    return bool(profile and profile.can_chat)
+    return bool(profile and get(PermissionService).can_chat(profile))
 
 
 @login_required

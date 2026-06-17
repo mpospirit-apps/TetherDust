@@ -18,6 +18,7 @@ from engine.models import (
     ToolConfiguration,
 )
 from engine.prompts import build_doc_generation_prompt, build_library_prompt
+from engine.services import DocSourceService, get
 
 from management.views._helpers import staff_required
 
@@ -46,7 +47,7 @@ LIBRARY_DOC_TYPES = (
 
 @staff_required
 def docsource_list_view(request: HttpRequest) -> HttpResponse:
-    DocumentationSource.sync_from_filesystem()
+    get(DocSourceService).sync_from_filesystem()
     sources = DocumentationSource.objects.all()
 
     return render(
@@ -125,7 +126,7 @@ def docsource_library_page_view(request: HttpRequest) -> HttpResponse:
 
 
 @staff_required
-def docsource_form_view(request: HttpRequest, pk: int | None = None) -> HttpResponse:
+def docsource_form_view(request: HttpRequest, pk: str | None = None) -> HttpResponse:
     instance = get_object_or_404(DocumentationSource, pk=pk) if pk else None
 
     folder_choices = _get_documentation_folder_choices()
@@ -155,7 +156,7 @@ def docsource_form_view(request: HttpRequest, pk: int | None = None) -> HttpResp
 
 @staff_required
 @require_POST
-def docsource_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
+def docsource_delete_view(request: HttpRequest, pk: str) -> HttpResponse:
     import shutil
 
     obj = get_object_or_404(DocumentationSource, pk=pk)
@@ -165,7 +166,7 @@ def docsource_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
     # the source with the default DATABASE type. Guard the path so we only ever
     # remove a directory that lives directly under the documentations dir.
     docs_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR).resolve()
-    folder = Path(obj.resolved_path).resolve()
+    folder = Path(get(DocSourceService).resolved_path(obj)).resolve()
     if folder != docs_dir and docs_dir in folder.parents and folder.is_dir():
         shutil.rmtree(folder, ignore_errors=True)
 
@@ -174,10 +175,10 @@ def docsource_delete_view(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @staff_required
-def docsource_validate_view(request: HttpRequest, pk: int) -> HttpResponse:
+def docsource_validate_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Validate a documentation source path and return HTMX fragment."""
     obj = get_object_or_404(DocumentationSource, pk=pk)
-    path = Path(obj.resolved_path)
+    path = Path(get(DocSourceService).resolved_path(obj))
 
     if not path.exists():
         return HttpResponse('<span class="badge badge-error">Folder not found</span>')
@@ -310,7 +311,6 @@ def _run_docgen_background(
     from django.conf import settings as bg_settings
     from django.utils import timezone as bg_tz
     from engine.models import DocGenerationLog as _DocGenLog
-    from engine.models import DocumentationSource as _DocSource
 
     log_entry = _DocGenLog.objects.get(pk=log_pk)
     t_start = time.monotonic()
@@ -339,7 +339,7 @@ def _run_docgen_background(
 
     elapsed_ms = int((time.monotonic() - t_start) * 1000)
 
-    _DocSource.sync_from_filesystem()
+    get(DocSourceService).sync_from_filesystem()
 
     generated_file = Path(bg_settings.TETHERDUST_DOCUMENTATIONS_DIR) / destination / safe_name
     file_size = None
@@ -424,7 +424,7 @@ def _run_docgen_library_background(
 
     elapsed_ms = int((time.monotonic() - t_start) * 1000)
 
-    _DocSource.sync_from_filesystem()
+    get(DocSourceService).sync_from_filesystem()
 
     # Apply the chosen documentation type to the newly registered source.
     # A library maps to its top-level folder under documentations/.
@@ -750,7 +750,7 @@ def _library_status_response(log_entry: DocGenerationLog, data: dict[str, Any]) 
 
 
 @staff_required
-def docsource_generate_status_view(request: HttpRequest, pk: int) -> HttpResponse:
+def docsource_generate_status_view(request: HttpRequest, pk: str) -> HttpResponse:
     """Poll endpoint for doc generation status. Returns current state of the log entry."""
     log_entry = get_object_or_404(DocGenerationLog, pk=pk)
 

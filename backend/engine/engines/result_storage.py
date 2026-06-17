@@ -21,11 +21,11 @@ def _results_dir() -> Path:
     return Path(cast("str | Path", getattr(settings, "TETHERDUST_REPORT_RESULTS_DIR", default)))
 
 
-def _execution_dir(execution_id: int) -> Path:
+def _execution_dir(execution_id: str) -> Path:
     return _results_dir() / str(execution_id)
 
 
-def save_results(execution_id: int, column_names: list[str], rows: list[list[object]]) -> None:
+def save_results(execution_id: str, column_names: list[str], rows: list[list[object]]) -> None:
     """Write meta.json + data.jsonl for an execution."""
     path = _execution_dir(execution_id)
     path.mkdir(parents=True, exist_ok=True)
@@ -38,7 +38,7 @@ def save_results(execution_id: int, column_names: list[str], rows: list[list[obj
             f.write(json.dumps(row) + "\n")
 
 
-def load_meta(execution_id: int) -> dict[str, Any] | None:
+def load_meta(execution_id: str) -> dict[str, Any] | None:
     """Read column_names and row_count. Returns None if not found."""
     meta_path = _execution_dir(execution_id) / "meta.json"
     if not meta_path.exists():
@@ -50,7 +50,7 @@ def load_meta(execution_id: int) -> dict[str, Any] | None:
         return None
 
 
-def load_rows(execution_id: int, limit: int | None = None) -> list[list[object]]:
+def load_rows(execution_id: str, limit: int | None = None) -> list[list[object]]:
     """Read rows from data.jsonl. Optionally read only first N lines."""
     data_path = _execution_dir(execution_id) / "data.jsonl"
     if not data_path.exists():
@@ -69,7 +69,7 @@ def load_rows(execution_id: int, limit: int | None = None) -> list[list[object]]
     return rows
 
 
-def load_all(execution_id: int) -> tuple[list[str], list[list[object]]]:
+def load_all(execution_id: str) -> tuple[list[str], list[list[object]]]:
     """Read column_names + all rows. Returns ([], []) if not found."""
     meta = load_meta(execution_id)
     if not meta:
@@ -77,7 +77,7 @@ def load_all(execution_id: int) -> tuple[list[str], list[list[object]]]:
     return meta["column_names"], load_rows(execution_id)
 
 
-def delete_results(execution_id: int) -> None:
+def delete_results(execution_id: str) -> None:
     """Remove the result directory for an execution."""
     path = _execution_dir(execution_id)
     if path.exists():

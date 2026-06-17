@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 async def _mcp_base_url() -> str:
-    from ..models import SystemConfiguration
+    from engine.services import SystemConfigService, get
 
-    return await database_sync_to_async(SystemConfiguration.get_value)(
+    return await database_sync_to_async(get(SystemConfigService).get_value)(
         "mcp_base_url", ""
     ) or os.environ.get("MCP_BASE_URL", "http://tdmcp:8001")
 

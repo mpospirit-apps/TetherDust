@@ -7,6 +7,8 @@ import logging
 from celery import shared_task
 from django.utils import timezone
 
+from engine.services import AgentService, CodebaseService, SystemConfigService, get
+
 
 def _serialize_value(val: object) -> object:
     """Convert non-JSON-serializable SQL result values."""
@@ -60,7 +62,7 @@ def check_due_reports() -> None:
 
 
 @shared_task(soft_time_limit=300, time_limit=360)
-def execute_report_task(report_definition_id: int) -> None:
+def execute_report_task(report_definition_id: str) -> None:
     """Execute a single report. Called by check_due_reports or manually."""
     from .engines.report_engine import execute_report
     from .models import ReportDefinition
@@ -88,7 +90,7 @@ def execute_report_task(report_definition_id: int) -> None:
 
 
 @shared_task(soft_time_limit=120, time_limit=150)
-def send_report_email_task(execution_id: int, recipient_emails: list[str] | None = None) -> None:
+def send_report_email_task(execution_id: str, recipient_emails: list[str] | None = None) -> None:
     """Send report results via email. Called after execution or on user request."""
     from .models import ReportExecution
 
@@ -167,16 +169,14 @@ def sync_codex_auth_token() -> None:
 
     import httpx
 
-    from .models import AgentConfiguration, SystemConfiguration
-
-    config = AgentConfiguration.get_active()
+    config = get(AgentService).get_active()
     if not config or config.agent_type != "codex":
         return
 
     config_url = config.service_url or ""
     codex_url = (
         config_url
-        or SystemConfiguration.get_value("codex_service_url", "")
+        or get(SystemConfigService).get_value("codex_service_url", "")
         or os.environ.get("CODEX_SERVICE_URL", "")
     ).rstrip("/")
     if not codex_url:
@@ -197,9 +197,9 @@ def sync_codex_auth_token() -> None:
         return
 
     token = data.get("auth_token", "")
-    if token and token != config.get_auth_token():
-        config.set_auth_token(token)
-        config.save(update_fields=["_auth_token", "updated_at"])
+    if token and token != config.auth_token:
+        config.auth_token = token
+        config.save(update_fields=["auth_token", "updated_at"])
         logger.info("Synced refreshed Codex credential into the database.")
 
     expires_at = data.get("expires_at")
@@ -216,7 +216,7 @@ def sync_codex_auth_token() -> None:
 
 
 @shared_task(soft_time_limit=120, time_limit=150)
-def sync_codebase(codebase_id: int) -> None:
+def sync_codebase(codebase_id: str) -> None:
     """Validate access to a codebase's repo and cache its file tree.
 
     On-demand model: we don't clone. Sync resolves the default branch, fetches
@@ -238,12 +238,14 @@ def sync_codebase(codebase_id: int) -> None:
     cb.save(update_fields=["sync_status", "sync_error", "updated_at"])
 
     try:
-        owner, repo = cb.owner_repo()
+        owner, repo = get(CodebaseService).owner_repo(cb)
         client = GitHubClient(token=cb.access_token or None)
         default_branch = client.get_repo(owner, repo).get("default_branch") or "main"
         ref = cb.branch or default_branch
         raw_tree = client.get_tree(owner, repo, ref)
-        tree = filter_tree(raw_tree, cb.subpath, cb.include_globs, cb.effective_exclude_globs)
+        tree = filter_tree(
+            raw_tree, cb.subpath, cb.include_globs, get(CodebaseService).effective_exclude_globs(cb)
+        )
 
         cb.default_branch = default_branch
         cb.cached_tree = tree
@@ -269,7 +271,7 @@ def sync_codebase(codebase_id: int) -> None:
 
 
 @shared_task(soft_time_limit=60, time_limit=90)
-def refresh_single_chart(chart_id: int) -> None:
+def refresh_single_chart(chart_id: str) -> None:
     """Execute a chart's SQL query and cache the results."""
     from .engines.db_runner import run_query
     from .models import Chart
@@ -311,7 +313,6 @@ def check_for_updates() -> None:
     beat loop or the management.
     """
     from .integrations.github_client import GitHubClient, GitHubError
-    from .models import SystemConfiguration
     from .version import (
         GITHUB_REPOSITORY,
         LATEST_CHECKED_AT_KEY,
@@ -332,11 +333,11 @@ def check_for_updates() -> None:
         logger.warning("check_for_updates: latest release for %s/%s has no tag", owner, repo)
         return
 
-    SystemConfiguration.set_value(LATEST_VERSION_KEY, tag, value_type="string")
-    SystemConfiguration.set_value(
+    get(SystemConfigService).set_value(LATEST_VERSION_KEY, tag, value_type="string")
+    get(SystemConfigService).set_value(
         LATEST_RELEASE_URL_KEY, release.get("html_url", ""), value_type="string"
     )
-    SystemConfiguration.set_value(
+    get(SystemConfigService).set_value(
         LATEST_CHECKED_AT_KEY, timezone.now().isoformat(), value_type="string"
     )
     logger.info("check_for_updates: latest release for %s/%s is %s", owner, repo, tag)

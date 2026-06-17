@@ -26,6 +26,24 @@ class DatabaseConnectionForm(_BaseForm):
         help_text="Encrypted at rest. Leave blank to keep existing.",
     )
 
+    # `password` is a declared write-only field handled manually in save(); it is
+    # intentionally excluded from Meta.fields so a blank submit does not clear the
+    # stored credential. field_order keeps it in its original position.
+    field_order = [
+        "name",
+        "description",
+        "engine",
+        "host",
+        "port",
+        "database",
+        "username",
+        "password",
+        "connection_string",
+        "extra_options",
+        "read_only",
+        "is_active",
+    ]
+
     class Meta:
         model = DatabaseConnection
         fields = [
@@ -36,7 +54,6 @@ class DatabaseConnectionForm(_BaseForm):
             "port",
             "database",
             "username",
-            "password",
             "connection_string",
             "extra_options",
             "read_only",
@@ -60,7 +77,7 @@ class DatabaseConnectionForm(_BaseForm):
         if password:
             instance.password = password
         elif not self.instance.pk:
-            instance._password = ""
+            instance.password = ""
         if commit:
             instance.save()
         return instance
@@ -129,6 +146,22 @@ class CodebaseForm(_BaseForm):
         "(contents: read) fine-grained PAT is sufficient.",
     )
 
+    # `access_token` is a declared write-only field handled manually in save(); it
+    # is intentionally excluded from Meta.fields so a blank submit does not clear
+    # the stored token. field_order keeps it in its original position.
+    field_order = [
+        "name",
+        "description",
+        "provider",
+        "repo_url",
+        "branch",
+        "subpath",
+        "include_globs",
+        "exclude_globs",
+        "access_token",
+        "is_active",
+    ]
+
     class Meta:
         model = Codebase
         fields = [
@@ -140,7 +173,6 @@ class CodebaseForm(_BaseForm):
             "subpath",
             "include_globs",
             "exclude_globs",
-            "access_token",
             "is_active",
         ]
         widgets = {
@@ -153,7 +185,7 @@ class CodebaseForm(_BaseForm):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk and self.instance._access_token:
+        if self.instance and self.instance.pk and self.instance.access_token:
             self.fields["access_token"].widget.attrs["placeholder"] = (
                 "••••••••  (leave blank to keep)"
             )
@@ -174,7 +206,7 @@ class CodebaseForm(_BaseForm):
         if token:
             instance.access_token = token
         elif not self.instance.pk:
-            instance._access_token = ""
+            instance.access_token = ""
         if commit:
             instance.save()
             self.save_m2m()
@@ -257,11 +289,11 @@ class MCPServerConfigurationForm(_BaseForm):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk and self.instance._auth_token:
+        if self.instance and self.instance.pk and self.instance.auth_token:
             self.fields["auth_token"].widget.attrs["placeholder"] = (
                 "••••••••  (leave blank to keep)"
             )
-        if self.instance and self.instance.pk and self.instance._command_env:
+        if self.instance and self.instance.pk and self.instance.command_env:
             self.fields["command_env"].widget.attrs["placeholder"] = (
                 "••••••••  (leave blank to keep)"
             )
@@ -300,12 +332,12 @@ class MCPServerConfigurationForm(_BaseForm):
         if token:
             instance.auth_token = token
         elif not self.instance.pk:
-            instance._auth_token = ""
+            instance.auth_token = ""
         env_raw = self.cleaned_data.get("command_env", "")
         if env_raw:
             instance.command_env = json.loads(env_raw)
         elif not self.instance.pk:
-            instance._command_env = ""
+            instance.command_env = ""
         if commit:
             instance.save()
             self.save_m2m()

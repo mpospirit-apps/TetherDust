@@ -173,18 +173,21 @@ on chart shapes unless the user explicitly asks for rounded corners."""
                 )
             database_id = db_row[0]
 
+            from engine.ids import generate_cht_id
+
             result = conn.execute(
                 text(
                     "INSERT INTO engine_chart "
-                    "(dashboard_id, title, description, sql_query, chart_type, chart_spec, "
+                    "(id, dashboard_id, title, description, sql_query, chart_type, chart_spec, "
                     "custom_d3_code, database_id, position, width, height, is_active, "
                     "cached_data, last_error, created_at, updated_at) "
-                    "VALUES (:dashboard_id, :title, :description, :sql_query, 'custom', "
+                    "VALUES (:id, :dashboard_id, :title, :description, :sql_query, 'custom', "
                     ":chart_spec, :d3_code, :database_id, :position, :width, :height, "
                     "true, :cached_data, '', :now, :now) "
                     "RETURNING id"
                 ),
                 {
+                    "id": generate_cht_id(),
                     "dashboard_id": dashboard_id,
                     "title": title,
                     "description": description,
@@ -203,7 +206,7 @@ on chart shapes unless the user explicitly asks for rounded corners."""
             chart_id = _row[0] if _row is not None else None
             conn.commit()
 
-        logger.info("Added chart '%s' (id=%d) to dashboard %d", title, chart_id, dashboard_id)
+        logger.info("Added chart '%s' (id=%s) to dashboard %s", title, chart_id, dashboard_id)
         return json.dumps(
             {
                 "success": True,

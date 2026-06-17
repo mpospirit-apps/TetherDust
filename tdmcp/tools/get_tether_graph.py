@@ -53,7 +53,7 @@ codebase and database are coupled."""
                     "LEFT JOIN engine_tetherversion tv ON tv.id = t.current_version_id "
                     "WHERE t.id = :tether_id AND t.is_active = true"
                 ),
-                {"tether_id": int(tether_id)},
+                {"tether_id": tether_id},
             ).fetchone()
     except ValueError:
         return f"Error: tether_id must be a numeric ID, got '{tether_id}'."

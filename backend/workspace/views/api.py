@@ -14,6 +14,7 @@ from django.db import connection
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
+from engine.services import AgentService, PermissionService, SystemConfigService, get
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +27,13 @@ def _default_redirect(user: AbstractUser) -> str:
     if user.is_staff:
         return "management:dashboard"
     profile = getattr(user, "profile", None)
-    if profile and profile.can_chat:
+    if profile and get(PermissionService).can_chat(profile):
         return "workspace:chat"
-    if profile and profile.can_view_dashboards:
+    if profile and get(PermissionService).can_view_dashboards(profile):
         return "workspace:dashboards"
-    if profile and profile.can_view_reports:
+    if profile and get(PermissionService).can_view_reports(profile):
         return "workspace:reports"
-    if profile and profile.can_view_docs:
+    if profile and get(PermissionService).can_view_docs(profile):
         return "workspace:docs"
     return "workspace:chat"
 
@@ -113,9 +114,8 @@ def readyz_view(request: HttpRequest) -> JsonResponse:
 @login_required
 def agent_status_view(request: HttpRequest) -> JsonResponse:
     """Return the active agent name and whether its service is reachable and authenticated."""
-    from engine.models import AgentConfiguration, SystemConfiguration
 
-    agent_config = AgentConfiguration.get_active()
+    agent_config = get(AgentService).get_active()
     if not agent_config:
         return JsonResponse({"name": None, "connected": False})
 
@@ -131,7 +131,7 @@ def agent_status_view(request: HttpRequest) -> JsonResponse:
         "codex_api",
         "claude_code_api",
     ):
-        connected = bool(agent_config.get_api_key())
+        connected = bool(agent_config.api_key)
         return JsonResponse({"name": name, "connected": connected})
 
     # Ollama runs locally with no key — just verify the service URL is reachable.
@@ -152,7 +152,7 @@ def agent_status_view(request: HttpRequest) -> JsonResponse:
     # container, which has no /auth/token endpoint). "Connected" = gateway
     # reachable AND a token is stored.
     if agent_type == "claude_code":
-        db_service_url = SystemConfiguration.get_value("claude_service_url", "") or ""
+        db_service_url = get(SystemConfigService).get_value("claude_service_url", "") or ""
         service_url = (
             agent_config.service_url or db_service_url or os.environ.get("CLAUDE_SERVICE_URL", "")
         ).rstrip("/")
@@ -163,11 +163,11 @@ def agent_status_view(request: HttpRequest) -> JsonResponse:
             reachable = healthz.status_code == 200
         except Exception:
             reachable = False
-        connected = reachable and bool(agent_config.get_auth_token())
+        connected = reachable and bool(agent_config.auth_token)
         return JsonResponse({"name": name, "connected": connected})
 
     # codex / codex_api via Codex container: check service health first.
-    db_service_url = SystemConfiguration.get_value("codex_service_url", "") or ""
+    db_service_url = get(SystemConfigService).get_value("codex_service_url", "") or ""
     config_service_url = agent_config.service_url or ""
     service_url = (
         config_service_url or db_service_url or os.environ.get("CODEX_SERVICE_URL", "")
@@ -224,7 +224,7 @@ def doc_sources_api_view(request: HttpRequest) -> JsonResponse:
         profile = getattr(user, "profile", None)
         if not profile:
             return JsonResponse({"resources": []})
-        allowed_names = profile.get_allowed_doc_sources()
+        allowed_names = get(PermissionService).get_allowed_doc_sources(profile)
         if allowed_names is not None and not allowed_names:
             return JsonResponse({"resources": []})
 
@@ -261,7 +261,7 @@ def prompts_api_view(request: HttpRequest) -> JsonResponse:
         profile = getattr(user, "profile", None)
         if not profile:
             return JsonResponse({"prompts": []})
-        allowed_names = profile.get_allowed_prompts()
+        allowed_names = get(PermissionService).get_allowed_prompts(profile)
         if allowed_names is not None and not allowed_names:
             return JsonResponse({"prompts": []})
         if allowed_names is None:

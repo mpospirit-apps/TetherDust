@@ -13,7 +13,7 @@ from typing import Any
 
 def build_tether_prompt(
     tether: Any,
-    version_id: int,
+    version_id: str,
     *,
     schema_example: dict[str, Any],
     allowed_kinds: set[str],
