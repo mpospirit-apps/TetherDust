@@ -25,12 +25,32 @@ def build_tether_prompt(
     explore via MCP tools, then persist via `save_tether_graph` with rich
     per-node and per-edge metadata so the canvas can show meaningful detail.
     """
-    code_src = tether.codebase.name
+    code_is_repo = bool(getattr(tether, "codebase_id", None))
+    if code_is_repo:
+        code_src = tether.codebase.name
+    else:
+        code_src = tether.codebase_doc_source.folder_name
     db_src = tether.database_doc_source.folder_name
+
+    if code_is_repo:
+        code_context = (
+            f"- Explore codebase '{code_src}' with "
+            f'`get_codebase_tree(codebase="{code_src}")`, '
+            f'`search_codebase(codebase="{code_src}", ...)`, and '
+            f'`read_codebase_file(codebase="{code_src}", ...)`.\n'
+        )
+        code_source_desc = "codebase repository"
+    else:
+        code_context = (
+            f"- The code side is a documentation source. Explore it with "
+            f'`search_docs(source="{code_src}", ...)` and '
+            f"`get_query_examples` — there is no live repository to browse.\n"
+        )
+        code_source_desc = "codebase documentation source"
 
     system = (
         "You are a code↔database analyst. Use the MCP tools to explore the "
-        "codebase repository and database documentation, identify which code "
+        f"{code_source_desc} and database documentation, identify which code "
         "files / symbols read or write which tables / columns, and persist the "
         "result by calling `save_tether_graph` with RICH metadata.\n\n"
         "Quality bar:\n"
@@ -58,9 +78,7 @@ def build_tether_prompt(
         f"`save_tether_graph(version_id={version_id}, codebase_summary=..., "
         f"database_summary=..., nodes=[...], edges=[...])`.\n\n"
         f"# How to gather context\n"
-        f"- Explore codebase '{code_src}' with `get_codebase_tree(codebase=\"{code_src}\")`, "
-        f'`search_codebase(codebase="{code_src}", ...)`, and '
-        f'`read_codebase_file(codebase="{code_src}", ...)`.\n'
+        f"{code_context}"
         f'- `search_docs(source="{db_src}", ...)` for database docs.\n'
         f"- `list_tables` / `get_table_schema` / `query_database` if a live DB is connected.\n"
         f"- `get_query_examples` for known SQL patterns.\n"

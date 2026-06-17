@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 # after the turn, and a TTL purges any never-fetched entry.
 _tool_calls_lock = threading.Lock()
 _tool_calls_by_token: dict[str, tuple[list[str], float]] = {}
-_TOOL_CALLS_TTL_SECONDS = int(os.getenv("TETHERDUST_TOOL_CALLS_TTL", "600"))
+_TOOL_CALLS_TTL_SECONDS = int(os.getenv("TETHERDUST_TOOL_CALLS_TTL", "1800"))
 
 
 def _purge_expired_tool_calls() -> None:
@@ -123,7 +123,7 @@ _registered_filters: dict[
 ] = {}
 _filters_lock = threading.Lock()
 _FILTER_TTL_SECONDS = int(
-    os.getenv("TETHERDUST_FILTER_TTL", "600")
+    os.getenv("TETHERDUST_FILTER_TTL", "1800")
 )  # Auto-expire if DELETE never called
 
 
@@ -159,7 +159,7 @@ def _get_allowed_doc_sources() -> set[str] | None:
 _doc_resources_cache: list[dict[str, str]] = []
 _doc_resources_cache_time: float = 0
 _doc_resources_cache_lock = threading.Lock()
-_DOC_RESOURCES_CACHE_TTL = 300  # seconds
+_DOC_RESOURCES_CACHE_TTL = 1800  # seconds
 
 
 def _build_doc_resources_index() -> list[dict[str, str]]:

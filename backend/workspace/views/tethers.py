@@ -50,7 +50,7 @@ def tether_view(request: HttpRequest, pk: str) -> HttpResponse:
     allowed = (
         get(PermissionService)
         .get_allowed_tethers(profile)
-        .select_related("current_version", "codebase", "database_doc_source")
+        .select_related("current_version", "codebase", "codebase_doc_source", "database_doc_source")
     )
     tether = allowed.filter(pk=pk).first()
     if tether is None:

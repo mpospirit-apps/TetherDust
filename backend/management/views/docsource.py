@@ -243,9 +243,9 @@ def _execute_docgen(
             user_id=user_id,
             session_id=session_id,
             allowed_tools=enabled_tools or None,
-            allowed_databases=selected_db_names or None,
-            allowed_doc_sources=selected_doc_names or None,
-            allowed_codebases=selected_codebase_names or None,
+            allowed_databases=selected_db_names,
+            allowed_doc_sources=selected_doc_names,
+            allowed_codebases=selected_codebase_names,
             timeout=docgen_timeout,
         ):
             event = parse_chunk(chunk)

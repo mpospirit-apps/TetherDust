@@ -1,3 +1,12 @@
+# NOTICE: DO NOT CONTRIBUTE YET OR DEPLOY YET
+This repository is undergoing a major refactor and is not currently suitable for development.
+
+Feel free to test its capabilities, but expect **breaking behavior and a complete redeploy** before version **1.0.0**. Stay tuned.
+
+---
+---
+---
+
 <img src="docs/images/title.png" alt="TetherDust — Self-Hosted AI Analytics Engineer" width="100%">
 
 <div align="center">

@@ -6,7 +6,7 @@
 <div class="page-header">
     <div>
         <h1>{% if instance %}Edit Tether{% else %}New Tether{% endif %}</h1>
-        <p>Pick a codebase and a database doc-source. Generation starts on save.</p>
+        <p>Pick a code source (a codebase repository <em>or</em> a codebase doc-source) and a database doc-source. Generation starts on save.</p>
     </div>
     <div>
         <a href="{% url 'management:tether_list' %}" class="btn btn-ghost">Back to Tethers</a>

@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from ..models import AgentConfiguration
 
 DIRECT_API_CONNECT_TIMEOUT = float(os.getenv("DIRECT_API_CONNECT_TIMEOUT", "30"))
-DIRECT_API_RESPONSE_TIMEOUT = float(os.getenv("DIRECT_API_RESPONSE_TIMEOUT", "300"))
+DIRECT_API_RESPONSE_TIMEOUT = float(os.getenv("DIRECT_API_RESPONSE_TIMEOUT", "1800"))
 # Hard cap on tool-call rounds, so a model that keeps requesting tools can never
 # loop forever.
 MAX_TOOL_ROUNDS = int(os.getenv("DIRECT_API_MAX_TOOL_ROUNDS", "25"))

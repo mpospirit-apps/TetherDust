@@ -327,10 +327,15 @@ def generate_tether(version: TetherVersion) -> None:
         )
         if "save_tether_graph" not in enabled_tools:
             enabled_tools.append("save_tether_graph")
-        # Allow the database doc source and the codebase repository so the agent
-        # can drill into either side.
+        # Allow the database doc source plus the code side so the agent can drill
+        # into either. The code side is either a live codebase repository or a
+        # codebase documentation source.
         allowed_doc_sources = [tether.database_doc_source.folder_name]
-        allowed_codebases = [tether.codebase.name]
+        allowed_codebases: list[str] = []
+        if tether.codebase is not None:
+            allowed_codebases.append(tether.codebase.name)
+        elif tether.codebase_doc_source is not None:
+            allowed_doc_sources.append(tether.codebase_doc_source.folder_name)
 
         version.prompt_used = user_message
         version.agent_log_excerpt = "Starting agent…"
