@@ -65,10 +65,15 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install dependencies for Pyrefly (include web & DB extras)
-        run: pip install -e ".[all-databases,web,dev]"
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[all-databases,web,dev]"
 
       - name: Pyrefly check
-        run: pyrefly check --summarize-errors
+        run: pyrefly check --python-interpreter-path $(which python) --summarize-errors
+        env:
+          PYTHONPATH: backend
+          DJANGO_SECRET_KEY: "ci-dummy-secret-key-for-static-analysis-checks"
 
   test:
     name: Tests
