@@ -46,9 +46,10 @@ jobs:
         run: pip install -e ".[all-databases,web,dev]"
 
       - name: Mypy
-        run: mypy tdmcp/ backend/ docker/
+        run: mypy --show-traceback tdmcp/ backend/ docker/
         env:
           PYTHONPATH: backend
+          DJANGO_SECRET_KEY: "ci-dummy-secret-key-for-static-analysis-checks"
 
   pyrefly:
     name: Pyrefly
