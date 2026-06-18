@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TetherDust{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'images/tetherdust.png' %}">
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="{% static 'fontawesome/all.min.css' %}">
+
+    <!-- Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- HTML sanitizer (vendored) — required before any marked output hits innerHTML -->
+    <script src="{% static 'js/vendor/purify.min.js' %}"></script>
+    <link id="hljs-theme" rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+
+    <!-- Design System -->
+    <link rel="stylesheet" href="{% static 'css/tetherdust.css' %}">
+    <script>
+        (function(){var t=localStorage.getItem('td-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+        (function(){var c=['--c-red','--c-pink','--c-cyan','--c-lime','--c-orange'];document.documentElement.style.setProperty('--c-dust','var('+c[Math.floor(Math.random()*c.length)]+')')})();
+    </script>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="aurora-bg"{% if user.is_authenticated %} data-agent-status-url="{% url 'workspace:agent_status' %}"{% endif %}>
+    <!-- Fairy Dust Glimmers -->
+    <div class="glimmer-container">
+        <div class="glimmer-dot" style="top:12%;left:8%;animation-duration:4.2s"></div>
+        <div class="glimmer-dot" style="top:28%;left:72%;animation-duration:3.8s"></div>
+        <div class="glimmer-dot" style="top:65%;left:15%;animation-duration:5.1s"></div>
+        <div class="glimmer-dot" style="top:45%;left:88%;animation-duration:3.5s"></div>
+        <div class="glimmer-dot" style="top:80%;left:45%;animation-duration:4.8s"></div>
+        <div class="glimmer-dot" style="top:18%;left:52%;animation-duration:3.2s"></div>
+        <div class="glimmer-dot" style="top:72%;left:78%;animation-duration:4.5s"></div>
+        <div class="glimmer-dot" style="top:38%;left:35%;animation-duration:5.5s"></div>
+        <!-- Shooting Stars -->
+        <div class="shooting-star-field">
+            <div class="shooting-star" style="top:calc(50% - 120px);left:calc(50% - 80px);--star-color:var(--c-cyan);--star-delay:0ms"></div>
+            <div class="shooting-star" style="top:calc(50% + 60px);left:calc(50% - 220px);--star-color:var(--c-pink);--star-delay:4200ms"></div>
+            <div class="shooting-star" style="top:calc(50% - 200px);left:calc(50% - 150px);--star-color:var(--c-lime);--star-delay:8500ms"></div>
+            <div class="shooting-star" style="top:calc(50% + 150px);left:calc(50% + 50px);--star-color:var(--c-red);--star-delay:12800ms"></div>
+            <div class="shooting-star" style="top:calc(50% - 50px);left:calc(50% + 100px);--star-color:var(--c-orange);--star-delay:17000ms"></div>
+            <div class="shooting-star" style="top:calc(50% + 100px);left:calc(50% - 300px);--star-color:var(--c-cyan);--star-delay:21500ms"></div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <a href="{% url 'workspace:home' %}" class="navbar-brand">
+            <img src="{% static 'images/tetherdust.png' %}" alt="TetherDust" class="brand-icon">Tether<span>Dust</span>
+        </a>
+        <div class="navbar-menu">
+            {% if user.is_authenticated %}
+                {% if can_chat %}
+                    <a href="{% url 'workspace:chat' %}" class="navbar-link {% if request.resolver_match.url_name == 'chat' %}active{% endif %}">Chat</a>
+                {% endif %}
+                {% if can_view_docs %}
+                    <a href="{% url 'workspace:docs' %}" class="navbar-link {% if request.resolver_match.url_name == 'docs' or request.resolver_match.url_name == 'docs_content' %}active{% endif %}">Docs</a>
+                {% endif %}
+                {% if can_view_reports %}
+                    <a href="{% url 'workspace:reports' %}" class="navbar-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">Reports</a>
+                {% endif %}
+                {% if can_view_dashboards %}
+                    <a href="{% url 'workspace:dashboards' %}" class="navbar-link {% if request.resolver_match.url_name == 'dashboards' or request.resolver_match.url_name == 'dashboard_detail' %}active{% endif %}">Dashboards</a>
+                {% endif %}
+                {% if can_view_tethers %}
+                    <a href="{% url 'workspace:tethers' %}" class="navbar-link {% if request.resolver_match.url_name == 'tethers' or request.resolver_match.url_name == 'tether_detail' %}active{% endif %}">Tethers</a>
+                {% endif %}
+                {% if user.is_staff %}
+                    <a href="{% url 'management:dashboard' %}" class="navbar-link">Control</a>
+                {% endif %}
+                <div class="user-dropdown" id="user-dropdown">
+                    <button class="user-dropdown__trigger" id="user-dropdown-btn" aria-label="User menu">
+                        <i class="fa-solid fa-circle-user"></i>
+                    </button>
+                    <div class="user-dropdown__menu" id="user-dropdown-menu">
+                        <span class="user-dropdown__username">{{ user.username }}</span>
+                        <div class="user-dropdown__divider"></div>
+                        <div class="user-dropdown__agent" id="agent-status-row">
+                            <span class="agent-status-dot" id="agent-status-dot"></span>
+                            <span class="user-dropdown__agent-name" id="agent-status-name">—</span>
+                        </div>
+                        <div class="user-dropdown__divider"></div>
+                        <button class="user-dropdown__item" id="theme-toggle-btn" aria-label="Toggle dark mode">
+                            <i class="fa-solid fa-moon" id="theme-icon"></i>
+                            <span id="theme-label">Dark mode</span>
+                        </button>
+                        <a href="{% url 'workspace:logout' %}" class="user-dropdown__item">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <a href="{% url 'workspace:login' %}?next=/" class="btn btn-primary">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+    <script type="module" src="{% static 'js/shell/public.js' %}"></script>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

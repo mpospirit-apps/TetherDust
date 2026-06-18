@@ -1,0 +1,231 @@
+{% extends "management/base.html" %}
+{% load static %}
+{% block title %}{{ tether.name }}{% endblock %}
+
+{% block content %}
+<div class="tether-admin-page">
+<div class="page-header">
+    <div>
+        <h1 id="tether-page-title">{{ tether.name }}</h1>
+        <p>{{ tether.source_name }} &harr; {{ tether.database_doc_source.folder_name }}</p>
+    </div>
+    <div class="flex-gap">
+        <a href="{% url 'management:tether_list' %}" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
+        <a href="{% url 'management:tether_edit' tether.pk %}" class="btn btn-ghost">Edit</a>
+        <form method="post" action="{% url 'management:tether_regenerate' tether.pk %}" id="regen-form" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" id="regen-btn">
+                <i class="fa-solid fa-rotate"></i> Regenerate
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Loading step (visible while latest version is running) -->
+<div id="gen-loading-step" class="card" style="margin-bottom:var(--md);{% if not latest or latest.status != 'running' %}display:none;{% endif %}">
+    <div class="doc-loading-state">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <p>Generating tether&hellip;</p>
+        <p class="doc-loading-elapsed" id="loading-elapsed"></p>
+        <p class="text-sec" style="font-size:var(--text-xs);margin-top:var(--sm);transition:opacity 0.2s ease;" id="loading-status">
+            {% if latest.agent_log_excerpt %}{{ latest.agent_log_excerpt }}{% else %}Agent is working&hellip;{% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Failure banner (visible when latest version failed and is current) -->
+<div id="gen-error-step" class="card" style="margin-bottom:var(--md);{% if not latest or latest.status != 'failed' %}display:none;{% endif %}">
+    <div style="text-align:center;padding:var(--lg)">
+        <i class="fa-solid fa-circle-xmark" style="font-size:2rem;color:var(--danger);margin-bottom:var(--md);display:block"></i>
+        <h3>Generation Failed</h3>
+        <p class="text-sec" style="font-size:var(--text-sm)" id="error-message">{{ latest.error_message }}</p>
+        {% if latest %}
+        <p class="text-sec" style="font-size:var(--text-xs);margin-top:var(--sm)">
+            <a href="{% url 'management:tether_version_detail' tether.pk latest.pk %}">See full agent log</a>
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Live View (visible when there's a successful current version) -->
+<div id="live-view-step" class="card" style="margin-bottom:var(--md);{% if not tether.current_version or tether.current_version.status != 'success' %}display:none;{% endif %}">
+    <h2>Live View</h2>
+    <div class="tether-toolbar">
+        <input class="tether-search form-control" placeholder="Search files, tables, columns, symbols…">
+        <div class="tether-filters">
+            <button class="chip chip--reads is-on" data-rel="reads">reads</button>
+            <button class="chip chip--writes is-on" data-rel="writes">writes</button>
+            <button class="chip chip--references is-on" data-rel="references">references</button>
+            <button class="chip chip--maps-to is-on" data-rel="maps-to">maps-to</button>
+            <button class="tether-fitbtn btn btn-ghost btn-sm" type="button">
+                <i class="fa-solid fa-expand"></i> Fit view
+            </button>
+        </div>
+    </div>
+    <div class="tether-canvas-wrap" style="height:calc(100vh - 280px);min-height:560px;">
+        <div id="tether-status-banner" class="tether-status-banner" hidden></div>
+        <svg id="tether-canvas"
+             class="tether-canvas"
+             data-graph-url="{% url 'workspace:tether_graph_json' tether.pk %}"
+             style="position:absolute;inset:0;width:100%;height:100%;"></svg>
+        <div class="tether-cards-layer"></div>
+        <div id="tether-tooltip" class="tether-tooltip" role="tooltip"></div>
+        <div id="tether-summary-code" class="tether-lane-summary tether-lane-summary--code" hidden></div>
+        <div id="tether-summary-db" class="tether-lane-summary tether-lane-summary--db" hidden></div>
+        <aside class="tether-legend">
+            <span class="tether-legend__item"><i style="background:var(--c-cyan)"></i> reads</span>
+            <span class="tether-legend__item"><i style="background:var(--c-pink)"></i> writes</span>
+            <span class="tether-legend__item"><i style="background:var(--c-lime)"></i> references</span>
+            <span class="tether-legend__item"><i style="background:var(--c-orange)"></i> maps-to</span>
+        </aside>
+        <aside id="tether-details-panel" class="tether-panel" aria-label="Selection details"></aside>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Version History</h2>
+    {% if versions %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Version</th>
+                    <th>Status</th>
+                    <th>Started</th>
+                    <th>Duration</th>
+                    <th>By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in versions %}
+                <tr>
+                    <td><strong>v{{ v.version_number }}</strong>{% if tether.current_version_id == v.pk %} <span class="badge badge-muted">current</span>{% endif %}</td>
+                    <td>
+                        <span class="badge {% if v.status == 'success' %}badge-success{% elif v.status == 'failed' %}badge-error{% else %}badge-muted{% endif %}">
+                            {{ v.status|upper }}
+                        </span>
+                    </td>
+                    <td>{{ v.started_at }}</td>
+                    <td>{% if v.execution_time_ms %}{{ v.execution_time_ms }}ms{% else %}—{% endif %}</td>
+                    <td>{% if v.triggered_by %}{{ v.triggered_by.username }}{% else %}—{% endif %}</td>
+                    <td>
+                        <a href="{% url 'management:tether_version_detail' tether.pk v.pk %}" class="btn btn-ghost btn-sm">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-sec">No versions yet.</p>
+    {% endif %}
+</div>
+
+{% if tether.current_version and tether.current_version.status == 'success' %}
+<script type="module" src="{% static 'js/tethers/canvas.js' %}"></script>
+{% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    var loadingStep = document.getElementById('gen-loading-step');
+    var errorStep = document.getElementById('gen-error-step');
+    var liveStep = document.getElementById('live-view-step');
+    var statusLine = document.getElementById('loading-status');
+    var elapsedEl = document.getElementById('loading-elapsed');
+    var statusUrl = '{% url "management:tether_status" tether.pk %}';
+    var pollTimer = null;
+    var elapsedTimer = null;
+    var startTime = Date.now();
+
+    function startTimer(){
+        clearInterval(elapsedTimer);
+        startTime = Date.now();
+        elapsedTimer = setInterval(function(){
+            var secs = Math.floor((Date.now() - startTime) / 1000);
+            var m = Math.floor(secs / 60);
+            var s = secs % 60;
+            elapsedEl.textContent = (m > 0 ? m + 'm ' : '') + s + 's elapsed';
+        }, 1000);
+    }
+    function stopTimer(){ clearInterval(elapsedTimer); }
+
+    function setStatus(text){
+        if(!text || statusLine.textContent === text) return;
+        statusLine.style.opacity = '0';
+        setTimeout(function(){
+            statusLine.textContent = text;
+            statusLine.style.opacity = '1';
+        }, 200);
+    }
+
+    function reloadAfterDone(){
+        // The detail page DOM (canvas/error/version row) is server-rendered
+        // from the latest version; reload to swap in the new state cleanly.
+        window.location.reload();
+    }
+
+    function poll(){
+        fetch(statusUrl, {cache: 'no-store'})
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if(data.status === 'running'){
+                    if(loadingStep.style.display === 'none'){
+                        loadingStep.style.display = '';
+                        errorStep.style.display = 'none';
+                        liveStep.style.display = 'none';
+                        startTimer();
+                    }
+                    setStatus(data.agent_output || 'Agent is working…');
+                    return;
+                }
+                stopTimer();
+                if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+                reloadAfterDone();
+            })
+            .catch(function(){ /* transient — keep polling */ });
+    }
+
+    function startPolling(){
+        if(pollTimer) return;
+        startTimer();
+        poll();
+        pollTimer = setInterval(poll, 2000);
+    }
+
+    // If the page loaded with status=running, kick off polling.
+    if(loadingStep.style.display !== 'none'){
+        startPolling();
+    }
+
+    // Hook regenerate so we drop straight into loading + polling without a reload.
+    var regenForm = document.getElementById('regen-form');
+    regenForm.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var btn = document.getElementById('regen-btn');
+        btn.disabled = true;
+        var originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Starting…';
+        var formData = new FormData(regenForm);
+        fetch(regenForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+            redirect: 'manual',
+        })
+        .finally(function(){
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            errorStep.style.display = 'none';
+            liveStep.style.display = 'none';
+            loadingStep.style.display = '';
+            setStatus('Starting agent…');
+            startPolling();
+        });
+    });
+})();
+</script>
+{% endblock %}

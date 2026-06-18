@@ -1,0 +1,12 @@
+python-interpreter = ".venv/bin/python"
+
+project-includes = [
+    "tdmcp/**/*.py",
+    "backend/**/*.py",
+    "docker/**/*.py",
+]
+
+search-path = [
+    "backend",
+    ".",
+]

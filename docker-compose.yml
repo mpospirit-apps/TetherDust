@@ -13,10 +13,10 @@ services:
       timeout: 3s
       retries: 5
 
-  mcp:
+  tdmcp:
     build:
       context: .
-      dockerfile: docker/mcp/Dockerfile
+      dockerfile: docker/tdmcp/Dockerfile
     depends_on:
       db:
         condition: service_healthy
@@ -30,7 +30,7 @@ services:
       # Shared secret authenticating filter registration from web/celery.
       - MCP_FILTER_SECRET=${MCP_FILTER_SECRET}
     volumes:
-      - ./tetherdust/mcp_server:/app/tetherdust/mcp_server
+      - ./tdmcp:/app/tdmcp
       - ./documentations:/app/documentations
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
@@ -62,8 +62,8 @@ services:
       context: .
       dockerfile: docker/codex/Dockerfile
     environment:
-      - MCP_URL=http://mcp:8001/mcp
-      - MCP_BASE_URL=http://mcp:8001
+      - MCP_URL=http://tdmcp:8001/mcp
+      - MCP_BASE_URL=http://tdmcp:8001
       - CODEX_API_PORT=8002
       - CODEX_HOME_DIR=/var/codex-home/.codex
       - LOG_LEVEL=DEBUG
@@ -78,7 +78,7 @@ services:
       # harvested back to this volume. Never written under /root.
       - codex-home:/var/codex-home
     depends_on:
-      mcp:
+      tdmcp:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/opt/codex-api/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
@@ -102,8 +102,8 @@ services:
       context: .
       dockerfile: docker/codex/Dockerfile
     environment:
-      - MCP_URL=http://mcp:8001/mcp
-      - MCP_BASE_URL=http://mcp:8001
+      - MCP_URL=http://tdmcp:8001/mcp
+      - MCP_BASE_URL=http://tdmcp:8001
       - CODEX_API_PORT=8002
       - CODEX_HOME_DIR=/var/codex-home/.codex
       - LOG_LEVEL=DEBUG
@@ -113,7 +113,7 @@ services:
       # (escape hatch for hosts without Landlock/seccomp support).
       - CODEX_SANDBOX_MODE=${CODEX_SANDBOX_MODE:-read-only}
     depends_on:
-      mcp:
+      tdmcp:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/opt/codex-api/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
@@ -128,7 +128,7 @@ services:
   # (no persistent volume — OAuth auth needs no auth.json on disk).
   #
   # Runs by default (no profile) so switching the active agent between Codex and
-  # Claude in the console is a seamless DB flip — the target container is already
+  # Claude in the management is a seamless DB flip — the target container is already
   # up and healthy. Idle cost is just the FastAPI wrapper (~50–80 MB). It is
   # deliberately NOT in `web`'s depends_on: an unhealthy/missing agent must
   # surface as a runtime "service unavailable", never block web startup.
@@ -137,14 +137,14 @@ services:
       context: .
       dockerfile: docker/claude/Dockerfile
     environment:
-      - MCP_URL=http://mcp:8001/mcp
-      - MCP_BASE_URL=http://mcp:8001
+      - MCP_URL=http://tdmcp:8001/mcp
+      - MCP_BASE_URL=http://tdmcp:8001
       - CLAUDE_API_PORT=8002
       - LOG_LEVEL=DEBUG
       # Shared secret authenticating Django → gateway calls.
       - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
     depends_on:
-      mcp:
+      tdmcp:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/opt/claude-api/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
@@ -169,14 +169,14 @@ services:
       context: .
       dockerfile: docker/claude/Dockerfile
     environment:
-      - MCP_URL=http://mcp:8001/mcp
-      - MCP_BASE_URL=http://mcp:8001
+      - MCP_URL=http://tdmcp:8001/mcp
+      - MCP_BASE_URL=http://tdmcp:8001
       - CLAUDE_API_PORT=8002
       - LOG_LEVEL=DEBUG
       # Shared secret authenticating Django → gateway calls.
       - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
     depends_on:
-      mcp:
+      tdmcp:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/opt/claude-api/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
@@ -234,7 +234,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      mcp:
+      tdmcp:
         condition: service_healthy
       codex:
         condition: service_healthy
@@ -244,7 +244,8 @@ services:
         condition: service_healthy
     volumes:
       # Mount web app for development (live template/code changes)
-      - ./tetherdust/web:/app/tetherdust/web
+      - ./backend:/app/backend
+      - ./tdmcp:/app/tdmcp
       - ./documentations:/app/documentations:ro
       - report-results:/app/report_results
     environment:
@@ -275,7 +276,7 @@ services:
       # Fallback service URL for the API-key Claude Code agent (claude-api service).
       # Used when its AgentConfiguration.service_url is left blank.
       - CLAUDE_API_SERVICE_URL=http://claude-api:8002
-      - MCP_BASE_URL=http://mcp:8001
+      - MCP_BASE_URL=http://tdmcp:8001
       - LOCAL_MCP_BASE_URL=http://local-mcp:8003
       # Shared secrets: filter registration (→ mcp) and gateway calls (→ codex/claude).
       - MCP_FILTER_SECRET=${MCP_FILTER_SECRET}
@@ -289,9 +290,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    working_dir: /app/tetherdust/web
+    working_dir: /app/backend
     entrypoint: []
-    command: celery -A tetherdust_web worker -l info --concurrency=2
+    command: celery -A project worker -l info --concurrency=2
     depends_on:
       db:
         condition: service_healthy
@@ -300,7 +301,8 @@ services:
       web:
         condition: service_healthy
     volumes:
-      - ./tetherdust/web:/app/tetherdust/web
+      - ./backend:/app/backend
+      - ./tdmcp:/app/tdmcp
       - report-results:/app/report_results
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
@@ -322,9 +324,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    working_dir: /app/tetherdust/web
+    working_dir: /app/backend
     entrypoint: []
-    command: celery -A tetherdust_web beat -l info --pidfile=
+    command: celery -A project beat -l info --pidfile=
     depends_on:
       db:
         condition: service_healthy
@@ -333,7 +335,8 @@ services:
       web:
         condition: service_healthy
     volumes:
-      - ./tetherdust/web:/app/tetherdust/web
+      - ./backend:/app/backend
+      - ./tdmcp:/app/tdmcp
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - TETHERDUST_ENCRYPTION_KEY=${TETHERDUST_ENCRYPTION_KEY}

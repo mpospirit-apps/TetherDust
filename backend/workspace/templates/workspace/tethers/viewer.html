@@ -1,0 +1,140 @@
+{% extends "workspace/base.html" %}
+{% load static %}
+
+{% block title %}{{ tether.name }} - TetherDust{% endblock %}
+
+{% block content %}
+<div class="tether-page">
+<div class="docs-layout">
+    <aside class="docs-sidebar" id="docs-sidebar">
+        <div class="docs-sidebar-header">
+            <h3>Tethers</h3>
+        </div>
+        <div class="history-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="tethers-search" placeholder="Search tethers..." autocomplete="off">
+        </div>
+        <div class="docs-tree">
+            {% for t in tethers %}
+            <a href="{% url 'workspace:tether_detail' t.pk %}"
+               class="docs-file-btn{% if t.pk == current_tether_id %} active{% endif %}"
+               style="text-decoration:none">
+                <i class="fa-solid fa-link"></i>
+                <span>{{ t.name }}</span>
+            </a>
+            {% empty %}
+            <div style="padding:var(--md) var(--lg);color:var(--text-muted);font-size:var(--text-sm)">
+                No tethers available
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <button class="docs-toggle-btn" id="docs-toggle" title="Toggle sidebar">
+        <i class="fa-solid fa-link"></i>
+    </button>
+
+    <div class="docs-content-area">
+        <div class="tether-viewer">
+            <header class="tether-viewer__header">
+                <div>
+                    <h1>{{ tether.name }}</h1>
+                    <p class="text-sec">
+                        {{ tether.source_name }} &harr; {{ tether.database_doc_source.folder_name }}
+                    </p>
+                </div>
+            </header>
+
+            {% if tether.current_version and tether.current_version.status == 'success' %}
+                <div id="tether-status-banner" class="tether-status-banner" hidden></div>
+                <div class="tether-canvas-wrap" style="height:calc(100vh - 180px);min-height:560px;">
+                    <svg id="tether-canvas"
+                         class="tether-canvas"
+                         data-graph-url="{% url 'workspace:tether_graph_json' tether.pk %}"
+                         style="position:absolute;inset:0;width:100%;height:100%;"></svg>
+                    <div class="tether-cards-layer"></div>
+                    <div id="tether-tooltip" class="tether-tooltip" role="tooltip"></div>
+                    <div class="tether-controls">
+                        <div class="tether-info-panel" id="tether-info-panel" hidden></div>
+                        <div class="tether-filters tether-filters--popup" id="tether-filter-panel" hidden>
+                            <button class="chip chip--reads is-on" data-rel="reads">reads</button>
+                            <button class="chip chip--writes is-on" data-rel="writes">writes</button>
+                            <button class="chip chip--references is-on" data-rel="references">references</button>
+                            <button class="chip chip--maps-to is-on" data-rel="maps-to">maps-to</button>
+                        </div>
+                        <input class="tether-search tether-search--popup" placeholder="Search files, tables, columns, symbols…" hidden>
+                        <div class="tether-spread tether-spread--popup" id="tether-spread-panel" hidden>
+                            <div class="tether-spread__row">
+                                <label for="tether-spread-range">Spread</label>
+                                <input type="range" id="tether-spread-range"
+                                       min="400" max="3000" step="50" value="1500">
+                            </div>
+                            <div class="tether-spread__row">
+                                <label for="tether-gap-range">Gap</label>
+                                <input type="range" id="tether-gap-range"
+                                       min="0.12" max="0.45" step="0.01" value="0.30">
+                            </div>
+                        </div>
+                        <div class="tether-controls__row">
+                            <button class="tether-ctrl-btn" id="tether-search-toggle" title="Search">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </button>
+                            <button class="tether-ctrl-btn" id="tether-filter-toggle" title="Filter">
+                                <i class="fa-solid fa-sliders"></i>
+                            </button>
+                            <button class="tether-ctrl-btn" id="tether-spread-toggle" title="Layout">
+                                <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+                            </button>
+                            <button class="tether-ctrl-btn" id="tether-info-toggle" title="Graph info">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </button>
+                            <button class="tether-ctrl-btn tether-fitbtn" type="button" title="Fit view">
+                                <i class="fa-solid fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <aside id="tether-details-panel" class="tether-panel" aria-label="Selection details"></aside>
+                </div>
+                <script type="module" src="{% static 'js/tethers/canvas.js' %}"></script>
+            {% else %}
+                <div class="docs-empty-state">
+                    <p class="text-sec">
+                        {% if tether.current_version %}
+                            The latest generation is <strong>{{ tether.current_version.get_status_display }}</strong>.
+                            Ask your administrator to regenerate.
+                        {% else %}
+                            No graph yet — generation may still be running.
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    var sidebar = document.getElementById('docs-sidebar');
+    var toggle = document.getElementById('docs-toggle');
+    if (toggle) {
+        toggle.addEventListener('click', function(){
+            sidebar.classList.toggle('collapsed');
+        });
+    }
+
+    var search = document.getElementById('tethers-search');
+    if (search) {
+        search.addEventListener('input', function(){
+            var q = this.value.trim().toLowerCase();
+            document.querySelectorAll('.docs-tree .docs-file-btn').forEach(function(btn){
+                var name = btn.querySelector('span').textContent.toLowerCase();
+                btn.style.display = (!q || name.includes(q)) ? '' : 'none';
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}

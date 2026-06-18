@@ -1,0 +1,165 @@
+{% extends "management/base.html" %}
+{% load static %}
+{% block title %}Create Documentation Library{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 id="page-title">Create Documentation Library</h1>
+        <p>The AI plans a folder tree of related markdown files from your databases and docs</p>
+    </div>
+    <a href="{% url 'management:docsource_list' %}" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back</a>
+</div>
+
+<div id="doc-ai-step">
+    <!-- How it works -->
+    <div class="card" style="margin-bottom:var(--md)">
+        <h3 class="doc-section__title">How it works</h3>
+        <div class="doc-hiw">
+            <div class="doc-hiw-step">
+                <div class="doc-hiw-icon"><i class="fa-solid fa-sliders"></i></div>
+                <div class="doc-hiw-label">Configure</div>
+                <div class="doc-hiw-desc">Name the library and select your data sources</div>
+            </div>
+            <div class="doc-hiw-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            <div class="doc-hiw-step">
+                <div class="doc-hiw-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <div class="doc-hiw-label">Agent explores</div>
+                <div class="doc-hiw-desc">Reads schemas, existing docs, and codebase files</div>
+            </div>
+            <div class="doc-hiw-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            <div class="doc-hiw-step">
+                <div class="doc-hiw-icon"><i class="fa-solid fa-sitemap"></i></div>
+                <div class="doc-hiw-label">Agent plans</div>
+                <div class="doc-hiw-desc">Designs a folder tree and page outline for the library</div>
+            </div>
+            <div class="doc-hiw-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            <div class="doc-hiw-step">
+                <div class="doc-hiw-icon"><i class="fa-solid fa-pen-to-square"></i></div>
+                <div class="doc-hiw-label">Agent writes</div>
+                <div class="doc-hiw-desc">Calls <code>create_documentation</code> per file — subfolders created automatically</div>
+            </div>
+            <div class="doc-hiw-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            <div class="doc-hiw-step">
+                <div class="doc-hiw-icon"><i class="fa-solid fa-folder-tree"></i></div>
+                <div class="doc-hiw-label">Library saved</div>
+                <div class="doc-hiw-desc">A cross-linked tree of <code>.md</code> files under one root folder</div>
+            </div>
+        </div>
+    </div>
+
+    <form id="doc-generate-form"
+          data-generate-url="{% url 'management:docsource_generate_library' %}"
+          data-status-url-template="{% url 'management:docsource_generate_status' pk=0 %}"
+    >
+        {% csrf_token %}
+
+        <!-- Section: Requirements -->
+        <div class="card" style="margin-bottom:var(--md)">
+            <h3 class="doc-section__title">Requirements</h3>
+            <div class="doc-req-row">
+                <div class="doc-form-group">
+                    <label>Library Name</label>
+                    <input type="text" name="library_name" class="form-control" id="lib-name-input"
+                           placeholder="e.g. Orders Documentation" autocomplete="off" required>
+                    <span class="text-sec" style="font-size:var(--text-xs)" id="lib-path-preview"></span>
+                    <span class="text-sec" style="font-size:var(--text-xs);color:var(--warning);display:none" id="lib-name-warning">
+                        <i class="fa-solid fa-triangle-exclamation"></i> A folder with this name already exists — files may be added or overwritten.
+                    </span>
+                </div>
+                <div class="doc-form-group">
+                    <label>Type</label>
+                    <select name="source_doc_type" class="form-control" required>
+                        {% for value, label in doc_type_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="text-sec" style="font-size:var(--text-xs)">Category assigned to the new documentation source.</span>
+                </div>
+                <div class="doc-form-group">
+                    <label>Agent</label>
+                    <select name="agent" class="form-control" required>
+                        {% for agent in agents %}
+                        <option value="{{ agent.pk }}">{{ agent.name }}</option>
+                        {% empty %}
+                        <option value="" disabled>No agents configured</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Prompting -->
+        <div class="card" style="margin-bottom:var(--md)">
+            <h3 class="doc-section__title">Prompting</h3>
+            <div class="doc-form-group">
+                <label>Sources</label>
+                <div class="doc-sources-section">
+                    <h5>Databases</h5>
+                    <div class="doc-source-checks">
+                        {% for db in databases %}
+                        <label><input type="checkbox" name="source_db" value="{{ db.pk }}"> {{ db.name }} ({{ db.engine }})</label>
+                        {% empty %}
+                        <span class="text-sec" style="font-size:var(--text-xs)">No active databases</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="doc-sources-section">
+                    <h5>Existing Documentation</h5>
+                    <div class="doc-source-checks">
+                        {% for doc in doc_sources %}
+                        <label><input type="checkbox" name="source_doc" value="{{ doc.pk }}"> {{ doc.folder_name }}</label>
+                        {% empty %}
+                        <span class="text-sec" style="font-size:var(--text-xs)">No active doc sources</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="doc-sources-section">
+                    <h5>Codebases</h5>
+                    <div class="doc-source-checks">
+                        {% for cb in codebases %}
+                        <label><input type="checkbox" name="source_codebase" value="{{ cb.pk }}"> {{ cb.name }}</label>
+                        {% empty %}
+                        <span class="text-sec" style="font-size:var(--text-xs)">No active codebases</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="doc-send-prompt">Generate Library <i class="fa-solid fa-paper-plane"></i></button>
+            <a href="{% url 'management:docsource_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Loading -->
+<div id="doc-loading-step" style="display:none">
+    <div class="card">
+        <div class="doc-loading-state">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Building documentation library&hellip;</p>
+            <p class="doc-loading-elapsed" id="doc-loading-elapsed"></p>
+            <p class="text-sec" style="font-size:var(--text-xs);margin-top:var(--sm);transition:opacity 0.2s ease;" id="doc-loading-status">Agent is working&hellip;</p>
+        </div>
+    </div>
+</div>
+
+<!-- Result -->
+<div id="doc-result-step" style="display:none">
+    <div class="card">
+        <div id="doc-result-content"></div>
+        <div class="doc-step-actions" style="margin-top:var(--lg)">
+            <a href="{% url 'management:docsource_list' %}" class="btn btn-primary">Go to Documentation Sources</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ existing_folders|json_script:"existing-folders" }}
+<script type="module" src="{% static 'js/docsources/library.js' %}"></script>
+{% endblock %}

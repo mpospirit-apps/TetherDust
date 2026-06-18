@@ -1,0 +1,252 @@
+{% extends "management/base.html" %}
+{% block title %}Mission Control{% endblock %}
+
+{% block content %}
+<div class="page-header mc-header">
+    <div>
+        <h1>Mission Control</h1>
+        <p>System overview, activity, and health</p>
+    </div>
+    <div class="mc-asof">As of {{ now|date:"M d, H:i" }}</div>
+</div>
+
+<!-- Health banner -->
+<div class="mc-health mc-health--{{ health.status }}">
+    <div class="mc-health__status">
+        <span class="mc-health__dot"></span>
+        <div>
+            <div class="mc-health__label">{{ health.label }}</div>
+            <div class="mc-health__detail">{{ health.detail }}</div>
+        </div>
+    </div>
+    <div class="mc-health__meta">
+        {% if health.agent %}
+        <div class="mc-health__item">
+            <span class="mc-health__item-label">Active agent</span>
+            <span class="mc-health__item-value"><i class="fa-solid fa-robot"></i> {{ health.agent.name }} <span class="text-muted">· {{ health.agent.get_agent_type_display }}</span></span>
+        </div>
+        {% else %}
+        <a href="{% url 'management:agent_add' %}" class="btn btn-primary btn-sm">Configure an agent</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Hero KPIs -->
+<div class="mc-kpis">
+    <div class="mc-kpi mc-kpi--cyan">
+        <div class="mc-kpi__top">
+            <span class="mc-kpi__label">Queries · 24h</span>
+            {% with d=kpis.queries.delta %}
+            <span class="mc-trend mc-trend--{{ d.dir }}">
+                {% if d.dir == 'up' %}<i class="fa-solid fa-arrow-up"></i>{% elif d.dir == 'down' %}<i class="fa-solid fa-arrow-down"></i>{% else %}<i class="fa-solid fa-minus"></i>{% endif %}
+                {% if d.pct is not None %}{{ d.pct }}%{% else %}—{% endif %}
+            </span>
+            {% endwith %}
+        </div>
+        <div class="mc-kpi__value">{{ metrics.queries_24h }}</div>
+        {% if kpis.queries.spark %}
+        <svg class="mc-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="{{ kpis.queries.spark }}" fill="none" stroke="var(--c-cyan)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+        </svg>
+        {% endif %}
+        <div class="mc-kpi__foot">vs previous 24h</div>
+    </div>
+
+    <div class="mc-kpi mc-kpi--lime">
+        <div class="mc-kpi__top">
+            <span class="mc-kpi__label">Success rate · 24h</span>
+        </div>
+        <div class="mc-kpi__value">{{ metrics.success_rate }}<span class="mc-kpi__unit">%</span></div>
+        <div class="mc-meter"><div class="mc-meter__fill" style="width: {{ metrics.success_rate }}%"></div></div>
+        <div class="mc-kpi__foot">{{ metrics.queries_24h }} quer{{ metrics.queries_24h|pluralize:"y,ies" }} ran</div>
+    </div>
+
+    <div class="mc-kpi mc-kpi--pink">
+        <div class="mc-kpi__top">
+            <span class="mc-kpi__label">Active sessions · 24h</span>
+            {% with d=kpis.sessions.delta %}
+            <span class="mc-trend mc-trend--{{ d.dir }}">
+                {% if d.dir == 'up' %}<i class="fa-solid fa-arrow-up"></i>{% elif d.dir == 'down' %}<i class="fa-solid fa-arrow-down"></i>{% else %}<i class="fa-solid fa-minus"></i>{% endif %}
+                {% if d.pct is not None %}{{ d.pct }}%{% else %}—{% endif %}
+            </span>
+            {% endwith %}
+        </div>
+        <div class="mc-kpi__value">{{ metrics.active_sessions }}</div>
+        <div class="mc-kpi__foot">chat sessions active</div>
+    </div>
+
+    <div class="mc-kpi {% if metrics.failed_queries_24h %}mc-kpi--red{% else %}mc-kpi--muted{% endif %}">
+        <div class="mc-kpi__top">
+            <span class="mc-kpi__label">Failed queries · 24h</span>
+            {% with d=kpis.failed.delta %}
+            <span class="mc-trend mc-trend--{{ d.dir }} mc-trend--inverse">
+                {% if d.dir == 'up' %}<i class="fa-solid fa-arrow-up"></i>{% elif d.dir == 'down' %}<i class="fa-solid fa-arrow-down"></i>{% else %}<i class="fa-solid fa-minus"></i>{% endif %}
+                {% if d.pct is not None %}{{ d.pct }}%{% else %}—{% endif %}
+            </span>
+            {% endwith %}
+        </div>
+        <div class="mc-kpi__value">{{ metrics.failed_queries_24h }}</div>
+        <div class="mc-kpi__foot">
+            {% if metrics.failed_queries_24h %}<a href="{% url 'management:audit_list' %}">investigate →</a>{% else %}no failures{% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Trends row -->
+<div class="mc-trends">
+    <div class="card mc-chart-card">
+        <div class="card-header">
+            <h2>Query volume · {{ trend|length }} days</h2>
+            <div class="mc-legend">
+                <span class="mc-legend__item"><span class="mc-legend__swatch mc-legend__swatch--ok"></span> Success</span>
+                <span class="mc-legend__item"><span class="mc-legend__swatch mc-legend__swatch--fail"></span> Failed</span>
+            </div>
+        </div>
+        <div class="mc-bars">
+            {% for d in trend %}
+            <div class="mc-bars__col" title="{{ d.date|date:'M d' }} — {{ d.total }} quer{{ d.total|pluralize:'y,ies' }}, {{ d.failed }} failed">
+                <div class="mc-bars__track">
+                    <div class="mc-bars__seg mc-bars__seg--fail" style="height: {{ d.failed_h }}%"></div>
+                    <div class="mc-bars__seg mc-bars__seg--ok" style="height: {{ d.ok_h }}%"></div>
+                </div>
+                <div class="mc-bars__label">{{ d.date|date:"j" }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card mc-chart-card">
+        <div class="card-header">
+            <h2>Top databases · 7 days</h2>
+        </div>
+        {% if top_databases %}
+        <div class="mc-topdb">
+            {% for row in top_databases %}
+            <div class="mc-topdb__row">
+                <div class="mc-topdb__name">{{ row.database__name }}</div>
+                <div class="mc-topdb__bar"><div class="mc-topdb__fill" style="width: {{ row.pct }}%"></div></div>
+                <div class="mc-topdb__count">{{ row.count }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state empty-state--sm">
+            <div class="icon"><i class="fa-solid fa-database"></i></div>
+            <p class="text-sec">No queries in the last 7 days.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Inventory chips -->
+<div class="mc-chips">
+    <a href="{% url 'management:database_list' %}" class="mc-chip">
+        <i class="fa-solid fa-database"></i>
+        <span class="mc-chip__value">{{ metrics.active_databases }}<span class="mc-chip__sub">/{{ metrics.total_databases }}</span></span>
+        <span class="mc-chip__label">Databases</span>
+    </a>
+    <a href="{% url 'management:mcp_server_list' %}" class="mc-chip">
+        <i class="fa-solid fa-wrench"></i>
+        <span class="mc-chip__value">{{ metrics.active_tools }}<span class="mc-chip__sub">/{{ metrics.total_tools }}</span></span>
+        <span class="mc-chip__label">Tools</span>
+    </a>
+    <a href="{% url 'management:docsource_list' %}" class="mc-chip">
+        <i class="fa-solid fa-book"></i>
+        <span class="mc-chip__value">{{ metrics.doc_sources }}</span>
+        <span class="mc-chip__label">Doc sources</span>
+    </a>
+    <a href="{% url 'management:tether_list' %}" class="mc-chip">
+        <i class="fa-solid fa-link"></i>
+        <span class="mc-chip__value">{{ metrics.tethers }}</span>
+        <span class="mc-chip__label">Tethers</span>
+    </a>
+    <a href="{% url 'management:user_list' %}" class="mc-chip">
+        <i class="fa-solid fa-users"></i>
+        <span class="mc-chip__value">{{ metrics.total_users }}</span>
+        <span class="mc-chip__label">Users</span>
+    </a>
+    <a href="{% url 'management:role_list' %}" class="mc-chip">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span class="mc-chip__value">{{ metrics.total_roles }}</span>
+        <span class="mc-chip__label">Roles</span>
+    </a>
+</div>
+
+<!-- Quick actions -->
+<div class="mc-actions">
+    <a href="{% url 'management:database_add' %}" class="mc-action"><i class="fa-solid fa-plus"></i> Connect database</a>
+    <a href="{% url 'management:docsource_generate_page' %}" class="mc-action"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate docs</a>
+    <a href="{% url 'management:dashboard_generate_page' %}" class="mc-action"><i class="fa-solid fa-chart-line"></i> Create dashboard</a>
+    <a href="{% url 'management:report_list' %}" class="mc-action"><i class="fa-solid fa-file-lines"></i> Reports</a>
+    <a href="{% url 'management:tether_add' %}" class="mc-action"><i class="fa-solid fa-link"></i> New Tether</a>
+</div>
+
+<!-- Activity feeds -->
+<div class="mc-feeds">
+    <div class="card">
+        <div class="card-header">
+            <h2>Recent Queries</h2>
+            <a href="{% url 'management:audit_list' %}" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        {% if recent_queries %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>User</th><th>Database</th><th>Status</th><th>Rows</th><th>ms</th><th>When</th></tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_queries %}
+                    <tr>
+                        <td>{{ log.user.username|default:"—" }}</td>
+                        <td>{{ log.database.name|default:"—" }}</td>
+                        <td>{% if log.success %}<span class="badge badge-success">OK</span>{% else %}<span class="badge badge-error">FAIL</span>{% endif %}</td>
+                        <td>{{ log.row_count|default:"—" }}</td>
+                        <td>{{ log.execution_time_ms|default:"—" }}</td>
+                        <td class="text-sec text-sm">{{ log.created_at|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon"><i class="fa-solid fa-list-check"></i></div>
+            <h3>No Queries Yet</h3>
+            <p class="text-sec">Query audit logs will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Recent Chat Sessions</h2>
+            <a href="{% url 'management:session_list' %}" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        {% if recent_sessions %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Session</th><th>User</th><th>Msgs</th><th>Last Activity</th></tr>
+                </thead>
+                <tbody>
+                    {% for s in recent_sessions %}
+                    <tr>
+                        <td class="truncate">{{ s.title|default:"Untitled" }}</td>
+                        <td>{{ s.user.username }}</td>
+                        <td>{{ s.messages.count }}</td>
+                        <td class="text-sec text-sm">{{ s.updated_at|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon"><i class="fa-solid fa-comments"></i></div>
+            <h3>No Sessions Yet</h3>
+            <p class="text-sec">Chat sessions will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

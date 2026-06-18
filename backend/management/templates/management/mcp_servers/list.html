@@ -1,0 +1,107 @@
+{% extends "management/base.html" %}
+{% block title %}MCP Servers{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>MCP Servers</h1>
+        <p>Manage MCP servers and their tools</p>
+    </div>
+    <div class="flex-gap">
+        <button class="btn btn-ghost" data-help-open="help-mcp-servers">
+            <i class="fa-solid fa-circle-question"></i> Help
+        </button>
+        <a href="{% url 'management:mcp_server_add' %}" class="btn btn-primary">+ Add MCP Server</a>
+    </div>
+</div>
+
+<div class="card">
+    {% if servers %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>URL</th>
+                    <th>Tools</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for server in servers %}
+                <tr>
+                    <td>
+                        <strong>{{ server.name }}</strong>
+                        {% if server.description %}
+                        <div class="text-sec truncate" style="max-width:260px;font-size:12px">{{ server.description|truncatechars:80 }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="truncate" style="max-width:260px;font-family:monospace;font-size:12px">
+                        {% if server.is_builtin %}<span class="text-sec">— built-in —</span>{% else %}{{ server.url|default:"—"|truncatechars:48 }}{% endif %}
+                    </td>
+                    <td><span class="badge badge-muted">{{ server.tool_count }}</span></td>
+                    <td>
+                        {% if server.is_active %}
+                        <span class="badge badge-success">ACTIVE</span>
+                        {% else %}
+                        <span class="badge badge-muted">INACTIVE</span>
+                        {% endif %}
+                        {% if server.is_builtin %}
+                        <span class="badge badge-muted">BUILT-IN</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="flex-gap">
+                            <a href="{% url 'management:mcp_server_detail' server.pk %}" class="btn btn-ghost btn-sm">View</a>
+                            {% if not server.is_builtin %}
+                            <a href="{% url 'management:mcp_server_edit' server.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+                            <form method="post" action="{% url 'management:mcp_server_delete' server.pk %}" class="delete-form"
+                                  data-confirm="Delete MCP server '{{ server.name }}' and all its {{ server.tool_count }} tool(s)?">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)">Delete</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="icon"><i class="fa-solid fa-server"></i></div>
+        <h3>No MCP Servers Configured</h3>
+        <p class="text-sec">Add an MCP server to manage tools.</p>
+        <a href="{% url 'management:mcp_server_add' %}" class="btn btn-primary mt-md">+ Add MCP Server</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="help-modal" id="help-mcp-servers">
+    <div class="help-modal__panel">
+        <div class="help-modal__header">
+            <h2><i class="fa-solid fa-server"></i> MCP Servers</h2>
+            <button class="btn btn-ghost btn-sm" data-help-close><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="help-modal__body">
+            <h3>What are MCP Servers?</h3>
+            <p>MCP (Model Context Protocol) servers expose tools to AI agents. Each server groups related tools together. When a user sends a query, the agent calls tools from the configured MCP servers to gather information and compose a response.</p>
+
+            <h3>Built-in Server</h3>
+            <p>TetherDust ships with a built-in MCP server that provides engine database querying and documentation tools. This server is always active and cannot be edited or deleted. You can still manage (add, edit, enable, disable) the tools within it.</p>
+
+            <h3>Adding MCP Servers</h3>
+            <p>You can add additional MCP servers to extend the tools available to agents. Each server can have its own connection settings and set of tools.</p>
+
+            <h3>Active vs Inactive</h3>
+            <p>Deactivating an MCP server makes all its tools unavailable to agents, regardless of individual tool settings. This is useful for temporarily removing a set of capabilities without deleting configurations.</p>
+
+            <div class="help-modal__tip">
+                <strong>Tip:</strong> Click on an MCP server to view and manage its tools. You can add, edit, enable, and disable individual tools from the server detail page.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cd /app/tetherdust/web
+cd /app/backend
 
 # Wait for PostgreSQL to be ready (safety net alongside Docker health checks)
 if [ -n "$DB_HOST" ]; then
@@ -32,10 +32,10 @@ fi
 # Auto-discover documentation sources from filesystem
 echo "Syncing documentation sources..."
 python -c "
-import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tetherdust_web.settings')
+import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 import django; django.setup()
-from core.models import DocumentationSource
-result = DocumentationSource.sync_from_filesystem()
+from engine.services import DocSourceService, get
+result = get(DocSourceService).sync_from_filesystem()
 if result['created']:
     print(f'  Created: {result[\"created\"]}')
 if result['deactivated']:
@@ -47,10 +47,10 @@ if not result['created'] and not result['deactivated']:
 # Ensure all users have a UserProfile (handles pre-existing superusers)
 echo "Ensuring user profiles exist..."
 python -c "
-import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tetherdust_web.settings')
+import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 import django; django.setup()
 from django.contrib.auth import get_user_model
-from core.models import UserProfile, Role
+from engine.models import UserProfile, Role
 User = get_user_model()
 admin_role = Role.objects.filter(name='Admin').first()
 for user in User.objects.all():
@@ -74,5 +74,5 @@ if [ "$DJANGO_DEBUG" = "true" ]; then
     exec python manage.py runserver 0.0.0.0:8000
 else
     echo "Starting TetherDust on port 8000..."
-    exec daphne -b 0.0.0.0 -p 8000 tetherdust_web.asgi:application
+    exec daphne -b 0.0.0.0 -p 8000 project.asgi:application
 fi

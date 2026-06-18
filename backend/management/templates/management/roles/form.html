@@ -1,0 +1,159 @@
+{% extends "management/base.html" %}
+{% block title %}{% if instance %}Edit{% else %}Add{% endif %} Role{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if instance %}Edit {{ instance.name }}{% else %}Add Role{% endif %}</h1>
+        <p>Configure role permissions, tool access, and database access</p>
+    </div>
+    <a href="{% url 'management:role_list' %}" class="btn btn-ghost">Back</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-split">
+
+        <!-- Left: Role Settings -->
+        <div class="card">
+            <h3 style="margin:0 0 var(--md)">Role Settings</h3>
+            {% include "management/includes/field.html" with field=form.name %}
+            {% include "management/includes/field.html" with field=form.description %}
+            <div class="form-grid">
+                {% include "management/includes/field.html" with field=form.is_active %}
+                {% include "management/includes/field.html" with field=form.can_chat %}
+                <div>
+                    {% include "management/includes/field.html" with field=form.is_admin_role %}
+                    <div style="margin-left:24px;padding-left:var(--sm);border-left:2px solid rgba(26,26,26,.08)">
+                        {% include "management/includes/field.html" with field=form.can_manage_users %}
+                    </div>
+                </div>
+            </div>
+            <div style="border-top:1px solid rgba(26,26,26,.06);margin:var(--md) 0"></div>
+            <div class="helptext" style="margin-bottom:var(--md)">
+                Admin role syncs assigned non-superusers to staff, which grants management access and bypasses role allow-lists. Can manage users only opens the Users section for someone who is already staff or superuser; by itself it does not grant management access.
+            </div>
+            {% include "management/includes/field.html" with field=form.max_row_limit %}
+        </div>
+
+        <!-- Right: Access Control -->
+        <div class="card" id="admin-role-notice" style="display:none">
+            <div style="display:flex;align-items:center;gap:var(--md)">
+                <i class="fa-solid fa-shield-halved" style="font-size:24px;color:var(--accent)"></i>
+                <div>
+                    <strong>Admin Role</strong>
+                    <p class="text-sec" style="margin:4px 0 0;font-size:13px">Assigned non-superusers become staff, can open the management, and bypass role allow-lists. Users still need Can manage users or superuser status to manage accounts.</p>
+                </div>
+            </div>
+        </div>
+        <div class="card" id="access-control-card">
+            <h3 style="margin:0 0 var(--md)">Access Control</h3>
+
+            <div class="form-group">
+                <label>Allowed Tools</label>
+                {% for server in mcp_servers %}
+                <div style="margin-bottom:var(--sm)">
+                    <strong style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-sec);margin-bottom:4px">
+                        <i class="fa-solid fa-server" style="font-size:10px;margin-right:4px"></i> {{ server.name }}
+                    </strong>
+                    {% if server.is_builtin %}
+                        {% regroup server.tools.all by get_category_display as tool_groups %}
+                        {% for group in tool_groups %}
+                        <div style="margin:0 0 6px 12px">
+                            <span style="display:block;font-size:11px;letter-spacing:.03em;color:var(--text-sec);margin-bottom:2px">{{ group.grouper|default:"Other" }}</span>
+                            <div class="checkbox-list">
+                                {% for tool in group.list %}
+                                <label>
+                                    <input type="checkbox" name="allowed_tools" value="{{ tool.pk }}"
+                                           {% if tool.pk in selected_tool_ids %}checked{% endif %}>
+                                    {{ tool.display_name }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="checkbox-list">
+                        {% for tool in server.tools.all %}
+                        <label>
+                            <input type="checkbox" name="allowed_tools" value="{{ tool.pk }}"
+                                   {% if tool.pk in selected_tool_ids %}checked{% endif %}>
+                            {{ tool.display_name }}
+                        </label>
+                        {% empty %}
+                        <span class="text-sec" style="font-size:13px">No tools</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <span class="text-sec">No MCP servers configured.</span>
+                {% endfor %}
+            </div>
+
+            <div style="border-top:1px solid rgba(26,26,26,.06);margin:var(--md) 0"></div>
+
+            <div class="form-group">
+                <label>Allowed Prompts</label>
+                {% for server in mcp_servers %}
+                <div style="margin-bottom:var(--sm)">
+                    <strong style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-sec);margin-bottom:4px">
+                        <i class="fa-solid fa-server" style="font-size:10px;margin-right:4px"></i> {{ server.name }}
+                    </strong>
+                    <div class="checkbox-list">
+                        {% for prompt in server.prompts.all %}
+                        <label>
+                            <input type="checkbox" name="allowed_prompts" value="{{ prompt.pk }}"
+                                   {% if prompt.pk in selected_prompt_ids %}checked{% endif %}>
+                            {{ prompt.display_name }}
+                        </label>
+                        {% empty %}
+                        <span class="text-sec" style="font-size:13px">No prompts</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <span class="text-sec">No MCP servers configured.</span>
+                {% endfor %}
+            </div>
+
+            <div style="border-top:1px solid rgba(26,26,26,.06);margin:var(--md) 0"></div>
+            {% include "management/includes/field.html" with field=form.allowed_databases is_checklist=True %}
+
+            <div style="border-top:1px solid rgba(26,26,26,.06);margin:var(--md) 0"></div>
+            {% include "management/includes/field.html" with field=form.allowed_doc_sources is_checklist=True %}
+
+            <div style="border-top:1px solid rgba(26,26,26,.06);margin:var(--md) 0"></div>
+            {% include "management/includes/field.html" with field=form.allowed_codebases is_checklist=True %}
+
+            <div style="border-top:1px solid rgba(26,26,26,.06);margin:var(--md) 0"></div>
+            {% include "management/includes/field.html" with field=form.allowed_reports is_checklist=True %}
+
+            <div style="border-top:1px solid rgba(26,26,26,.06);margin:var(--md) 0"></div>
+            {% include "management/includes/field.html" with field=form.allowed_mcp_servers is_checklist=True %}
+        </div>
+
+    </div>
+
+    <div class="form-actions" style="margin-top:var(--md)">
+        <button type="submit" class="btn btn-primary">{% if instance %}Save Changes{% else %}Create Role{% endif %}</button>
+        <a href="{% url 'management:role_list' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<script>
+(function () {
+    const cb = document.getElementById('id_is_admin_role');
+    const notice = document.getElementById('admin-role-notice');
+    const card = document.getElementById('access-control-card');
+    if (!cb) return;
+    function toggle() {
+        notice.style.display = cb.checked ? '' : 'none';
+        card.style.display = cb.checked ? 'none' : '';
+    }
+    cb.addEventListener('change', toggle);
+    toggle();
+})();
+</script>
+{% endblock %}

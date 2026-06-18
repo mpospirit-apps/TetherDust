@@ -1,0 +1,151 @@
+{% extends "management/base.html" %}
+{% block title %}Databases{% endblock %}
+
+{% block extra_css %}
+<style>
+    .db-test { display: flex; align-items: center; gap: 8px; }
+    /* htmx adds .htmx-request to the button only for the request's duration,
+       then removes it on settle. Drive spinner + passivity entirely off it. */
+    .db-test__spinner { display: none; }
+    .db-test__btn.htmx-request .db-test__spinner { display: inline-block; }
+    .db-test__btn.htmx-request .db-test__label { display: none; }
+    .db-test__btn.htmx-request { opacity: 0.6; cursor: default; pointer-events: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Database Connections</h1>
+        <p>Manage client database connections for MCP tools</p>
+    </div>
+    <div class="flex-gap">
+        <button class="btn btn-ghost" data-help-open="help-databases">
+            <i class="fa-solid fa-circle-question"></i> Help
+        </button>
+        <a href="{% url 'management:database_add' %}" class="btn btn-primary">+ Add Connection</a>
+    </div>
+</div>
+
+<div class="card">
+    {% if connections %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Engine</th>
+                    <th>Host</th>
+                    <th>Database</th>
+                    <th>Status</th>
+                    <th>Test</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for conn in connections %}
+                <tr>
+                    <td><strong>{{ conn.name }}</strong></td>
+                    <td>
+                        <span class="type-badge">
+                            {% include "management/databases/includes/engine_icon.html" with engine=conn.engine size="16" %}
+                            {{ conn.get_engine_display }}
+                        </span>
+                    </td>
+                    <td class="text-mono">{{ conn.host|default:"—" }}</td>
+                    <td class="text-mono truncate">{{ conn.database }}</td>
+                    <td>
+                        {% if conn.is_active %}
+                        <span class="badge badge-success">ACTIVE</span>
+                        {% else %}
+                        <span class="badge badge-muted">INACTIVE</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="db-test">
+                            <button type="button"
+                                    hx-get="{% url 'management:database_test' conn.pk %}"
+                                    hx-target="#db-test-result-{{ conn.pk }}"
+                                    hx-swap="innerHTML"
+                                    hx-sync="this:drop"
+                                    class="btn btn-ghost btn-sm db-test__btn">
+                                <i class="fa-solid fa-spinner fa-spin db-test__spinner"></i>
+                                <span class="db-test__label">Test</span>
+                            </button>
+                            <span id="db-test-result-{{ conn.pk }}"></span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="flex-gap">
+                            <a href="{% url 'management:database_edit' conn.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+                            <form method="post" action="{% url 'management:database_delete' conn.pk %}" class="delete-form"
+                                  data-confirm="Delete connection {{ conn.name }}?">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger)">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="icon"><i class="fa-solid fa-database"></i></div>
+        <h3>No Databases Configured</h3>
+        <p class="text-sec">Add a database connection to get started.</p>
+        <a href="{% url 'management:database_add' %}" class="btn btn-primary mt-md">+ Add Connection</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="help-modal" id="help-databases">
+    <div class="help-modal__panel">
+        <div class="help-modal__header">
+            <h2><i class="fa-solid fa-database"></i> Database Connections</h2>
+            <button class="btn btn-ghost btn-sm" data-help-close><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="help-modal__body">
+            <h3>What are Database Connections?</h3>
+            <p>Database connections are the data sources that TetherDust exposes to AI agents via the <code>query_database</code> and <code>list_tables</code> MCP tools. Each connection stores all the information needed to reach a database — agents never see or handle raw credentials directly.</p>
+            <p>You can register as many connections as needed. Role-based access control then determines which users can query which databases.</p>
+
+            <h3>Supported Engines</h3>
+            <ul>
+                <li><strong>PostgreSQL</strong> — Full support via <code>psycopg2</code>. Recommended for production.</li>
+                <li><strong>MySQL</strong> — Full support via <code>mysqlclient</code>.</li>
+                <li><strong>MariaDB</strong> — Full support via <code>pymysql</code>.</li>
+                <li><strong>Microsoft SQL Server</strong> — Via <code>pyodbc</code>. Requires ODBC driver installed on the host.</li>
+                <li><strong>Oracle</strong> — Via <code>cx_Oracle</code>. Requires Oracle Instant Client.</li>
+                <li><strong>SQLite</strong> — File-based, no server required. Useful for testing and local datasets.</li>
+                <li><strong>ClickHouse</strong> — Via <code>clickhouse-connect</code>. Columnar OLAP engine for analytics workloads.</li>
+                <li><strong>Snowflake / Google BigQuery</strong> — Cloud warehouses via their respective SQLAlchemy dialects.</li>
+            </ul>
+
+            <h3>Connection Fields</h3>
+            <ul>
+                <li><strong>Name</strong> — A human-readable label used in chat responses, audit logs, and role configuration. Choose something descriptive (e.g. "Production Orders DB").</li>
+                <li><strong>Host / Port</strong> — The database server address and port. For SQLite, leave host blank and set the database field to the file path.</li>
+                <li><strong>Database</strong> — The schema or catalog name to connect to. For SQLite this is the file path.</li>
+                <li><strong>Username / Password</strong> — Credentials stored encrypted at rest. They are never exposed in logs or API responses.</li>
+                <li><strong>Extra Options</strong> — Raw SQLAlchemy connection arguments as JSON (e.g. <code>{"connect_timeout": 10, "sslmode": "require"}</code>). Refer to your engine's SQLAlchemy docs for available keys.</li>
+            </ul>
+
+            <h3>Read-Only Enforcement</h3>
+            <p>All queries are validated against a regex blocklist before execution. <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>DROP</code>, <code>CREATE</code>, <code>ALTER</code>, <code>TRUNCATE</code>, and other write or DDL statements are rejected and never reach the database server.</p>
+            <p>For maximum safety, also configure the database user with read-only grants on the server side. This provides a second layer of protection independent of TetherDust's own enforcement.</p>
+
+            <h3>Testing Connections</h3>
+            <p>Click the <strong>Test</strong> button next to any connection to verify reachability and credentials. The result shows round-trip latency and any driver-level error messages. Always test after adding a new connection or changing credentials.</p>
+
+            <h3>Active vs Inactive</h3>
+            <p>Inactive connections are excluded from the <code>list_tables</code> tool response, so agents will not discover or query them. Use this to temporarily disable a database without deleting its configuration.</p>
+
+            <div class="help-modal__tip">
+                <strong>Tip:</strong> Create a dedicated read-only database user for TetherDust rather than using an admin account. This adds a second layer of protection on top of TetherDust's own enforcement.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

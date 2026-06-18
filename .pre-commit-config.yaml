@@ -4,9 +4,7 @@
 #   pre-commit install            # enable on every git commit
 #   pre-commit run --all-files    # run against the whole repo once
 #
-# These fast hooks mirror CI's lint/format job. Type checking (mypy) and the
-# test suite are intentionally left to CI — they need the full dependency set
-# and are too slow for a per-commit hook.
+# Requires the full dev environment: pip install -e ".[all-databases,web,dev]"
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -24,10 +22,33 @@ repos:
         exclude: ^docs/images/.*\.gif$
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.16
+    rev: v0.15.17
     hooks:
       - id: ruff-check
         args: [--fix]
-        files: ^tetherdust/
+        files: ^(backend|docker|tdmcp)/
       - id: ruff-format
-        files: ^tetherdust/
+        files: ^(backend|docker|tdmcp)/
+
+  - repo: local
+    hooks:
+      - id: pyrefly
+        name: Pyrefly
+        entry: pyrefly check
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: mypy
+        name: Mypy
+        entry: .venv/bin/mypy tdmcp/ backend/ docker/
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: pytest
+        name: Pytest
+        entry: .venv/bin/pytest tests/
+        language: system
+        types: [python]
+        pass_filenames: false

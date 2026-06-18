@@ -2,7 +2,7 @@ version: 2
 updates:
   # ── Python dependencies (pyproject.toml) ──────────────────────────────────
   - package-ecosystem: pip
-    directory: /tetherdust
+    directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -39,7 +39,7 @@ updates:
   - package-ecosystem: docker
     directories:
       - /
-      - /docker/mcp
+      - /docker/tdmcp
       - /docker/local_mcp
       - /docker/codex
       - /docker/claude

@@ -1,7 +1,7 @@
 """Thin FastAPI wrapper around the Claude Code CLI subprocess.
 
 The mirror of ``docker/codex/codex_api.py`` for Claude Code. It exposes the same
-contract to Django so :class:`core.agents.claude.ClaudeCodeAgent` (a subclass of
+contract to Django so :class:`engine.agents.claude.ClaudeCodeAgent` (a subclass of
 ``CodexAgent``) can talk to it unchanged:
 
   POST /chat              — stream the CLI response as SSE
@@ -40,12 +40,13 @@ import struct
 import subprocess
 import termios
 import uuid
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
-from fastapi.responses import JSONResponse, StreamingResponse
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ _active_processes: dict[str, asyncio.subprocess.Process] = {}
 CLAUDE_COMMAND = os.getenv("CLAUDE_COMMAND", "claude")
 # Default MCP URL for unrestricted requests (no filter token). Restricted
 # requests receive a pre-tokenized `mcp_url` from Django instead.
-MCP_URL = os.getenv("MCP_URL", "http://mcp:8001/mcp")
+MCP_URL = os.getenv("MCP_URL", "http://tdmcp:8001/mcp")
 # Writable config/home dir for the CLI (keeps it off /root). OAuth auth is via
 # env var, so nothing sensitive is persisted here.
 CLAUDE_CONFIG_DIR = Path(os.getenv("CLAUDE_CONFIG_DIR", "/var/claude-home/.claude"))
@@ -95,29 +96,29 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str
     user_id: int
-    allowed_tools: Optional[List[str]] = None
-    allowed_databases: Optional[List[str]] = None
-    allowed_doc_sources: Optional[List[str]] = None
-    max_row_limit: Optional[str] = None
+    allowed_tools: list[str] | None = None
+    allowed_databases: list[str] | None = None
+    allowed_doc_sources: list[str] | None = None
+    max_row_limit: str | None = None
     # Claude Code OAuth token (subscription auth). Injected as an env var.
-    auth_token: Optional[str] = None
+    auth_token: str | None = None
     # Anthropic API key (per-token billing). Injected as the ANTHROPIC_API_KEY
     # env var for the subprocess and takes precedence over auth_token when both
     # are present. `claude -p` reads it as the X-Api-Key header.
-    api_key: Optional[str] = None
-    instructions: Optional[str] = None
+    api_key: str | None = None
+    instructions: str | None = None
     # Model name as Claude Code expects it (e.g. "sonnet", "opus",
     # "claude-sonnet-4-5"). Blank → the CLI/subscription default.
-    model: Optional[str] = None
+    model: str | None = None
     # Accepted for parity with the Codex gateway; Claude Code has no equivalent
     # reasoning-effort knob, so it is ignored.
-    reasoning_effort: Optional[str] = None
+    reasoning_effort: str | None = None
     # Pre-tokenized MCP URL for the built-in tetherdust server (restricted
     # requests). Absent → unrestricted (the default MCP_URL is used).
-    mcp_url: Optional[str] = None
+    mcp_url: str | None = None
     # Extra MCP servers the caller's role allows. Each entry has keys `name`,
     # `url`, `transport`, `auth_token`, `headers`.
-    custom_mcp_servers: Optional[List[Dict[str, Any]]] = None
+    custom_mcp_servers: list[dict[str, Any]] | None = None
 
 
 _RESERVED_MCP_KEYS = {"tetherdust"}
@@ -134,9 +135,9 @@ def _sanitize_mcp_key(name: str) -> str:
 
 
 def _build_mcp_config(
-    mcp_url: Optional[str],
-    custom_mcp_servers: Optional[List[Dict[str, Any]]],
-) -> tuple[dict, list[str]]:
+    mcp_url: str | None,
+    custom_mcp_servers: list[dict[str, Any]] | None,
+) -> tuple[dict[str, Any], list[str]]:
     """Build the `--mcp-config` JSON and the list of allowed MCP tool prefixes.
 
     Returns ``(config_dict, allowed_prefixes)`` where ``config_dict`` is the
@@ -145,7 +146,7 @@ def _build_mcp_config(
     tool exposed by that server — the MCP server itself enforces the role's
     per-tool filter via the token in the URL).
     """
-    servers: dict[str, dict] = {
+    servers: dict[str, dict[str, Any]] = {
         "tetherdust": {"type": "http", "url": mcp_url or MCP_URL},
     }
     allowed: list[str] = ["mcp__tetherdust"]
@@ -168,7 +169,7 @@ def _build_mcp_config(
             "type": "sse" if transport == "sse" else "http",
             "url": url,
         }
-        headers: Dict[str, str] = dict(server.get("headers") or {})
+        headers: dict[str, str] = dict(server.get("headers") or {})
         auth_token = (server.get("auth_token") or "").strip()
         if auth_token and "Authorization" not in headers:
             headers["Authorization"] = f"Bearer {auth_token}"
@@ -180,7 +181,7 @@ def _build_mcp_config(
     return {"mcpServers": servers}, allowed
 
 
-def _redact_servers_for_log(servers: Optional[List[Dict[str, Any]]]) -> list:
+def _redact_servers_for_log(servers: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     if not servers:
         return []
     redacted = []
@@ -236,16 +237,17 @@ async def _stream_claude(request: ChatRequest) -> AsyncIterator[str]:
     if request.max_row_limit:
         env["TETHERDUST_MAX_ROW_LIMIT"] = request.max_row_limit
 
-    mcp_config, allowed_prefixes = _build_mcp_config(
-        request.mcp_url, request.custom_mcp_servers
-    )
+    mcp_config, allowed_prefixes = _build_mcp_config(request.mcp_url, request.custom_mcp_servers)
 
     logger.debug(
         "Received request: allowed_tools=%s, allowed_databases=%s, "
         "allowed_doc_sources=%s, max_row_limit=%s, model=%s, mcp_url=%s, "
         "custom_mcp_servers=%s",
-        request.allowed_tools, request.allowed_databases,
-        request.allowed_doc_sources, request.max_row_limit, request.model,
+        request.allowed_tools,
+        request.allowed_databases,
+        request.allowed_doc_sources,
+        request.max_row_limit,
+        request.model,
         "<tokenized>" if request.mcp_url else None,
         _redact_servers_for_log(request.custom_mcp_servers),
     )
@@ -253,15 +255,19 @@ async def _stream_claude(request: ChatRequest) -> AsyncIterator[str]:
     cmd = [
         CLAUDE_COMMAND,
         "-p",  # print / headless mode (non-interactive)
-        "--output-format", "stream-json",
-        "--verbose",                  # required for stream-json in print mode
+        "--output-format",
+        "stream-json",
+        "--verbose",  # required for stream-json in print mode
         "--include-partial-messages",  # token-level deltas for the typing effect
-        "--mcp-config", json.dumps(mcp_config),
+        "--mcp-config",
+        json.dumps(mcp_config),
         # Scope tool access to the MCP servers only — no built-in Bash/file tools.
         # Disallowed tool calls are auto-denied in headless mode (no prompt hang).
-        "--allowedTools", ",".join(allowed_prefixes),
+        "--allowedTools",
+        ",".join(allowed_prefixes),
         # Deny-by-default for anything not explicitly allowed above.
-        "--permission-mode", "default",
+        "--permission-mode",
+        "default",
     ]
     if request.model:
         cmd += ["--model", request.model]
@@ -288,7 +294,8 @@ async def _stream_claude(request: ChatRequest) -> AsyncIterator[str]:
             )
         except FileNotFoundError:
             logger.error("Claude Code CLI binary not found: %s", CLAUDE_COMMAND)
-            yield _sse({"text": "\n\nThe AI agent could not be started — the Claude Code CLI is not installed."})
+            msg = "\n\nThe AI agent could not be started — the Claude Code CLI is not installed."
+            yield _sse({"text": msg})
             yield "data: [DONE]\n\n"
             return
         except OSError as e:
@@ -391,7 +398,9 @@ async def _stream_claude(request: ChatRequest) -> AsyncIterator[str]:
             detail = error_detail or stderr_text
             logger.warning(
                 "Claude subprocess failed (session=%s, rc=%s): %s",
-                session_id, process.returncode, detail,
+                session_id,
+                process.returncode,
+                detail,
             )
             combined = f"{stderr_text}\n{error_detail}".lower()
             if "rate limit" in combined or "overloaded" in combined:
@@ -420,13 +429,14 @@ async def _stream_claude(request: ChatRequest) -> AsyncIterator[str]:
         if process is not None and process.returncode is None:
             logger.info(
                 "Terminating Claude subprocess (pid=%s, session=%s)",
-                process.pid, session_id,
+                process.pid,
+                session_id,
             )
             try:
                 process.terminate()
                 try:
                     await asyncio.wait_for(process.wait(), timeout=5)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     process.kill()
                     await process.wait()
             except ProcessLookupError:
@@ -435,12 +445,12 @@ async def _stream_claude(request: ChatRequest) -> AsyncIterator[str]:
         # TTL is the safety net), so nothing to clear here.
 
 
-def _sse(payload: dict) -> str:
+def _sse(payload: dict[str, Any]) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
 @app.post("/chat", dependencies=[Depends(_require_gateway_secret)])
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest) -> StreamingResponse:
     """Stream a Claude Code response as Server-Sent Events."""
     return StreamingResponse(
         _stream_claude(request),
@@ -450,7 +460,7 @@ async def chat(request: ChatRequest):
 
 
 @app.post("/abort/{session_id}", dependencies=[Depends(_require_gateway_secret)])
-async def abort(session_id: str):
+async def abort(session_id: str) -> dict[str, str]:
     """Abort a running Claude subprocess for the given session."""
     process = _active_processes.pop(session_id, None)
     if process is None or process.returncode is not None:
@@ -460,7 +470,7 @@ async def abort(session_id: str):
         process.terminate()
         try:
             await asyncio.wait_for(process.wait(), timeout=5)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             process.kill()
             await process.wait()
     except ProcessLookupError:
@@ -473,7 +483,7 @@ class UpdateAgentsMdRequest(BaseModel):
 
 
 @app.post("/update-agents-md", dependencies=[Depends(_require_gateway_secret)])
-async def update_agents_md(request: UpdateAgentsMdRequest):
+async def update_agents_md(request: UpdateAgentsMdRequest) -> dict[str, str]:
     """Store the system prompt; used as the fallback when a request omits one."""
     AGENTS_MD_PATH.write_text(request.content, encoding="utf-8")
     logger.info("Updated CLAUDE.md (%d chars)", len(request.content))
@@ -492,7 +502,7 @@ async def update_agents_md(request: UpdateAgentsMdRequest):
 # NOTE: this depends on the `claude setup-token` I/O shape (prints an https URL,
 # reads one line of input, prints an `sk-ant-oat…` token). Verify against the
 # pinned CLI version — the regexes below are intentionally forgiving.
-_setup_logins: dict[str, dict] = {}
+_setup_logins: dict[str, dict[str, Any]] = {}
 _SETUP_URL_RE = re.compile(r"https?://[^\s'\"]+")
 _SETUP_TOKEN_RE = re.compile(r"sk-ant-oat[\w\-]+")
 # The pinned CLI renders `setup-token` as an Ink TUI that emits more than plain
@@ -508,7 +518,7 @@ _ANSI_ESCAPE_RE = re.compile(
 )
 
 
-def _spawn_pty(cmd: list[str], env: dict) -> tuple[subprocess.Popen, int]:
+def _spawn_pty(cmd: list[str], env: dict[str, str]) -> tuple[subprocess.Popen[bytes], int]:
     """Spawn a subprocess attached to a PTY; return (process, master_fd).
 
     A PTY makes the CLI behave as if it were at an interactive terminal, which
@@ -523,9 +533,7 @@ def _spawn_pty(cmd: list[str], env: dict) -> tuple[subprocess.Popen, int]:
     # producing an "Invalid OAuth Request / Missing redirect_uri" error.
     winsize = struct.pack("HHHH", 50, 4000, 0, 0)  # rows, cols, xpixel, ypixel
     fcntl.ioctl(slave, termios.TIOCSWINSZ, winsize)
-    proc = subprocess.Popen(
-        cmd, stdin=slave, stdout=slave, stderr=slave, env=env, close_fds=True
-    )
+    proc = subprocess.Popen(cmd, stdin=slave, stdout=slave, stderr=slave, env=env, close_fds=True)
     os.close(slave)
     flags = fcntl.fcntl(master, fcntl.F_GETFL)
     fcntl.fcntl(master, fcntl.F_SETFL, flags | os.O_NONBLOCK)
@@ -533,8 +541,8 @@ def _spawn_pty(cmd: list[str], env: dict) -> tuple[subprocess.Popen, int]:
 
 
 async def _pty_read_until(
-    master: int, proc: subprocess.Popen, pattern: re.Pattern, timeout: float
-) -> tuple[str, Optional[re.Match]]:
+    master: int, proc: subprocess.Popen[bytes], pattern: re.Pattern[str], timeout: float
+) -> tuple[str, re.Match[str] | None]:
     """Accumulate PTY output until `pattern` matches, the process exits, or timeout."""
     loop = asyncio.get_event_loop()
     deadline = loop.time() + timeout
@@ -566,7 +574,7 @@ async def _pty_read_until(
     return buf, pattern.search(buf)
 
 
-def _kill_proc(proc: subprocess.Popen) -> None:
+def _kill_proc(proc: subprocess.Popen[bytes]) -> None:
     if proc.poll() is None:
         try:
             proc.terminate()
@@ -590,7 +598,7 @@ def _cleanup_setup_login(login_id: str) -> None:
         pass
 
 
-def _login_env() -> dict:
+def _login_env() -> dict[str, str]:
     env = os.environ.copy()
     env["CLAUDE_CONFIG_DIR"] = str(CLAUDE_CONFIG_DIR)
     env["HOME"] = str(CLAUDE_CONFIG_DIR.parent)
@@ -600,14 +608,18 @@ def _login_env() -> dict:
     return env
 
 
-@app.post("/auth/setup-token/start", dependencies=[Depends(_require_gateway_secret)])
-async def auth_setup_token_start():
+@app.post(
+    "/auth/setup-token/start", dependencies=[Depends(_require_gateway_secret)], response_model=None
+)
+async def auth_setup_token_start() -> dict[str, Any] | Response:
     """Begin a guided sign-in; return the authorization URL to approve."""
     try:
         proc, master = _spawn_pty([CLAUDE_COMMAND, "setup-token"], _login_env())
     except (FileNotFoundError, OSError) as e:
         logger.error("Failed to start Claude setup-token: %s", e)
-        return JSONResponse(status_code=503, content={"error": "Could not start the login process."})
+        return JSONResponse(
+            status_code=503, content={"error": "Could not start the login process."}
+        )
 
     buf, match = await _pty_read_until(master, proc, _SETUP_URL_RE, 60.0)
     if match is None:
@@ -632,14 +644,20 @@ class SetupTokenSubmit(BaseModel):
     code: str
 
 
-@app.post("/auth/setup-token/submit/{login_id}", dependencies=[Depends(_require_gateway_secret)])
-async def auth_setup_token_submit(login_id: str, body: SetupTokenSubmit):
+@app.post(
+    "/auth/setup-token/submit/{login_id}",
+    dependencies=[Depends(_require_gateway_secret)],
+    response_model=None,
+)
+async def auth_setup_token_submit(
+    login_id: str, body: SetupTokenSubmit
+) -> dict[str, Any] | Response:
     """Feed the pasted authorization code to setup-token; return the OAuth token."""
     state = _setup_logins.get(login_id)
     if state is None:
         return JSONResponse(status_code=404, content={"status": "not_found"})
 
-    proc: subprocess.Popen = state["process"]
+    proc: subprocess.Popen[bytes] = state["process"]
     master: int = state["master"]
     try:
         os.write(master, (body.code.strip() + "\n").encode("utf-8"))
@@ -660,7 +678,7 @@ async def auth_setup_token_submit(login_id: str, body: SetupTokenSubmit):
 
 
 @app.post("/auth/setup-token/cancel/{login_id}", dependencies=[Depends(_require_gateway_secret)])
-async def auth_setup_token_cancel(login_id: str):
+async def auth_setup_token_cancel(login_id: str) -> dict[str, str]:
     """Cancel a pending guided sign-in and terminate its subprocess."""
     if login_id not in _setup_logins:
         return {"status": "not_found"}
@@ -669,6 +687,6 @@ async def auth_setup_token_cancel(login_id: str):
 
 
 @app.get("/healthz")
-async def healthz():
+async def healthz() -> dict[str, str]:
     """Liveness probe."""
     return {"status": "ok"}

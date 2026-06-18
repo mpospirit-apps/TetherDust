@@ -1,0 +1,120 @@
+{% extends "management/base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Settings</h1>
+        <p>Service-level configuration for TetherDust</p>
+    </div>
+    <div class="flex-gap">
+        <button class="btn btn-ghost" data-help-open="help-settings-general">
+            <i class="fa-solid fa-circle-question"></i> Help
+        </button>
+    </div>
+</div>
+
+<div class="tab-bar" style="margin-bottom:var(--lg)">
+    <a href="{% url 'management:settings' %}" class="tab-item active">General</a>
+    <a href="{% url 'management:settings_email' %}" class="tab-item">Email (SMTP)</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <h3 style="margin:0 0 var(--sm)">Service URLs</h3>
+    <p class="text-sec text-sm" style="margin:0 0 var(--md)">URLs used to communicate with the Codex and MCP services. Changes take effect immediately without a restart.</p>
+    <div class="card" style="margin-bottom:var(--lg)">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="id_codex_service_url">{{ form.codex_service_url.label }}</label>
+                {{ form.codex_service_url }}
+                {% if form.codex_service_url.help_text %}<div class="helptext">{{ form.codex_service_url.help_text }}</div>{% endif %}
+                {% if form.codex_service_url.errors %}<ul class="errorlist">{% for e in form.codex_service_url.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_mcp_base_url">{{ form.mcp_base_url.label }}</label>
+                {{ form.mcp_base_url }}
+                {% if form.mcp_base_url.help_text %}<div class="helptext">{{ form.mcp_base_url.help_text }}</div>{% endif %}
+                {% if form.mcp_base_url.errors %}<ul class="errorlist">{% for e in form.mcp_base_url.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <h3 style="margin:0 0 var(--sm)">Timeouts</h3>
+    <p class="text-sec text-sm" style="margin:0 0 var(--md)">Maximum time (in seconds) to wait for AI generation tasks to complete before timing out.</p>
+    <div class="card" style="margin-bottom:var(--lg)">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="id_docgen_timeout">{{ form.docgen_timeout.label }}</label>
+                {{ form.docgen_timeout }}
+                {% if form.docgen_timeout.help_text %}<div class="helptext">{{ form.docgen_timeout.help_text }}</div>{% endif %}
+                {% if form.docgen_timeout.errors %}<ul class="errorlist">{% for e in form.docgen_timeout.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_doclibgen_timeout">{{ form.doclibgen_timeout.label }}</label>
+                {{ form.doclibgen_timeout }}
+                {% if form.doclibgen_timeout.help_text %}<div class="helptext">{{ form.doclibgen_timeout.help_text }}</div>{% endif %}
+                {% if form.doclibgen_timeout.errors %}<ul class="errorlist">{% for e in form.doclibgen_timeout.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_chartgen_timeout">{{ form.chartgen_timeout.label }}</label>
+                {{ form.chartgen_timeout }}
+                {% if form.chartgen_timeout.help_text %}<div class="helptext">{{ form.chartgen_timeout.help_text }}</div>{% endif %}
+                {% if form.chartgen_timeout.errors %}<ul class="errorlist">{% for e in form.chartgen_timeout.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <h3 style="margin:0 0 var(--sm)">Agent Limits</h3>
+    <p class="text-sec text-sm" style="margin:0 0 var(--md)">Global defaults for agent behaviour. Role-level limits take precedence over these values.</p>
+    <div class="card" style="margin-bottom:var(--lg)">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="id_max_row_limit">{{ form.max_row_limit.label }}</label>
+                {{ form.max_row_limit }}
+                {% if form.max_row_limit.help_text %}<div class="helptext">{{ form.max_row_limit.help_text }}</div>{% endif %}
+                {% if form.max_row_limit.errors %}<ul class="errorlist">{% for e in form.max_row_limit.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_hot_reload_interval">{{ form.hot_reload_interval.label }}</label>
+                {{ form.hot_reload_interval }}
+                {% if form.hot_reload_interval.help_text %}<div class="helptext">{{ form.hot_reload_interval.help_text }}</div>{% endif %}
+                {% if form.hot_reload_interval.errors %}<ul class="errorlist">{% for e in form.hot_reload_interval.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="form-actions" style="margin-top:var(--md)">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div>
+</form>
+
+<div class="help-modal" id="help-settings-general">
+    <div class="help-modal__panel">
+        <div class="help-modal__header">
+            <h2><i class="fa-solid fa-sliders"></i> General Settings</h2>
+            <button class="btn btn-ghost btn-sm" data-help-close><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="help-modal__body">
+            <h3>How Settings Work</h3>
+            <p>These settings are stored in the database, not in environment variables or code. When you save a value here, it takes effect immediately — no server restart is required.</p>
+            <p>If a field has never been saved, TetherDust falls back to the corresponding environment variable from your <code>docker-compose.yml</code>. Once you save a value through this page, the database value takes precedence over the environment variable.</p>
+
+            <h3>Service URLs</h3>
+            <p><strong>Codex Service URL</strong> is the address of the Codex API gateway that the web app uses to communicate with the AI agent. <strong>MCP Base URL</strong> is the address of the MCP server that exposes database tools to the agent. These default to the Docker service hostnames (<code>http://codex:8002</code> and <code>http://tdmcp:8001</code>) and rarely need changing unless you are reconfiguring your deployment.</p>
+
+            <h3>Timeouts</h3>
+            <p>Doc Gen and Chart Gen timeouts control how long TetherDust waits for the AI to finish generating documentation or charts before giving up. The default is 1800 seconds (30 minutes). Increase this if generation tasks are being cut off prematurely on large datasets.</p>
+
+            <h3>Agent Limits</h3>
+            <p><strong>Max Row Limit</strong> sets the global default for how many rows the agent may return per query when a user has no assigned role. Role-level limits always take precedence — this only applies when there is no role to inherit a limit from.</p>
+            <p><strong>Hot Reload Interval</strong> controls how often the MCP server re-reads documentation sources from disk. Leave blank to disable hot reloading.</p>
+
+            <div class="help-modal__tip">
+                <strong>Tip:</strong> To revert a setting back to the environment variable default, you can clear the value and save — URL fields will fall back to the env var automatically. For integer fields, re-enter the default value manually.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

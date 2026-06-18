@@ -1,0 +1,76 @@
+{% extends "management/base.html" %}
+{% block title %}Tethers{% endblock %}
+
+{% block content %}
+<div class="tether-admin-page">
+<div class="page-header">
+    <div>
+        <h1>Tethers</h1>
+        <p>Visual links between codebases and databases</p>
+    </div>
+    <div class="flex-gap">
+        <a href="{% url 'management:tether_add' %}" class="btn btn-primary">+ Add Tether</a>
+    </div>
+</div>
+
+<div class="card">
+    {% if rows %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Code Source</th>
+                    <th>Database</th>
+                    <th>Latest Version</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><a href="{% url 'management:tether_detail' row.tether.pk %}"><strong>{{ row.tether.name }}</strong></a></td>
+                    <td>{{ row.tether.source_name }}</td>
+                    <td>{{ row.tether.database_doc_source.folder_name }}</td>
+                    <td>{% if row.latest %}v{{ row.latest.version_number }}{% else %}—{% endif %}</td>
+                    <td>
+                        {% if row.latest %}
+                        <span class="badge {% if row.latest.status == 'success' %}badge-success{% elif row.latest.status == 'failed' %}badge-error{% else %}badge-muted{% endif %}">
+                            {{ row.latest.status|upper }}
+                        </span>
+                        {% else %}
+                        <span class="badge badge-muted">PENDING</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="flex-gap">
+                            <a href="{% url 'management:tether_detail' row.tether.pk %}" class="btn btn-ghost btn-sm">View</a>
+                            <a href="{% url 'management:tether_edit' row.tether.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+                            <form method="post" action="{% url 'management:tether_regenerate' row.tether.pk %}" style="display:inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-ghost btn-sm" title="Regenerate">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'management:tether_delete' row.tether.pk %}" style="display:inline" onsubmit="return confirm('Delete this tether and all its versions?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-ghost btn-sm" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p class="text-sec">No tethers yet. Click <strong>+ Add Tether</strong> to create one.</p>
+    </div>
+    {% endif %}
+</div>
+</div>
+{% endblock %}
