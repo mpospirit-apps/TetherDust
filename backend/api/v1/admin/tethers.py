@@ -15,6 +15,7 @@ from typing import Any, cast
 from django.contrib.auth.models import User
 from django.db.models import QuerySet
 from engine.models import DocumentationSource, Tether, TetherVersion
+from engine.services import TetherService, get
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -40,7 +41,7 @@ def _version_dict(version: TetherVersion, *, is_current: bool) -> dict[str, Any]
 
 
 class TetherSerializer(serializers.ModelSerializer[Tether]):
-    source_name = serializers.CharField(read_only=True)
+    source_name = serializers.SerializerMethodField()
     database_name = serializers.CharField(source="database_doc_source.folder_name", read_only=True)
     current_status = serializers.CharField(source="current_version.status", read_only=True)
     latest_version = serializers.SerializerMethodField()
@@ -72,6 +73,9 @@ class TetherSerializer(serializers.ModelSerializer[Tether]):
             "created_at",
             "updated_at",
         ]
+
+    def get_source_name(self, obj: Tether) -> str:
+        return get(TetherService).source_name(obj)
 
     def get_latest_version(self, obj: Tether) -> dict[str, Any] | None:
         latest = TetherVersion.objects.filter(tether=obj).order_by("-version_number").first()

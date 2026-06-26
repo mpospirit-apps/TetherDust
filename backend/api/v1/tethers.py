@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 from engine.models import Tether
-from engine.services import PermissionService, get
+from engine.services import PermissionService, TetherService, get
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -44,7 +44,7 @@ def _tether_summary(tether: Tether) -> dict[str, object]:
         "id": tether.pk,
         "name": tether.name,
         "description": tether.description,
-        "source_name": tether.source_name,
+        "source_name": get(TetherService).source_name(tether),
         "database_name": tether.database_doc_source.folder_name,
         "has_graph": (
             tether.current_version is not None and tether.current_version.status == "success"

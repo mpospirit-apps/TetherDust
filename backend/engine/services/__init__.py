@@ -11,6 +11,7 @@ from .permissions import PermissionService
 from .registry import get
 from .report import ReportService
 from .system_config import SystemConfigService
+from .tether import TetherService
 
 __all__ = [
     "get",
@@ -23,4 +24,5 @@ __all__ = [
     "PermissionService",
     "ReportService",
     "SystemConfigService",
+    "TetherService",
 ]

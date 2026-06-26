@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.db import models
 
 from ..ids import generate_tth_id, generate_tvr_id
@@ -88,28 +87,6 @@ class Tether(models.Model):
 
     def __str__(self) -> str:
         return self.name
-
-    def clean(self) -> None:
-        """Require exactly one code source: a codebase repo or a codebase doc."""
-        if bool(self.codebase_id) == bool(self.codebase_doc_source_id):
-            raise ValidationError(
-                "Pick exactly one code source: a codebase repository or a codebase "
-                "documentation source."
-            )
-
-    @property
-    def uses_codebase_repo(self) -> bool:
-        """True when the code side is a live codebase repository."""
-        return self.codebase_id is not None
-
-    @property
-    def source_name(self) -> str:
-        """Display name of the code side, whichever source type it is."""
-        if self.codebase is not None:
-            return self.codebase.name
-        if self.codebase_doc_source is not None:
-            return self.codebase_doc_source.folder_name
-        return ""
 
 
 class TetherVersion(models.Model):

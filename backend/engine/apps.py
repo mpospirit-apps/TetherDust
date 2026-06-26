@@ -21,7 +21,7 @@ class EngineConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
 
     def ready(self) -> None:
-        from . import signals  # noqa: F401
+        from . import receivers, signals  # noqa: F401
 
         post_migrate.connect(_seed_builtin_mcp, sender=self)
         post_migrate.connect(_seed_shipped_docs, sender=self)
