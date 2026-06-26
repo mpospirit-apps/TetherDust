@@ -756,6 +756,33 @@ wheels = [
 ]
 
 [[package]]
+name = "djangorestframework"
+version = "3.17.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django", version = "5.2.15", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "django", version = "6.0.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ca/d7/c016e69fac19ff8afdc89db9d31d9ae43ae031e4d1993b20aca179b8301a/djangorestframework-3.17.1.tar.gz", hash = "sha256:a6def5f447fe78ff853bff1d47a3c59bf38f5434b031780b351b0c73a62db1a5", size = 905742, upload-time = "2026-03-24T16:58:33.705Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/e1/2c516bdc83652b1a60c6119366ac2c0607b479ed05cd6093f916ca8928f8/djangorestframework-3.17.1-py3-none-any.whl", hash = "sha256:c3c74dd3e83a5a3efc37b3c18d92bd6f86a6791c7b7d4dff62bb068500e76457", size = 898844, upload-time = "2026-03-24T16:58:31.845Z" },
+]
+
+[[package]]
+name = "djangorestframework-stubs"
+version = "3.17.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django-stubs" },
+    { name = "types-pyyaml" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9d/a1/45e25dab89b3dfc5da7a138f7e82aca4e970269c53a3fceed1e94b31d390/djangorestframework_stubs-3.17.0.tar.gz", hash = "sha256:74c0307cad304c03c15aee5955ec2fdeab0ac854b5bea569dc124892792e2b96", size = 33115, upload-time = "2026-05-13T18:58:36.554Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/72/ff/6e27d4aea12f67d14e0c0ec41869307ae98ad3816858ddc2a56bc3f4e0b5/djangorestframework_stubs-3.17.0-py3-none-any.whl", hash = "sha256:babe2703f0401507780848439f49f76222a178b4fc73a6dcb30d0952a0a6dbc6", size = 57629, upload-time = "2026-05-13T18:58:34.779Z" },
+]
+
+[[package]]
 name = "et-xmlfile"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2168,6 +2195,7 @@ name = "tetherdust-mcp-server"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "mcp" },
     { name = "python-dotenv" },
     { name = "sqlalchemy" },
@@ -2188,6 +2216,7 @@ clickhouse = [
 dev = [
     { name = "celery-types" },
     { name = "django-stubs" },
+    { name = "djangorestframework-stubs" },
     { name = "fastapi" },
     { name = "mypy" },
     { name = "pre-commit" },
@@ -2226,7 +2255,7 @@ web = [
     { name = "daphne" },
     { name = "django", version = "5.2.15", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "django", version = "6.0.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "httpx" },
+    { name = "djangorestframework" },
     { name = "markdown" },
     { name = "openpyxl" },
     { name = "whitenoise" },
@@ -2247,8 +2276,10 @@ requires-dist = [
     { name = "daphne", marker = "extra == 'web'", specifier = ">=4.0.0" },
     { name = "django", marker = "extra == 'web'", specifier = ">=5.0.0" },
     { name = "django-stubs", marker = "extra == 'dev'", specifier = ">=5.0.0" },
+    { name = "djangorestframework", marker = "extra == 'web'", specifier = ">=3.15.0" },
+    { name = "djangorestframework-stubs", marker = "extra == 'dev'", specifier = ">=3.15.0" },
     { name = "fastapi", marker = "extra == 'dev'", specifier = ">=0.111.0" },
-    { name = "httpx", marker = "extra == 'web'", specifier = ">=0.27.0" },
+    { name = "httpx", specifier = ">=0.27.0" },
     { name = "markdown", marker = "extra == 'web'", specifier = ">=3.5.0" },
     { name = "mcp", specifier = ">=1.6.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "~=2.1" },

@@ -1,30 +1,15 @@
 """Tool: update_chart — modify an existing d3.js chart's editable fields."""
 
-import json
-import logging
-from datetime import UTC, datetime
 from typing import Annotated
 
 from pydantic import Field
 
-from ..utils.db_service import QueryValidationError, validate_read_only_sql
-from ._admin_db import get_admin_engine
-
-logger = logging.getLogger(__name__)
-
-
-def _validate_sql(sql: str) -> str | None:
-    """Validate that SQL is a read-only SELECT query. Returns error message or None."""
-    try:
-        validate_read_only_sql(sql)
-    except QueryValidationError as err:
-        return str(err)
-    return None
+from ._internal_api import call_internal
 
 
 async def update_chart(
     chart_id: Annotated[
-        int,
+        str,
         Field(description="ID of the chart to modify."),
     ],
     title: Annotated[
@@ -107,84 +92,16 @@ details and examples.
 
 IMPORTANT — BORDER RADIUS: Do NOT use rx/ry attributes or CSS border-radius \
 on chart shapes unless the user explicitly asks for rounded corners."""
-    from sqlalchemy import text
-
-    updates: dict[str, object] = {}
-    updated_fields: list[str] = []
-
+    # Forward only the provided fields. SQL validation and cache invalidation on
+    # an sql_query change are handled server-side by the internal API.
+    payload: dict[str, str] = {}
     if title is not None:
-        updates["title"] = title
-        updated_fields.append("title")
+        payload["title"] = title
     if description is not None:
-        updates["description"] = description
-        updated_fields.append("description")
+        payload["description"] = description
     if sql_query is not None:
-        sql_error = _validate_sql(sql_query)
-        if sql_error:
-            return json.dumps({"success": False, "error": sql_error})
-        updates["sql_query"] = sql_query
-        updated_fields.append("sql_query")
+        payload["sql_query"] = sql_query
     if d3_code is not None:
-        updates["custom_d3_code"] = d3_code
-        updated_fields.append("d3_code")
+        payload["d3_code"] = d3_code
 
-    if not updates:
-        return json.dumps(
-            {
-                "success": False,
-                "error": "Nothing to update. Provide at least one of: title, "
-                "description, sql_query, d3_code.",
-            }
-        )
-
-    try:
-        engine = get_admin_engine()
-    except RuntimeError as e:
-        return json.dumps({"success": False, "error": str(e)})
-
-    now = datetime.now(UTC)
-
-    try:
-        with engine.connect() as conn:
-            existing = conn.execute(
-                text("SELECT id FROM engine_chart WHERE id = :id"),
-                {"id": chart_id},
-            ).fetchone()
-            if not existing:
-                return json.dumps(
-                    {
-                        "success": False,
-                        "error": f"Chart with id={chart_id} not found.",
-                    }
-                )
-
-            set_clauses = [f"{col} = :{col}" for col in updates]
-            set_clauses.append("updated_at = :now")
-
-            # When sql_query changes, invalidate the cached data so the
-            # dashboard re-runs the query on next load.
-            if "sql_query" in updates:
-                set_clauses.append("cached_data = CAST(:empty_cache AS jsonb)")
-                set_clauses.append("last_refreshed_at = NULL")
-                set_clauses.append("last_error = ''")
-                updates["empty_cache"] = json.dumps({})
-
-            params = {**updates, "id": chart_id, "now": now}
-
-            conn.execute(
-                text(f"UPDATE engine_chart SET {', '.join(set_clauses)} WHERE id = :id"),
-                params,
-            )
-            conn.commit()
-
-        logger.info("Updated chart id=%s fields=%s", chart_id, updated_fields)
-        return json.dumps(
-            {
-                "success": True,
-                "chart_id": chart_id,
-                "updated_fields": updated_fields,
-            }
-        )
-    except Exception as e:
-        logger.error("Failed to update chart %s: %s", chart_id, e, exc_info=True)
-        return json.dumps({"success": False, "error": str(e)})
+    return await call_internal("PATCH", f"/charts/{chart_id}/", payload)

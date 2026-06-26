@@ -1,0 +1,237 @@
+/* Chart edit / dashboard chart-form styles. */
+
+/* ── Dashboard view (workspace) — ported from the legacy dashboard_detail page ── */
+.dashboard-view {
+    padding: var(--lg);
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.dashboard-view__header { margin-bottom: var(--lg); }
+.dashboard-view__header h1 { margin: 0; }
+.dashboard-view__header p {
+    margin: var(--xs) 0 0;
+    color: var(--text-sec);
+    font-size: var(--text-sm);
+}
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: var(--md);
+}
+.chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0;
+    overflow: hidden;
+    min-width: 0;
+}
+.chart-card__header {
+    padding: var(--sm) var(--md);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--sm);
+}
+.chart-card__header h4 { margin: 0; font-size: var(--text-sm); }
+.chart-card__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+.chart-card__refresh-info { white-space: nowrap; }
+.chart-card__refresh-btn {
+    border: none;
+    background: none;
+    color: var(--text-sec);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: var(--text-xs);
+    border-radius: 0;
+    transition: color .15s;
+}
+.chart-card__refresh-btn:hover { color: var(--c-cyan); }
+.chart-card__refresh-btn .fa-rotate.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.chart-card__body { padding: var(--sm); }
+.chart-card__body .chart-container {
+    width: 100%;
+    overflow: hidden;
+    color: var(--text);
+}
+.chart-card__error {
+    color: var(--danger);
+    font-size: var(--text-xs);
+    padding: var(--md);
+    text-align: center;
+}
+.chart-card__loading {
+    text-align: center;
+    padding: var(--lg);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+}
+
+/* Theme-aware defaults for d3 svg elements (chart cards + the edit preview). */
+.chart-container svg text,
+.chart-preview-container svg text { fill: currentColor; }
+.chart-container svg .domain,
+.chart-container svg .tick line,
+.chart-preview-container svg .domain,
+.chart-preview-container svg .tick line { stroke: var(--border); }
+.chart-container svg .tick text,
+.chart-preview-container svg .tick text { fill: var(--text-sec); }
+
+.chart-edit-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--md);
+    align-items: start;
+}
+@media (max-width: 1100px) {
+    .chart-edit-grid { grid-template-columns: 1fr; }
+}
+.chart-edit-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--md);
+    position: sticky;
+    top: var(--md);
+}
+.chart-preview-card,
+.chart-aichat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.chart-preview-card__header,
+.chart-aichat-card__header {
+    padding: var(--sm) var(--md);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--sm);
+    font-size: var(--text-sm);
+}
+.chart-preview-card__header h4,
+.chart-aichat-card__header h4 {
+    margin: 0;
+    font-size: var(--text-sm);
+}
+.chart-preview-card__meta {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+.chart-preview-card__body {
+    padding: var(--sm);
+    position: relative;
+}
+.chart-preview-container {
+    width: 100%;
+    min-height: 300px;
+    overflow: hidden;
+    color: var(--text);
+}
+.chart-preview-container svg text { fill: currentColor; }
+.chart-preview-container svg .domain,
+.chart-preview-container svg .tick line { stroke: var(--border); }
+.chart-preview-container svg .tick text { fill: var(--text-sec); }
+
+.chart-preview-empty {
+    text-align: center;
+    padding: var(--lg);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+}
+.chart-preview-error {
+    margin: var(--sm) var(--md) var(--md);
+    padding: var(--sm) var(--md);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: none;
+}
+.chart-preview-error.is-visible { display: block; }
+
+/* AI chat panel */
+.chart-aichat-transcript {
+    max-height: 360px;
+    overflow-y: auto;
+    padding: var(--sm) var(--md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sm);
+    font-size: var(--text-sm);
+}
+.chart-aichat-empty {
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    padding: var(--sm) var(--md);
+}
+.chart-aichat-empty__intro {
+    margin-bottom: var(--xs);
+    color: var(--text-sec);
+}
+.chart-aichat-empty ul {
+    margin: 0;
+    padding-left: var(--md);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.chart-aichat-empty li { line-height: 1.4; }
+/* Scale the global .typing-dots (from the main chat) down for the
+   compact assistant bubble. */
+.chart-aichat-msg .typing-dots { gap: 4px; }
+.chart-aichat-msg .typing-dot  { width: 6px; height: 6px; }
+.chart-aichat-msg {
+    padding: var(--xs) var(--sm);
+    border-left: 2px solid var(--border);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.chart-aichat-msg--user {
+    border-left-color: var(--c-cyan);
+    color: var(--text);
+}
+.chart-aichat-msg--assistant {
+    border-left-color: var(--c-lime);
+    color: var(--text-sec);
+}
+.chart-aichat-msg--error {
+    border-left-color: var(--danger);
+    color: var(--danger);
+}
+.chart-aichat-msg__label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+.chart-aichat-form {
+    border-top: 1px solid var(--border);
+    padding: var(--sm);
+    display: flex;
+    gap: var(--sm);
+}
+.chart-aichat-form input[type="text"] {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: var(--xs) var(--sm);
+    font-family: inherit;
+    font-size: var(--text-sm);
+}
+.chart-aichat-form input[type="text"]:focus {
+    outline: none;
+    border-color: var(--c-cyan);
+}

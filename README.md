@@ -12,7 +12,7 @@ Feel free to test its capabilities, but expect **breaking behavior and a complet
 <div align="center">
   <p>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPLv3-F23847?style=flat" alt="License: AGPLv3"></a>
-    <img src="https://img.shields.io/badge/Version-0.1.0-3DBCD9?style=flat" alt="Version 0.1.0">
+    <img src="https://img.shields.io/badge/Version-0.4.0-3DBCD9?style=flat" alt="Version 0.4.0">
     <img src="https://img.shields.io/badge/Docker-Compose-F24B99?style=flat&logo=docker&logoColor=white" alt="Docker Compose">
     <img src="https://img.shields.io/badge/Python-3.11%2B-F29544?style=flat&logo=python&logoColor=white" alt="Python 3.11+">
   </p>
@@ -118,11 +118,71 @@ Actions and queries are logged in an immutable audit log. Every chat session, ag
 
 ### How it runs
 
-The full stack ships as a Docker Compose project: a Django web app (portal + admin
-console), an MCP server that exposes database and generation tools, pluggable AI agent
-gateways (Codex CLI, Claude Code CLI, direct API/Ollama), PostgreSQL, Redis, and
+The full stack ships as a Docker Compose project behind a single nginx origin: a
+React + Vite SPA (the workspace + admin console), an API-only Django backend (DRF +
+WebSockets), an MCP server that exposes database and generation tools, pluggable AI
+agent gateways (Codex CLI, Claude Code CLI, direct API/Ollama), PostgreSQL, Redis, and
 Celery workers for background tasks. Switching the active agent is a single toggle in
 the console — no restarts, no config changes.
+
+```mermaid
+flowchart TB
+    subgraph net["Docker Compose network (private)"]
+        nginx["nginx<br/>public gateway"]
+        frontend["frontend<br/>React + Vite SPA"]
+        backend["backend<br/>Django API + WebSockets"]
+        codex["codex · codex-api<br/>Codex CLI gateway"]
+        claude["claude · claude-api<br/>Claude Code gateway"]
+        ollama["ollama<br/>local models · profile"]
+        tdmcp["tdmcp<br/>built-in MCP tools"]
+        localmcp["local-mcp<br/>custom MCP servers"]
+        worker["celery-worker · celery-beat<br/>background tasks"]
+        db[("db<br/>PostgreSQL")]
+        redis[("redis")]
+
+        nginx -- "/" --> frontend
+        nginx -- "/api · /ws/" --> backend
+        backend --> db
+        backend --> redis
+        backend -- "/chat (SSE)" --> codex
+        backend -- "/chat (SSE)" --> claude
+        backend -- "direct API" --> ollama
+        backend -- "MCP filter" --> tdmcp
+        codex -- MCP --> tdmcp
+        claude -- MCP --> tdmcp
+        codex -- MCP --> localmcp
+        claude -- MCP --> localmcp
+        tdmcp -- "writes → /api/internal" --> backend
+        worker --> db
+        worker --> redis
+    end
+
+    Browser([👤 Browser]) -- "http / ws · :8000" --> nginx
+    tdmcp --> targets[("Target databases")]
+    worker --> targets
+```
+
+Only **`nginx`** is published to the host (`8000`); every other container stays on the
+private Compose network with no user-facing port.
+
+| Container | Port (internal) | Role |
+| --- | --- | --- |
+| `nginx` | `80` → host `8000` | Single public origin — serves the SPA and proxies `/api` + `/ws/` to the backend |
+| `frontend` | `80` | React + Vite SPA (workspace + admin console), built to static assets |
+| `backend` | `8000` | API-only Django (DRF + Channels WebSockets) on Daphne |
+| `tdmcp` | `8001` | Built-in MCP server — database query + generation tools |
+| `local-mcp` | `8003` | Runs user-defined custom MCP servers |
+| `codex` · `codex-api` | `8002` | Codex CLI gateway — subscription token / OpenAI API key |
+| `claude` · `claude-api` | `8002` | Claude Code CLI gateway — Pro/Max OAuth token / Anthropic API key |
+| `ollama` | `11434` | Local LLM runtime, opt-in via `--profile ollama` |
+| `db` | `5432` | PostgreSQL application database |
+| `redis` | `6379` | Celery broker + result backend |
+| `celery-worker` | — | Report execution and background jobs |
+| `celery-beat` | — | Scheduler for periodic tasks (report runs, dashboard refreshes, update check) |
+
+Persistent state lives in named volumes: `postgres-data` (database), `redis-data`,
+`codex-home` (Codex CLI auth/config), `report-results` (generated report files, shared by
+`backend` and `celery-worker`), and `ollama-models`.
 
 ## Quickstart
 
@@ -156,8 +216,8 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 ```
 
 Set `TETHERDUST_ENCRYPTION_KEY` to the generated value. It is shared from `.env` to every
-service that needs it (`mcp`, `local-mcp`, `web`, `celery-worker`, `celery-beat`), so you
-only set it once.
+service that needs it (`tdmcp`, `local-mcp`, `backend`, `celery-worker`, `celery-beat`), so
+you only set it once.
 
 **b. Generate a Django secret key:**
 
@@ -178,10 +238,10 @@ DJANGO_SUPERUSER_EMAIL=you@example.com
 
 **d. Change the database password.** Set `DB_NAME`, `DB_USER`, and `DB_PASSWORD` to your
 chosen values. A single set of variables feeds the `db` service, both MCP connection
-strings, and the web/celery services — there is nothing to keep in sync by hand.
+strings, and the backend/celery services — there is nothing to keep in sync by hand.
 
 **e. Generate the internal service secrets.** Two shared secrets authenticate
-TetherDust's internal service-to-service calls — `MCP_FILTER_SECRET` (web/celery →
+TetherDust's internal service-to-service calls — `MCP_FILTER_SECRET` (backend/celery →
 MCP filter registration) and `AGENT_GATEWAY_SECRET` (Django → the Codex/Claude
 gateways). Generate a value for each:
 
@@ -207,9 +267,9 @@ server with auto-reload, hardening relaxed). Leave it `false` for any real deplo
 docker compose up --build
 ```
 
-This starts PostgreSQL, the MCP server, the agent gateways, Redis, Celery, and the Django
-web app. First boot runs database migrations, creates your superuser, and auto-discovers
-documentation sources.
+This starts PostgreSQL, the MCP servers, the agent gateways, Redis, Celery, the Django
+backend, the React frontend, and the nginx gateway. First boot runs database migrations,
+creates your superuser, and auto-discovers documentation sources.
 
 ### 3. Open the app
 
@@ -285,12 +345,12 @@ TetherDust to a network, work through this checklist:
   `https://tetherdust.example.com` (required for form posts behind a proxy).
 - [ ] **Terminate TLS** in front of the app (reverse proxy / load balancer) and
   forward `X-Forwarded-Proto`.
-- [ ] **Publish only the `web` service (port 8000).** The internal services —
-  `mcp` (8001), `local-mcp` (8003), the agent gateways (`codex`/`codex-api`/
-  `claude`/`claude-api`, 8002), `db`, and `redis` — have no user-facing auth and
-  must stay on the private Compose network. The default `docker-compose.yml`
-  only maps `8000`; if you add port mappings or run host networking, do **not**
-  expose the others. Treat `MCP_FILTER_SECRET` / `AGENT_GATEWAY_SECRET` as
+- [ ] **Publish only the `nginx` service (port 8000).** The internal services —
+  `backend`, `frontend`, `tdmcp` (8001), `local-mcp` (8003), the agent gateways
+  (`codex`/`codex-api`/`claude`/`claude-api`, 8002), `db`, and `redis` — have no
+  user-facing auth and must stay on the private Compose network. The default
+  `docker-compose.yml` only maps `8000`; if you add port mappings or run host
+  networking, do **not** expose the others. Treat `MCP_FILTER_SECRET` / `AGENT_GATEWAY_SECRET` as
   defense-in-depth, not a substitute for network isolation.
 - [ ] **Keep secrets out of version control** — secrets already live in the gitignored
   `.env`; for production prefer a secrets manager and never commit `.env`.
@@ -318,7 +378,7 @@ the `changelog/` directory (one `changelog/<version>.md` file per release) and a
 
 The update check (a Celery task, every 6 hours) calls the GitHub API for the
 **latest published Release** of the upstream repo (`GITHUB_REPOSITORY` in
-`core/version.py`) and compares its tag against the running `VERSION` using
+`engine/version.py`) and compares its tag against the running `VERSION` using
 semantic versioning. A newer tag lights up the indicator. There is nothing to
 configure — every install checks the same official repo.
 

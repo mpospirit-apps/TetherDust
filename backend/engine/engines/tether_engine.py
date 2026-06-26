@@ -23,8 +23,10 @@ from ..agents.stream import parse_chunk, scrub_markers, tool_status_label
 from ..prompts import build_tether_prompt
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import User
+
     from ..agents.base import BaseAgent
-    from ..models import TetherVersion
+    from ..models import Tether, TetherVersion
 
 # Codex HTTP timeout for tether generation. The default 300s is far too short
 # for a rich graph; mirror the chartgen pattern with a 30-minute ceiling.
@@ -279,6 +281,44 @@ async def _collect_codex_response(
     text = final_response if final_response is not None else "".join(parts)
     agent._tether_raw_log = "".join(raw_log)
     return text
+
+
+def start_generation(tether: Tether, user: User | None) -> TetherVersion:
+    """Create a new ``TetherVersion`` and run the generator in a background thread.
+
+    Mirrors the docs/dashboard generation pattern — generation runs inside the
+    web container so the agent gateway URL is available, and the version row is
+    updated continuously so the detail page can poll for live status.
+    """
+    import threading
+
+    from ..models import TetherVersion
+
+    last = TetherVersion.objects.filter(tether=tether).order_by("-version_number").first()
+    next_number = (last.version_number + 1) if last else 1
+    version = TetherVersion.objects.create(
+        tether=tether,
+        version_number=next_number,
+        status="running",
+        triggered_by=user,
+    )
+
+    def _run(version_pk: str) -> None:
+        import django
+
+        django.setup()
+        from ..models import TetherVersion
+
+        v = TetherVersion.objects.select_related(
+            "tether",
+            "tether__codebase",
+            "tether__codebase_doc_source",
+            "tether__database_doc_source",
+        ).get(pk=version_pk)
+        generate_tether(v)
+
+    threading.Thread(target=_run, args=(version.pk,), daemon=True).start()
+    return version
 
 
 def generate_tether(version: TetherVersion) -> None:

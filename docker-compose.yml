@@ -27,8 +27,12 @@ services:
       - TETHERDUST_DOCUMENTATIONS_DIR=/app/documentations
       - ADMIN_DATABASE_URL=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - TETHERDUST_ENCRYPTION_KEY=${TETHERDUST_ENCRYPTION_KEY}
-      # Shared secret authenticating filter registration from web/celery.
+      # Shared secret authenticating filter registration from backend/celery.
       - MCP_FILTER_SECRET=${MCP_FILTER_SECRET}
+      # Mutating tools (create_dashboard/add_chart/update_chart/save_tether_graph)
+      # write via the backend internal API instead of raw SQL.
+      - BACKEND_INTERNAL_API_URL=http://backend:8000/api/internal
+      - INTERNAL_API_SERVICE_TOKEN=${INTERNAL_API_SERVICE_TOKEN}
     volumes:
       - ./tdmcp:/app/tdmcp
       - ./documentations:/app/documentations
@@ -94,9 +98,9 @@ services:
   #
   # Runs by default (no profile) so switching the active agent to a codex_api
   # agent is a seamless DB flip — the container is already up. Idle cost is just
-  # the FastAPI wrapper (~50–80 MB). Deliberately NOT in `web`'s depends_on: an
+  # the FastAPI wrapper (~50–80 MB). Deliberately NOT in `backend`'s depends_on: an
   # unhealthy/missing agent must surface as a runtime "service unavailable",
-  # never block web startup.
+  # never block backend startup.
   codex-api:
     build:
       context: .
@@ -130,8 +134,8 @@ services:
   # Runs by default (no profile) so switching the active agent between Codex and
   # Claude in the management is a seamless DB flip — the target container is already
   # up and healthy. Idle cost is just the FastAPI wrapper (~50–80 MB). It is
-  # deliberately NOT in `web`'s depends_on: an unhealthy/missing agent must
-  # surface as a runtime "service unavailable", never block web startup.
+  # deliberately NOT in `backend`'s depends_on: an unhealthy/missing agent must
+  # surface as a runtime "service unavailable", never block backend startup.
   claude:
     build:
       context: .
@@ -162,8 +166,8 @@ services:
   # Runs by default (no profile) so switching the active agent to a
   # claude_code_api agent is a seamless DB flip — the container is already up.
   # Idle cost is just the FastAPI wrapper (~50–80 MB). Deliberately NOT in
-  # `web`'s depends_on: an unhealthy/missing agent must surface as a runtime
-  # "service unavailable", never block web startup.
+  # `backend`'s depends_on: an unhealthy/missing agent must surface as a runtime
+  # "service unavailable", never block backend startup.
   claude-api:
     build:
       context: .
@@ -187,7 +191,7 @@ services:
 
   # Local LLM with Ollama (self-hosted, OpenAI-compatible API). The
   # OllamaAgent (a Direct API agent) reaches it at http://ollama:11434/v1.
-  # Optional and profile-gated — NOT a web dependency, so leaving the profile off
+  # Optional and profile-gated — NOT a backend dependency, so leaving the profile off
   # never blocks startup. Start with `docker compose --profile ollama up -d`, then
   # pull a tool-call-capable model: `docker compose exec ollama ollama pull llama3.1`.
   ollama:
@@ -219,12 +223,14 @@ services:
       timeout: 3s
       retries: 5
 
-  web:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+    # Internal-only: the nginx gateway is the single public origin and proxies
+    # /api + /ws/ to backend:8000. No host port is published.
+    expose:
+      - "8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
       interval: 30s
@@ -243,7 +249,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      # Mount web app for development (live template/code changes)
+      # Mount backend source for development (live code changes)
       - ./backend:/app/backend
       - ./tdmcp:/app/tdmcp
       - ./documentations:/app/documentations:ro
@@ -253,7 +259,9 @@ services:
       # Debug mode + allowed hosts are configured in .env (see .env.example).
       # The :-false fallback keeps the deploy secure if the var is ever unset.
       - DJANGO_DEBUG=${DJANGO_DEBUG:-false}
-      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      # `backend` is appended so the in-network internal API call (tdmcp →
+      # http://backend:8000/api/internal) passes Django's Host header check.
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1},backend
       # On-prem deployments run without a TLS proxy, so disable Django's HTTP→HTTPS
       # redirect. Users who terminate TLS at a reverse proxy should set this to true.
       - DJANGO_SECURE_SSL_REDIRECT=${DJANGO_SECURE_SSL_REDIRECT:-false}
@@ -281,10 +289,36 @@ services:
       # Shared secrets: filter registration (→ mcp) and gateway calls (→ codex/claude).
       - MCP_FILTER_SECRET=${MCP_FILTER_SECRET}
       - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
+      # Shared secret authenticating the internal service API (tdmcp → backend).
+      - INTERNAL_API_SERVICE_TOKEN=${INTERNAL_API_SERVICE_TOKEN}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - TETHERDUST_REPORT_RESULTS_DIR=/app/report_results
+
+  # Frontend container: builds the React SPA and serves the static bundle via its
+  # own nginx (internal :80). No backend/proxy knowledge — the gateway routes to it.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    expose:
+      - "80"
+
+  # Public gateway (single origin, :8000): routes /api + /ws/ to the backend
+  # (Daphne) and everything else to the frontend static server. This is the only
+  # public entry point — the backend is internal-only.
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
 
   celery-worker:
     build:
@@ -298,7 +332,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      web:
+      backend:
         condition: service_healthy
     volumes:
       - ./backend:/app/backend
@@ -332,7 +366,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      web:
+      backend:
         condition: service_healthy
     volumes:
       - ./backend:/app/backend

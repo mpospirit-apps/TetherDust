@@ -65,9 +65,11 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "channels",
+    "rest_framework",
     "engine",
     "workspace",
     "management",
+    "api",
 ]
 
 MIDDLEWARE = [
@@ -86,6 +88,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "project.urls"
 
+# The template engine is retained only for DRF's browsable API; there are no app
+# templates (the SPA is the entire UI). The legacy per-view UI context processors
+# were removed with the server-rendered pages — /api/v1/auth/me/ now carries the
+# permission flags the templates used to inject.
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -96,13 +102,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "workspace.context_processors.docs_access",
-                "workspace.context_processors.reports_access",
-                "workspace.context_processors.dashboards_access",
-                "workspace.context_processors.chat_access",
-                "workspace.context_processors.tethers_access",
-                "management.context_processors.user_management_access",
-                "management.context_processors.update_status",
             ],
         },
     },
@@ -178,9 +177,26 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 
+# Django REST Framework — session-cookie auth (CSRF enforced on unsafe methods).
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 50,
+}
+
 # TetherDust-specific settings
 # Encryption key for database credentials (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())") # noqa: E501
 TETHERDUST_ENCRYPTION_KEY = os.getenv("TETHERDUST_ENCRYPTION_KEY", "")
+
+# Shared secret authenticating the internal service API (tdmcp → backend). The
+# MCP server's mutating tools send it as the X-Service-Token header. Fails closed:
+# when unset, every /api/internal/ call is rejected (it is a write API).
+INTERNAL_API_SERVICE_TOKEN = os.getenv("INTERNAL_API_SERVICE_TOKEN", "")
 
 # Report results filesystem storage
 TETHERDUST_REPORT_RESULTS_DIR = os.getenv(
