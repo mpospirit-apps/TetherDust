@@ -248,7 +248,7 @@ export function ChatComposer({ connected, streaming, onSend, onCancel }: Props) 
 
   return (
     <form
-      className="chat-input"
+      className="chat-composer-form"
       onSubmit={(e) => {
         e.preventDefault();
         submit();

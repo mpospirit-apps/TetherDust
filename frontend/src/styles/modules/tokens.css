@@ -178,6 +178,17 @@
     border-bottom-color: rgba(255,255,255,.08);
 }
 
+[data-theme="dark"] .docs-toggle-btn {
+    background: rgba(20,20,16,.75);
+    border-color: rgba(255,255,255,.08);
+    color: var(--text-sec);
+}
+[data-theme="dark"] .docs-toggle-btn:hover {
+    background: rgba(61,188,217,.16);
+    border-color: var(--c-cyan);
+    color: var(--c-cyan);
+}
+
 [data-theme="dark"] thead th {
     background: linear-gradient(135deg, #1C1B18 0%, #111110 100%);
 }

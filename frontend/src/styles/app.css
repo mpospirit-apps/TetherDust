@@ -34,150 +34,50 @@
   box-shadow: var(--shadow);
 }
 
-/* ── Chat ── */
-.chat-layout {
-  display: flex;
-  height: calc(100vh - var(--navbar-h));
-}
-.chat-sidebar {
-  width: 260px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--border);
-  padding: var(--md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sm);
-  overflow-y: auto;
-}
-.chat-agent {
-  display: flex;
-  align-items: center;
-  gap: var(--xs);
-  font-size: var(--text-sm);
-  color: var(--text-sec);
-  padding: var(--xs) 0;
-}
-.chat-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.chat-dot.is-on {
-  background: var(--success);
-}
-.chat-dot.is-off {
-  background: var(--disabled);
-}
-.chat-sessions {
-  overflow-y: auto;
-}
-.chat-sessions-heading {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin: var(--sm) 0 var(--xs);
-}
+/* ── Chat ──
+   The chat sidebar reuses the shared `.docs-sidebar` glass panel (see
+   modules/docs.css) and the chat message area reuses the original
+   `.message` / `.message-content` / `.tool-pill` design (see modules/chat.css)
+   so it stays consistent with the other tabs. This block only holds the
+   chat-specific glue: the session rows and inline status. */
+
+/* Session rows: a `.docs-file-btn` spanning the sidebar width */
 .chat-session {
+  position: relative;
   display: flex;
   align-items: center;
-  border-radius: 8px;
-}
-.chat-session.active {
-  background: rgba(128, 128, 128, 0.14);
 }
 .chat-session-name {
   flex: 1;
   min-width: 0;
-  text-align: left;
-  background: none;
-  border: 0;
-  padding: var(--xs) var(--sm);
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
+}
+.chat-session-name span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.chat-session-del {
-  background: none;
-  border: 0;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: var(--xs);
-}
-.chat-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--md);
-}
-.chat-empty {
-  margin: auto;
-}
-.chat-msg {
-  display: flex;
-}
-.chat-msg--user {
-  justify-content: flex-end;
-}
-.chat-bubble {
-  max-width: 760px;
-  padding: var(--sm) var(--md);
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-}
-.chat-msg--user .chat-bubble {
-  background: var(--c-dust);
-  color: #fff;
-  border-color: transparent;
-}
-.chat-bubble pre {
-  background: rgba(128, 128, 128, 0.14);
-  padding: var(--sm);
-  border-radius: 8px;
-  overflow-x: auto;
-}
-.chat-bubble :first-child {
-  margin-top: 0;
-}
-.chat-bubble :last-child {
-  margin-bottom: 0;
-}
-.chat-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--xs);
-  margin-top: var(--sm);
-}
-.chat-tool {
+
+/* Inline agent status (e.g. "Running query…") under a streaming message */
+.typing-inline-status {
+  padding: 6px 2px 0;
   font-size: var(--text-xs);
-  background: rgba(128, 128, 128, 0.16);
-  padding: 2px 8px;
-  border-radius: 999px;
-  color: var(--text-sec);
+  color: var(--text-muted);
+  text-align: left;
 }
-.chat-status {
-  color: var(--text-sec);
-  font-size: var(--text-sm);
-}
-.chat-input {
+
+/* Composer row. Its own class (not `.chat-input`, which modules/chat.css styles
+   as the legacy textarea with `flex: 1`) so it sizes to content and centers on
+   the same 900px column as `.chat-messages`. */
+.chat-composer-form {
   display: flex;
   gap: var(--sm);
-  padding: var(--md) var(--lg);
-  border-top: 1px solid var(--border);
+  align-items: flex-end;
+  padding: var(--lg);
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
 }
-.chat-input textarea {
+.chat-composer-form textarea {
   flex: 1;
   resize: none;
 }

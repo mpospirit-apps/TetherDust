@@ -1,15 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  deleteChatSession,
-  getAgentStatus,
-  listChatSessions,
-  type ChatSessionItem,
-} from "../api/chat";
+import { getAgentStatus, listChatSessions, type ChatSessionItem } from "../api/chat";
 import { ChatComposer } from "./ChatComposer";
 import { useChatSocket } from "./useChatSocket";
+
+const GROUP_COLORS = [
+  "var(--c-cyan)",
+  "var(--c-lime)",
+  "var(--c-pink)",
+  "var(--c-orange)",
+  "var(--c-red)",
+];
 
 function groupSessions(sessions: ChatSessionItem[]): [string, ChatSessionItem[]][] {
   const map = new Map<string, ChatSessionItem[]>();
@@ -21,10 +24,15 @@ function groupSessions(sessions: ChatSessionItem[]): [string, ChatSessionItem[]]
   return [...map.entries()];
 }
 
+function toolDisplayName(name: string): string {
+  return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function ChatPage() {
   const queryClient = useQueryClient();
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [connKey, setConnKey] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const sessionsQuery = useQuery({ queryKey: ["chat", "sessions"], queryFn: listChatSessions });
@@ -56,110 +64,164 @@ export function ChatPage() {
     setConnKey((k) => k + 1);
   }
 
-  const delSession = useMutation({
-    mutationFn: deleteChatSession,
-    onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: ["chat", "sessions"] });
-      if (id === currentSessionId) newChat();
-    },
-  });
-
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, statusText]);
 
   const grouped = groupSessions(sessionsQuery.data?.sessions ?? []);
   const agentName = agentQuery.data?.name ?? null;
-  const agentConnected = agentQuery.data?.connected ?? false;
 
   return (
     <div className="chat-layout">
-      <aside className="chat-sidebar">
-        <button className="btn btn-primary" style={{ width: "100%" }} onClick={newChat}>
-          + New chat
-        </button>
-        <div className="chat-agent">
-          <span className={agentConnected ? "chat-dot is-on" : "chat-dot is-off"} />
-          <span>{agentName ?? "No agent active"}</span>
+      <aside className={sidebarOpen ? "docs-sidebar" : "docs-sidebar collapsed"}>
+        <div className="docs-sidebar-header">
+          <h3>Chat History</h3>
+          <div className="sidebar-header-actions">
+            <button className="history-new-btn" title="New chat" onClick={newChat}>
+              <i className="fa-solid fa-pen-to-square" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              aria-label="Collapse sidebar"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <i className="fa-solid fa-angles-left" />
+            </button>
+          </div>
         </div>
-        <div className="chat-sessions">
-          {grouped.map(([group, items]) => (
-            <div key={group}>
-              <div className="chat-sessions-heading">{group}</div>
-              {items.map((s) => (
+        <div className="docs-tree">
+          {grouped.length === 0 ? (
+            <p className="text-sec" style={{ padding: "var(--md) var(--lg)" }}>
+              No chats yet.
+            </p>
+          ) : (
+            grouped.map(([group, items], idx) => (
+              <div key={group}>
                 <div
-                  key={s.id}
-                  className={s.id === currentSessionId ? "chat-session active" : "chat-session"}
+                  className="history-section-label"
+                  style={{ color: GROUP_COLORS[idx % GROUP_COLORS.length] }}
                 >
-                  <button className="chat-session-name" onClick={() => selectSession(s.id)}>
-                    {s.title}
-                  </button>
-                  <button
-                    className="chat-session-del"
-                    title="Delete session"
-                    onClick={() => delSession.mutate(s.id)}
-                  >
-                    <i className="fa-solid fa-trash" />
-                  </button>
+                  {group}
                 </div>
-              ))}
-            </div>
-          ))}
+                {items.map((s) => (
+                  <div key={s.id} className="chat-session">
+                    <button
+                      className={
+                        s.id === currentSessionId
+                          ? "docs-file-btn chat-session-name active"
+                          : "docs-file-btn chat-session-name"
+                      }
+                      onClick={() => selectSession(s.id)}
+                    >
+                      <i className="fa-solid fa-message" />
+                      <span>{s.title}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
         </div>
       </aside>
 
-      <main className="chat-main">
+      {!sidebarOpen && (
+        <button
+          type="button"
+          className="docs-toggle-btn"
+          aria-label="Open sidebar"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <i className="fa-solid fa-angles-right" />
+        </button>
+      )}
+
+      <div className="chat-container">
         <div className="chat-messages" ref={scrollRef}>
           {messages.length === 0 && (
-            <div className="chat-empty">
-              <p className="text-sec">
+            <div className="chat-empty-state">
+              <div className="empty-brand">
+                Tether<span>Dust</span>
+              </div>
+              <p>
                 {agentName
                   ? "Ask the agent anything about your data."
                   : "Activate an agent in Control → Agents to start."}
               </p>
             </div>
           )}
-          {messages.map((m, i) => (
-            <div key={i} className={`chat-msg chat-msg--${m.role}`}>
-              <div className="chat-bubble">
-                {((m.sources && m.sources.length > 0) || (m.prompts && m.prompts.length > 0)) && (
-                  <div className="primitives-used">
-                    {m.sources?.map((s) => (
-                      <span key={`s:${s.uri}`} className="mention-chip">
-                        <span className="mention-chip-prefix">@</span>
-                        {s.name}
-                      </span>
-                    ))}
-                    {m.prompts?.map((p) => (
-                      <span key={`p:${p.name}`} className="mention-chip mention-chip-prompt">
-                        <span className="mention-chip-prefix">/</span>
-                        {p.display_name}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {m.role === "assistant" ? (
-                  <Markdown remarkPlugins={[remarkGfm]}>{m.content || "…"}</Markdown>
-                ) : (
-                  m.content
-                )}
-                {m.tools && m.tools.length > 0 && (
-                  <div className="chat-tools">
-                    {m.tools.map((t) => (
-                      <span key={t} className="chat-tool">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                )}
+          {messages.map((m, i) => {
+            const isUser = m.role === "user";
+            const showTyping = m.role === "assistant" && m.pending && !m.content;
+            return (
+              <div key={i} className={isUser ? "message user" : "message agent"}>
+                <div className="message-avatar">
+                  <i className={isUser ? "fa-solid fa-user" : "fa-solid fa-robot"} />
+                </div>
+                <div className="message-body">
+                  {((m.sources && m.sources.length > 0) ||
+                    (m.prompts && m.prompts.length > 0)) && (
+                    <div className="primitives-used">
+                      {m.sources?.map((s, si) => (
+                        <span
+                          key={`s:${s.uri}`}
+                          className="mention-chip mention-chip-doc"
+                          style={{ "--pill-i": si } as CSSProperties}
+                        >
+                          <span className="mention-chip-prefix">@</span>
+                          <span className="mention-chip-label">{s.name}</span>
+                        </span>
+                      ))}
+                      {m.prompts?.map((p, pi) => (
+                        <span
+                          key={`p:${p.name}`}
+                          className="mention-chip mention-chip-prompt"
+                          style={{ "--pill-i": (m.sources?.length ?? 0) + pi } as CSSProperties}
+                        >
+                          <span className="mention-chip-prefix">/</span>
+                          <span className="mention-chip-label">{p.display_name}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {m.tools && m.tools.length > 0 && (
+                    <div className="tools-used">
+                      {m.tools.map((t, ti) => (
+                        <span
+                          key={t}
+                          className="tool-pill"
+                          style={{ "--pill-i": ti } as CSSProperties}
+                        >
+                          <i className="fa-solid fa-wrench" />
+                          <span>{toolDisplayName(t)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {showTyping ? (
+                    <div className="message-content typing-indicator">
+                      <div className="typing-dots">
+                        {[0, 1, 2, 3, 4].map((n) => (
+                          <div key={n} className="typing-dot" />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="message-content">
+                      {m.role === "assistant" ? (
+                        <Markdown remarkPlugins={[remarkGfm]}>{m.content || "…"}</Markdown>
+                      ) : (
+                        m.content
+                      )}
+                    </div>
+                  )}
+                  {m.pending && statusText && (
+                    <div className="typing-inline-status">{statusText}</div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-          {statusText && (
-            <div className="chat-status">
-              <i className="fa-solid fa-spinner fa-spin" /> {statusText}
-            </div>
-          )}
+            );
+          })}
         </div>
         <ChatComposer
           connected={connected}
@@ -167,7 +229,7 @@ export function ChatPage() {
           onSend={send}
           onCancel={cancel}
         />
-      </main>
+      </div>
     </div>
   );
 }

@@ -49,6 +49,13 @@
     margin: 0;
 }
 
+/* Groups multiple header actions (e.g. new-chat + collapse) on the right */
+.sidebar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--sm);
+}
+
 .docs-tree {
     flex: 1;
     overflow-y: auto;
@@ -143,11 +150,14 @@
 }
 .docs-file-btn .fa-file-lines { font-size: var(--text-sm); }
 
-/* ── Toggle button ── */
+/* ── Toggle button ──
+   Lives inside the layout (`.docs-layout` / `.chat-layout`), which already
+   starts below the sticky navbar, so it offsets from the layout's own top — no
+   `--navbar-h` here. Aligns roughly with the collapsed sidebar header row. */
 .docs-toggle-btn {
     position: absolute;
-    left: 10px;
-    top: calc(var(--navbar-h) + 10px);
+    left: 12px;
+    top: 12px;
     z-index: 11;
     width: 36px;
     height: 36px;
@@ -155,6 +165,8 @@
     border: 1px solid rgba(26,26,26,.08);
     background: rgba(255,255,255,.7);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -168,6 +180,11 @@
 .docs-sidebar.collapsed ~ .docs-toggle-btn {
     opacity: 1;
     pointer-events: auto;
+}
+.docs-toggle-btn:hover {
+    background: rgba(61,188,217,.1);
+    border-color: var(--c-cyan);
+    color: var(--c-cyan);
 }
 
 /* ── Content area ── */

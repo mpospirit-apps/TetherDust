@@ -1,5 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { getAgentStatus } from "../api/chat";
 import { useAuth } from "../auth/AuthContext";
 import { useTheme } from "../hooks/useTheme";
 
@@ -13,6 +15,12 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const agentQuery = useQuery({
+    queryKey: ["chat", "agent-status"],
+    queryFn: getAgentStatus,
+    refetchInterval: 20000,
+    enabled: !!user,
+  });
 
   useEffect(() => {
     function close() {
@@ -80,6 +88,19 @@ export function Navbar() {
             onClick={(event) => event.stopPropagation()}
           >
             <span className="user-dropdown__username">{user.username}</span>
+            <div className="user-dropdown__divider" />
+            <div className="user-dropdown__agent">
+              <span
+                className={
+                  agentQuery.data?.connected
+                    ? "agent-status-dot is-connected"
+                    : "agent-status-dot is-disconnected"
+                }
+              />
+              <span className="user-dropdown__agent-name">
+                {agentQuery.data?.name ?? "No agent active"}
+              </span>
+            </div>
             <div className="user-dropdown__divider" />
             <button className="user-dropdown__item" onClick={toggle} aria-label="Toggle dark mode">
               <i className={theme === "dark" ? "fa-solid fa-sun" : "fa-solid fa-moon"} />

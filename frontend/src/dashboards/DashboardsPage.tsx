@@ -58,6 +58,7 @@ function DashboardContent({ id }: { id: string }) {
 export function DashboardsPage() {
   const { id } = useParams();
   const [search, setSearch] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const { data, isLoading } = useQuery({ queryKey: ["dashboards"], queryFn: getDashboards });
 
   const dashboards = (data?.dashboards ?? []).filter((d) =>
@@ -66,9 +67,17 @@ export function DashboardsPage() {
 
   return (
     <div className="docs-layout">
-      <aside className="docs-sidebar">
+      <aside className={sidebarOpen ? "docs-sidebar" : "docs-sidebar collapsed"}>
         <div className="docs-sidebar-header">
           <h3>Dashboards</h3>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            aria-label="Collapse sidebar"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <i className="fa-solid fa-angles-left" />
+          </button>
         </div>
         <div className="history-search">
           <i className="fa-solid fa-magnifying-glass" />
@@ -105,6 +114,17 @@ export function DashboardsPage() {
           )}
         </div>
       </aside>
+
+      {!sidebarOpen && (
+        <button
+          type="button"
+          className="docs-toggle-btn"
+          aria-label="Open sidebar"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <i className="fa-solid fa-angles-right" />
+        </button>
+      )}
 
       <div className="docs-content-area">
         {id ? (
