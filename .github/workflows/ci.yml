@@ -7,6 +7,42 @@ on:
     branches: [main]
 
 jobs:
+  version-bump:
+    name: Version Bump Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check VERSION is strictly greater than main
+        id: version
+        run: |
+          MAIN_VERSION=$(git show origin/main:VERSION)
+          PR_VERSION=$(cat VERSION)
+          python3 - <<EOF
+          from packaging.version import Version
+          main = Version("$MAIN_VERSION")
+          pr   = Version("$PR_VERSION")
+          if pr <= main:
+              print(f"ERROR: VERSION must be strictly greater than main ({main}). Got: {pr}")
+              raise SystemExit(1)
+          print(f"OK: {main} → {pr}")
+          EOF
+          echo "pr_version=$PR_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check changelog file exists
+        run: |
+          VERSION="${{ steps.version.outputs.pr_version }}"
+          if [ ! -f "changelog/$VERSION.md" ]; then
+            echo "ERROR: changelog/$VERSION.md not found. Add it before merging."
+            exit 1
+          fi
+          echo "OK: changelog/$VERSION.md exists"
+
+
   lint:
     name: Lint & Format
     runs-on: ubuntu-latest
