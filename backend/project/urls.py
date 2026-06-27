@@ -1,29 +1,17 @@
-"""
-URL configuration for tetherdust_web project.
+"""URL configuration for the TetherDust backend.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+API-only backend: the React SPA (served by nginx) is the entire UI, so the HTTP
+surface is the DRF API under ``/api/`` plus the root liveness/readiness probes
+(``/healthz``, ``/readyz``) the container healthcheck hits. WhiteNoise serves the
+backend's own static assets (the DRF browsable API); the WebSocket layer is
+mounted separately in ``project/asgi.py``.
 """
 
-from django.conf import settings
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from api.health import healthz_view, readyz_view
 from django.urls import URLPattern, URLResolver, include, path
 
 urlpatterns: list[URLPattern | URLResolver] = [
-    path("mission-control/", include("management.urls")),
-    path("", include("workspace.urls")),
+    path("healthz", healthz_view),
+    path("readyz", readyz_view),
+    path("api/", include("api.urls")),
 ]
-
-# Serve static files through Daphne in development
-if settings.DEBUG:
-    urlpatterns += staticfiles_urlpatterns()

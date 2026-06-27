@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/images/tetherdust.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TetherDust</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Apply persisted theme + a random "fairy dust" accent before paint (no flash). -->
+    <script>
+      (function () {
+        var t = localStorage.getItem("td-theme") || "light";
+        document.documentElement.setAttribute("data-theme", t);
+      })();
+      (function () {
+        var c = ["--c-red", "--c-pink", "--c-cyan", "--c-lime", "--c-orange"];
+        document.documentElement.style.setProperty(
+          "--c-dust",
+          "var(" + c[Math.floor(Math.random() * c.length)] + ")",
+        );
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

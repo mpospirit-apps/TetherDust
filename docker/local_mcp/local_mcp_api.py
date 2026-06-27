@@ -33,8 +33,8 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 ENCRYPTION_KEY = os.getenv("TETHERDUST_ENCRYPTION_KEY", "")
 LOCAL_MCP_PORT = int(os.getenv("LOCAL_MCP_PORT", "8003"))
 
-# {server_id: _ServerProxy}
-_proxies: dict[int, "_ServerProxy"] = {}
+# {server_id: _ServerProxy} — IDs are prefixed strings, e.g. "mcp_af30…".
+_proxies: dict[str, "_ServerProxy"] = {}
 _proxies_lock = asyncio.Lock()
 
 
@@ -104,7 +104,7 @@ class _ServerProxy:
     """Manages a persistent ClientSession for one subprocess-based MCP server."""
 
     def __init__(
-        self, server_id: int, name: str, command: str, args: list[str], env: dict[str, str]
+        self, server_id: str, name: str, command: str, args: list[str], env: dict[str, str]
     ):
         self.server_id = server_id
         self.name = name
@@ -319,7 +319,7 @@ async def reload() -> dict[str, Any]:
 
 
 @app.post("/mcp/{server_id}/", response_model=None)
-async def proxy_mcp(server_id: int, request: Request) -> Response | JSONResponse:
+async def proxy_mcp(server_id: str, request: Request) -> Response | JSONResponse:
     """Proxy a single MCP JSON-RPC request to the appropriate subprocess."""
     async with _proxies_lock:
         proxy = _proxies.get(server_id)
@@ -356,7 +356,7 @@ async def proxy_mcp(server_id: int, request: Request) -> Response | JSONResponse
         result = await _dispatch(session, method, params)
         return JSONResponse({"jsonrpc": "2.0", "id": req_id, "result": result})
     except Exception as exc:
-        logger.error("Error dispatching %s for server %d: %s", method, server_id, exc)
+        logger.error("Error dispatching %s for server %s: %s", method, server_id, exc)
         return JSONResponse(
             {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(exc)}}
         )

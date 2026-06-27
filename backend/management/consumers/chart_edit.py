@@ -50,14 +50,11 @@ class ChartEditConsumer(BaseAgentConsumer):
             return
 
         chart_id_raw = self.scope["url_route"]["kwargs"].get("chart_id")
-        if chart_id_raw is None:
+        if not chart_id_raw:
             await self.close(code=4002)
             return
-        try:
-            self.chart_id = int(chart_id_raw)
-        except (TypeError, ValueError):
-            await self.close(code=4002)
-            return
+        # Chart IDs are prefixed strings (cht_…), not integers.
+        self.chart_id = str(chart_id_raw)
 
         chart_info = await self._get_chart_info(self.chart_id)
         if not chart_info:
@@ -176,7 +173,7 @@ class ChartEditConsumer(BaseAgentConsumer):
         )
 
     @database_sync_to_async
-    def _get_chart_info(self, chart_id: int) -> dict[str, object] | None:
+    def _get_chart_info(self, chart_id: str) -> dict[str, object] | None:
         from engine.models import Chart
 
         try:
