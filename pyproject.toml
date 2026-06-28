@@ -62,6 +62,10 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=5.0.0",
+    "pytest-django>=4.8.0",
+    "pytest-mock>=3.14.0",
+    "model-bakery>=1.18.0",
+    "freezegun>=1.5.0",
     "ruff>=0.15.17",
     "mypy~=2.1",
     "django-stubs>=5.0.0",
@@ -89,6 +93,10 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 DJANGO_SETTINGS_MODULE = "project.settings"
 pythonpath = ["backend"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+markers = [
+    "slow: deselect with '-m \"not slow\"'",
+]
 
 [tool.coverage.run]
 source = ["tdmcp", "backend"]
@@ -102,6 +110,6 @@ omit = [
 
 [tool.coverage.report]
 show_missing = true
-# CI fails if total coverage drops below this. Baseline set just under the
-# current ~11%; ratchet upward as test coverage grows.
-fail_under = 10
+# CI fails if total coverage drops below this. Set a few points under the
+# current ~45% measured total; ratchet upward as test coverage grows.
+fail_under = 40

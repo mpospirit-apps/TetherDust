@@ -129,3 +129,8 @@ jobs:
 
       - name: Pytest with coverage
         run: pytest tests/ --cov --cov-report=term-missing --tb=short
+        env:
+          DJANGO_DEBUG: ${{ secrets.DJANGO_DEBUG }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          TETHERDUST_ENCRYPTION_KEY: ${{ secrets.TETHERDUST_ENCRYPTION_KEY }}
+          INTERNAL_API_SERVICE_TOKEN: ${{ secrets.INTERNAL_API_SERVICE_TOKEN }}
