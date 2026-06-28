@@ -1,20 +1,9 @@
-"""Tests for codebase URL parsing and tree glob filtering.
+"""Codebase URL parsing and tree glob filtering (``engine.integrations.github_client``)."""
 
-The integration module has no Django imports at load time, so these tests need
-no Django setup (matching the rest of the suite).
-"""
-
-import sys
-from pathlib import Path
+from __future__ import annotations
 
 import pytest
-
-# The integration module lives in the Django web app; add it to the path.
-WEB_DIR = Path(__file__).resolve().parent.parent / "backend"
-if str(WEB_DIR) not in sys.path:
-    sys.path.insert(0, str(WEB_DIR))
-
-from engine.integrations.github_client import (  # noqa: E402
+from engine.integrations.github_client import (
     filter_tree,
     matches_any,
     parse_owner_repo,
@@ -42,7 +31,8 @@ def test_parse_owner_repo_invalid(url: str) -> None:
         parse_owner_repo(url)
 
 
-def _tree() -> list[dict[str, object]]:
+@pytest.fixture
+def tree() -> list[dict[str, object]]:
     return [
         {"path": "src/app.py", "type": "blob", "size": 100},
         {"path": "src/util.py", "type": "blob", "size": 50},
@@ -53,19 +43,19 @@ def _tree() -> list[dict[str, object]]:
     ]
 
 
-def test_filter_tree_drops_trees_and_excludes() -> None:
-    result = filter_tree(_tree(), exclude_globs=["node_modules/*", "*.json"])
+def test_filter_tree_drops_trees_and_excludes(tree: list[dict[str, object]]) -> None:
+    result = filter_tree(tree, exclude_globs=["node_modules/*", "*.json"])
     assert {e["path"] for e in result} == {"src/app.py", "src/util.py", "README.md"}
     assert all(e["type"] == "file" for e in result)
 
 
-def test_filter_tree_include_only() -> None:
-    result = filter_tree(_tree(), include_globs=["*.py"])
+def test_filter_tree_include_only(tree: list[dict[str, object]]) -> None:
+    result = filter_tree(tree, include_globs=["*.py"])
     assert {e["path"] for e in result} == {"src/app.py", "src/util.py"}
 
 
-def test_filter_tree_subpath_relativizes() -> None:
-    result = filter_tree(_tree(), subpath="src")
+def test_filter_tree_subpath_relativizes(tree: list[dict[str, object]]) -> None:
+    result = filter_tree(tree, subpath="src")
     assert {e["path"] for e in result} == {"app.py", "util.py"}
 
 

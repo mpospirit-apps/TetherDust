@@ -1,25 +1,17 @@
-"""Tests for the documentation-generation prompt builders.
+"""Documentation-generation prompt builders (``engine.prompts.docs``).
 
-``engine/prompts/docs.py`` composes prompts from three layers — the shared
-``CORE_PRINCIPLES`` and ``TETHERDUST_CONTEXT``, plus a task layer that differs
-between single-file generation (a lean per-type template) and library
-generation (the ``LIBRARY_GUIDE`` playbook). These tests pin that layering so
-the single-file prompt never inherits the multi-page scaffolding, and so the
-TetherDust-specific facts the agent needs (its tools, mermaid/wiki-link
-rendering, and the create_documentation save step) stay present.
-
-The module is pure strings/functions with no Django imports, so it imports
-directly without any settings setup.
+The module composes prompts from three layers — the shared ``CORE_PRINCIPLES``
+and ``TETHERDUST_CONTEXT``, plus a task layer that differs between single-file
+generation (a lean per-type template) and library generation (the
+``LIBRARY_GUIDE`` playbook). These tests pin that layering so the single-file
+prompt never inherits the multi-page scaffolding, and so the TetherDust-specific
+facts the agent needs (its tools, mermaid/wiki-link rendering, the
+``create_documentation`` save step) stay present.
 """
 
-import sys
-from pathlib import Path
+from __future__ import annotations
 
-WEB_DIR = Path(__file__).resolve().parent.parent / "backend"
-if str(WEB_DIR) not in sys.path:
-    sys.path.insert(0, str(WEB_DIR))
-
-from engine.prompts.docs import (  # noqa: E402
+from engine.prompts.docs import (
     CORE_PRINCIPLES,
     DATABASE_LIBRARY_GUIDE,
     DOC_TEMPLATES,
@@ -37,11 +29,13 @@ def test_single_file_layers_principles_and_context_before_template() -> None:
 
     assert prompt.startswith(CORE_PRINCIPLES)
     assert TETHERDUST_CONTEXT in prompt
-    # The chosen per-type template text is present...
     assert DOC_TEMPLATES["architecture"] in prompt
-    # ...and the principles/context come before it.
-    assert prompt.index(CORE_PRINCIPLES) < prompt.index(TETHERDUST_CONTEXT)
-    assert prompt.index(TETHERDUST_CONTEXT) < prompt.index(DOC_TEMPLATES["architecture"])
+    # Ordering: principles -> context -> chosen per-type template.
+    assert (
+        prompt.index(CORE_PRINCIPLES)
+        < prompt.index(TETHERDUST_CONTEXT)
+        < prompt.index(DOC_TEMPLATES["architecture"])
+    )
 
 
 def test_single_file_excludes_library_scaffolding() -> None:
@@ -87,8 +81,6 @@ def test_library_includes_all_three_layers_in_order() -> None:
     prompt = build_library_prompt("My Lib")
 
     assert prompt.startswith(CORE_PRINCIPLES)
-    assert TETHERDUST_CONTEXT in prompt
-    assert LIBRARY_GUIDE in prompt
     assert (
         prompt.index(CORE_PRINCIPLES)
         < prompt.index(TETHERDUST_CONTEXT)
@@ -97,9 +89,7 @@ def test_library_includes_all_three_layers_in_order() -> None:
 
 
 def test_library_embeds_name() -> None:
-    prompt = build_library_prompt("Billing Docs")
-
-    assert "Billing Docs" in prompt
+    assert "Billing Docs" in build_library_prompt("Billing Docs")
 
 
 def test_database_library_uses_database_guide_not_codebase_playbook() -> None:
@@ -161,10 +151,7 @@ def test_context_names_tetherdust_tools_and_rendering() -> None:
 
 def test_citation_guidance_is_anti_pinning() -> None:
     """TetherDust has no git access; the guidance must steer away from commit pins."""
-    # The only mentions of pinning are explicit negations telling the agent not to.
-    # (Match line-break-tolerant fragments rather than the full wrapped sentence.)
     assert "no git history or commit hash" in TETHERDUST_CONTEXT
     assert "pin to commits" in TETHERDUST_CONTEXT
     assert "do not" in " ".join(TETHERDUST_CONTEXT.split())
-    # Citations are framed around what the agent actually read instead.
     assert "database -> table -> column" in " ".join(LIBRARY_GUIDE.split())
