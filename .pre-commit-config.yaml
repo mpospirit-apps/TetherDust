@@ -26,9 +26,9 @@ repos:
     hooks:
       - id: ruff-check
         args: [--fix]
-        files: ^(backend|docker|tdmcp)/
+        files: ^(backend|docker|tdmcp|tests)/
       - id: ruff-format
-        files: ^(backend|docker|tdmcp)/
+        files: ^(backend|docker|tdmcp|tests)/
 
   - repo: local
     hooks:
