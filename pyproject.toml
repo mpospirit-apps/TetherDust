@@ -58,6 +58,9 @@ web = [
     "markdown>=3.5.0",  # Server-side markdown rendering for docs viewer
     "openpyxl>=3.1.0",  # Excel export for reports
 ]
+[dependency-groups]
+# Dev tooling: linters, type-checkers, and the test stack. Installed by default
+# with `uv sync`; excluded from the production image via `uv sync --no-dev`.
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",

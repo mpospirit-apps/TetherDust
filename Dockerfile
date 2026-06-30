@@ -10,10 +10,21 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY pyproject.toml ./
-RUN mkdir -p tdmcp && touch tdmcp/__init__.py
-RUN pip install --no-cache-dir -e ".[web,all-databases]"
+# uv — copied from the official image, pinned. uv.lock is the single source of
+# truth; `--locked` fails the build if it has drifted from pyproject.toml (the
+# direct analogue of `npm ci` for the frontend).
+COPY --from=ghcr.io/astral-sh/uv:0.9.28 /uv /uvx /bin/
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON=python3.12 \
+    UV_PYTHON_DOWNLOADS=never \
+    PATH="/app/.venv/bin:$PATH"
+
+# Install dependencies first, without the project itself, so this layer is cached
+# and only rebuilt when pyproject.toml / uv.lock change — not on every source edit.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-dev --no-install-project --extra web --extra all-databases
 
 # Copy project files
 COPY backend/ backend/
@@ -31,6 +42,9 @@ COPY changelog/ changelog/
 # Only these two files are needed from containers/, not the rest of the build context.
 COPY containers/codex/AGENTS.md containers/codex/AGENTS.md
 COPY containers/claude/CLAUDE.md containers/claude/CLAUDE.md
+
+# Install the project itself (tdmcp) against the already-resolved, locked deps.
+RUN uv sync --locked --no-dev --extra web --extra all-databases
 
 # Create static directory so collectstatic doesn't warn
 RUN mkdir -p backend/static
