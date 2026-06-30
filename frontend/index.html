@@ -13,15 +13,15 @@
     />
     <!-- Apply persisted theme + a random "fairy dust" accent before paint (no flash). -->
     <script>
-      (function () {
+      (() => {
         var t = localStorage.getItem("td-theme") || "light";
         document.documentElement.setAttribute("data-theme", t);
       })();
-      (function () {
+      (() => {
         var c = ["--c-red", "--c-pink", "--c-cyan", "--c-lime", "--c-orange"];
         document.documentElement.style.setProperty(
           "--c-dust",
-          "var(" + c[Math.floor(Math.random() * c.length)] + ")",
+          `var(${c[Math.floor(Math.random() * c.length)]})`,
         );
       })();
     </script>

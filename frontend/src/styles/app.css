@@ -3,35 +3,35 @@
    tetherdust.css + modules/; this file only covers SPA scaffolding. */
 
 .app-loading {
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-  color: var(--text-sec);
-  font-family: var(--font);
+	display: grid;
+	place-items: center;
+	min-height: 100vh;
+	color: var(--text-sec);
+	font-family: var(--font);
 }
 
 .page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: var(--xl) var(--lg);
+	max-width: 1100px;
+	margin: 0 auto;
+	padding: var(--xl) var(--lg);
 }
 
 .page h1 {
-  font-size: var(--text-2xl);
-  margin: 0 0 var(--sm);
+	font-size: var(--text-2xl);
+	margin: 0 0 var(--sm);
 }
 
 .page .muted {
-  color: var(--text-sec);
+	color: var(--text-sec);
 }
 
 .placeholder-card {
-  margin-top: var(--lg);
-  padding: var(--xl);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+	margin-top: var(--lg);
+	padding: var(--xl);
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	background: var(--surface);
+	box-shadow: var(--shadow);
 }
 
 /* ── Chat ──
@@ -43,51 +43,51 @@
 
 /* Session rows: a `.docs-file-btn` spanning the sidebar width */
 .chat-session {
-  position: relative;
-  display: flex;
-  align-items: center;
+	position: relative;
+	display: flex;
+	align-items: center;
 }
 .chat-session-name {
-  flex: 1;
-  min-width: 0;
+	flex: 1;
+	min-width: 0;
 }
 .chat-session-name span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 /* Inline agent status (e.g. "Running query…") under a streaming message */
 .typing-inline-status {
-  padding: 6px 2px 0;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  text-align: left;
+	padding: 6px 2px 0;
+	font-size: var(--text-xs);
+	color: var(--text-muted);
+	text-align: left;
 }
 
 /* Composer row. Its own class (not `.chat-input`, which modules/chat.css styles
    as the legacy textarea with `flex: 1`) so it sizes to content and centers on
    the same 900px column as `.chat-messages`. */
 .chat-composer-form {
-  display: flex;
-  gap: var(--sm);
-  align-items: flex-end;
-  padding: var(--lg);
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
+	display: flex;
+	gap: var(--sm);
+	align-items: flex-end;
+	padding: var(--lg);
+	width: 100%;
+	max-width: 900px;
+	margin: 0 auto;
 }
 .chat-composer-form textarea {
-  flex: 1;
-  resize: none;
+	flex: 1;
+	resize: none;
 }
 /* Composer column: anchors the absolute `@`/`/` autocomplete dropdown and stacks
    the selected-mention chips above the textarea. */
 .chat-composer {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--xs);
-  min-width: 0;
+	position: relative;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--xs);
+	min-width: 0;
 }

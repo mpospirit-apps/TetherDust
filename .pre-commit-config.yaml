@@ -32,6 +32,26 @@ repos:
 
   - repo: local
     hooks:
+      - id: biome
+        name: Biome (frontend lint + format)
+        # Runs on the whole frontend (auto-discovers frontend/biome.json) when any
+        # frontend file is staged. Requires `npm ci` in frontend/ for local hooks.
+        entry: bash -c 'cd frontend && npx biome check --write .'
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+
+      - id: vitest
+        name: Vitest (frontend tests)
+        # Runs the full Vitest suite when any frontend file is staged.
+        # Requires `npm ci` in frontend/ for local hooks.
+        entry: bash -c 'cd frontend && npm run test'
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+
+  - repo: local
+    hooks:
       - id: pyrefly
         name: Pyrefly
         entry: pyrefly check

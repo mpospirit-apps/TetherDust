@@ -6,18 +6,18 @@
    directly under modules/ rather than appending to this file.
    ═══════════════════════════════════════════════════════════════ */
 
-@import url('modules/tokens.css');
-@import url('modules/animations.css');
-@import url('modules/base.css');
-@import url('modules/navbar.css');
-@import url('modules/layouts.css');
-@import url('modules/admin.css');
-@import url('modules/forms.css');
-@import url('modules/pages.css');
-@import url('modules/chat.css');
-@import url('modules/docs.css');
-@import url('modules/reports.css');
-@import url('modules/docsgen.css');
-@import url('modules/tethers.css');
-@import url('modules/charts.css');
-@import url('modules/mcp.css');
+@import url("modules/tokens.css");
+@import url("modules/animations.css");
+@import url("modules/base.css");
+@import url("modules/navbar.css");
+@import url("modules/layouts.css");
+@import url("modules/admin.css");
+@import url("modules/forms.css");
+@import url("modules/pages.css");
+@import url("modules/chat.css");
+@import url("modules/docs.css");
+@import url("modules/reports.css");
+@import url("modules/docsgen.css");
+@import url("modules/tethers.css");
+@import url("modules/charts.css");
+@import url("modules/mcp.css");
