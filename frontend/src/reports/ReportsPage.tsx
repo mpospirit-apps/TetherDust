@@ -223,7 +223,6 @@ export function ReportsPage() {
 	});
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [content, setContent] = useState<Content>({ kind: "latest" });
-	const [sidebarOpen, setSidebarOpen] = useState(true);
 
 	const groups = useMemo(() => buildGroups(data?.reports ?? []), [data]);
 
@@ -236,20 +235,7 @@ export function ReportsPage() {
 
 	return (
 		<div className="docs-layout">
-			<aside
-				className={sidebarOpen ? "docs-sidebar" : "docs-sidebar collapsed"}
-			>
-				<div className="docs-sidebar-header">
-					<h3>Reports</h3>
-					<button
-						type="button"
-						className="btn btn-ghost btn-sm"
-						aria-label="Collapse sidebar"
-						onClick={() => setSidebarOpen(false)}
-					>
-						<i className="fa-solid fa-angles-left" />
-					</button>
-				</div>
+			<aside className="docs-sidebar">
 				<div className="docs-tree">
 					{isLoading ? (
 						<p className="text-sec" style={{ padding: "var(--md) var(--lg)" }}>
@@ -288,17 +274,6 @@ export function ReportsPage() {
 					)}
 				</div>
 			</aside>
-
-			{!sidebarOpen && (
-				<button
-					type="button"
-					className="docs-toggle-btn"
-					aria-label="Open sidebar"
-					onClick={() => setSidebarOpen(true)}
-				>
-					<i className="fa-solid fa-angles-right" />
-				</button>
-			)}
 
 			<div className="docs-content-area">
 				<div className="docs-content">

@@ -228,20 +228,8 @@
 	border-right-color: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme="dark"] .history-header,
-[data-theme="dark"] .docs-sidebar-header {
+[data-theme="dark"] .history-header {
 	border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="dark"] .docs-toggle-btn {
-	background: rgba(20, 20, 16, 0.75);
-	border-color: rgba(255, 255, 255, 0.08);
-	color: var(--text-sec);
-}
-[data-theme="dark"] .docs-toggle-btn:hover {
-	background: rgba(61, 188, 217, 0.16);
-	border-color: var(--c-cyan);
-	color: var(--c-cyan);
 }
 
 [data-theme="dark"] thead th {

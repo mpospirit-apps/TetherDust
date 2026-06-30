@@ -54,15 +54,18 @@
 }
 
 .history-new-btn {
-	background: transparent;
-	border: 1px solid rgba(26, 26, 26, 0.1);
+	width: 100%;
+	background: none;
+	border: 1px solid rgba(26, 26, 26, 0.15);
 	color: var(--text-sec);
-	font-size: 11px;
-	padding: 6px 10px;
+	font-size: var(--text-sm);
+	font-weight: 600;
+	padding: var(--sm) var(--md);
 	cursor: pointer;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	gap: var(--sm);
 	transition: var(--transition);
 }
 
@@ -70,6 +73,10 @@
 	background: rgba(61, 188, 217, 0.08);
 	border-color: var(--c-cyan);
 	color: var(--c-cyan);
+}
+
+[data-theme="dark"] .history-new-btn {
+	border-color: rgba(255, 255, 255, 0.15);
 }
 
 .history-search {
