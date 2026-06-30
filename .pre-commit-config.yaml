@@ -41,6 +41,15 @@ repos:
         files: ^frontend/
         pass_filenames: false
 
+      - id: vitest
+        name: Vitest (frontend tests)
+        # Runs the full Vitest suite when any frontend file is staged.
+        # Requires `npm ci` in frontend/ for local hooks.
+        entry: bash -c 'cd frontend && npm run test'
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+
   - repo: local
     hooks:
       - id: pyrefly
