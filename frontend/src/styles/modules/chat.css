@@ -1,7 +1,7 @@
 /* ── Chat Layout ── */
 .chat-layout {
 	display: flex;
-	height: calc(100vh - var(--navbar-h));
+	height: 100vh;
 	position: relative;
 	z-index: 2;
 }
@@ -256,7 +256,7 @@
 	box-shadow: none;
 	display: flex;
 	flex-direction: column;
-	height: calc(100vh - var(--navbar-h));
+	height: 100vh;
 	min-height: 500px;
 	position: relative;
 	overflow: hidden;
@@ -265,7 +265,7 @@
 .chat-messages {
 	flex: 1;
 	overflow-y: auto;
-	padding: var(--lg);
+	padding: var(--navbar-h) var(--lg) var(--lg);
 	display: flex;
 	flex-direction: column;
 	gap: var(--md);

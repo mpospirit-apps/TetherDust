@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    TetherDust Design System
-   Aurora gradients · Grainy texture · Rim-lit edges · Fairy dust
+   Aurora gradients · Rim-lit edges · Fairy dust
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Design Tokens ── */
@@ -71,7 +71,7 @@
 		inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(0, 0, 0, 0.06);
 
 	/* Layout */
-	--navbar-h: 64px;
+	--navbar-h: 76px;
 	--sidebar-w: 260px;
 
 	/* Motion */

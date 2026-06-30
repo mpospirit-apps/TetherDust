@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useTheme } from "../hooks/useTheme";
 
@@ -14,8 +14,6 @@ interface SidebarSection {
 	items: SidebarItem[];
 }
 
-// Mirrors the legacy management sidebar. Sections light up as feature verticals land;
-// unbuilt targets fall through to the admin placeholder route.
 const SIDEBAR: SidebarSection[] = [
 	{
 		heading: "Overview",
@@ -69,6 +67,39 @@ const SIDEBAR: SidebarSection[] = [
 	},
 ];
 
+const NAV_LINKS = [
+	{
+		to: "/chat",
+		label: "Chat",
+		icon: "fa-solid fa-comments",
+		color: "var(--c-cyan)",
+	},
+	{
+		to: "/docs",
+		label: "Docs",
+		icon: "fa-solid fa-file-lines",
+		color: "var(--c-lime)",
+	},
+	{
+		to: "/reports",
+		label: "Reports",
+		icon: "fa-solid fa-table-list",
+		color: "var(--c-orange)",
+	},
+	{
+		to: "/dashboards",
+		label: "Dashboards",
+		icon: "fa-solid fa-chart-bar",
+		color: "var(--c-red)",
+	},
+	{
+		to: "/tethers",
+		label: "Tethers",
+		icon: "fa-solid fa-diagram-project",
+		color: "var(--c-pink)",
+	},
+] as const;
+
 function sidebarClass({ isActive }: { isActive: boolean }): string {
 	return isActive ? "sidebar-link active" : "sidebar-link";
 }
@@ -76,6 +107,10 @@ function sidebarClass({ isActive }: { isActive: boolean }): string {
 export function AdminLayout() {
 	const { user, logout } = useAuth();
 	const { theme, toggle } = useTheme();
+	const location = useLocation();
+	const activeColor =
+		NAV_LINKS.find((l) => location.pathname.startsWith(l.to))?.color ??
+		"var(--c-pink)"; /* /admin routes fall back to Control pink */
 	const [menuOpen, setMenuOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -97,91 +132,93 @@ export function AdminLayout() {
 	if (!user) {
 		return null;
 	}
-	const perms = user.permissions;
-
 	return (
 		<>
-			<nav className="admin-navbar">
-				<NavLink to="/admin" className="brand">
-					<img
-						src="/images/tetherdust.png"
-						alt="TetherDust"
-						className="brand-icon"
-					/>
-					<span className="brand-text">
-						Tether<span>Dust</span>
-					</span>
-				</NavLink>
-				<div className="nav-right">
-					{perms.can_chat && (
-						<NavLink to="/chat" className="nav-link">
-							Chat
-						</NavLink>
-					)}
-					{perms.can_view_docs && (
-						<NavLink to="/docs" className="nav-link">
-							Docs
-						</NavLink>
-					)}
-					{perms.can_view_reports && (
-						<NavLink to="/reports" className="nav-link">
-							Reports
-						</NavLink>
-					)}
-					{perms.can_view_dashboards && (
-						<NavLink to="/dashboards" className="nav-link">
-							Dashboards
-						</NavLink>
-					)}
-					{perms.can_view_tethers && (
-						<NavLink to="/tethers" className="nav-link">
-							Tethers
-						</NavLink>
-					)}
-					<NavLink to="/admin" className="nav-link active">
-						Control
+			<header className="top-navbar">
+				<div className="nav-container">
+					<NavLink to="/admin" className="nav-brand">
+						<div className="nav-logo">
+							<img src="/images/tetherdust.png" alt="TetherDust" />
+						</div>
+						<span className="nav-title">
+							Tether
+							<span className="accent" style={{ color: activeColor }}>
+								Dust
+							</span>
+						</span>
 					</NavLink>
-					<div className="user-dropdown" ref={dropdownRef}>
-						<button
-							type="button"
-							className="user-dropdown__trigger"
-							aria-label="User menu"
-							onClick={() => setMenuOpen((open) => !open)}
-						>
-							<i className="fa-solid fa-circle-user" />
-						</button>
-						<div
-							className={
-								menuOpen ? "user-dropdown__menu is-open" : "user-dropdown__menu"
+
+					<nav className="nav-links">
+						{NAV_LINKS.map((l) => (
+							<NavLink
+								key={l.to}
+								to={l.to}
+								className={({ isActive }) =>
+									isActive ? "nav-link-btn active" : "nav-link-btn"
+								}
+								style={{ "--link-color": l.color } as React.CSSProperties}
+							>
+								<i className={l.icon} />
+								<span>{l.label}</span>
+							</NavLink>
+						))}
+						<NavLink
+							to="/admin"
+							className={({ isActive }) =>
+								isActive ? "nav-link-btn active" : "nav-link-btn"
 							}
+							style={{ "--link-color": "var(--c-pink)" } as React.CSSProperties}
 						>
-							<span className="user-dropdown__username">{user.username}</span>
-							<div className="user-dropdown__divider" />
+							<i className="fa-solid fa-sliders" />
+							<span>Control</span>
+						</NavLink>
+					</nav>
+
+					<div className="nav-actions">
+						<div className="user-dropdown" ref={dropdownRef}>
 							<button
 								type="button"
-								className="user-dropdown__item"
-								onClick={toggle}
-								aria-label="Toggle dark mode"
+								className="user-dropdown__trigger"
+								aria-label="User menu"
+								onClick={() => setMenuOpen((open) => !open)}
 							>
-								<i
-									className={
-										theme === "dark" ? "fa-solid fa-sun" : "fa-solid fa-moon"
-									}
-								/>
-								<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+								<i className="fa-solid fa-circle-user" />
 							</button>
-							<button
-								type="button"
-								className="user-dropdown__item"
-								onClick={() => void logout()}
+							<div
+								className={
+									menuOpen
+										? "user-dropdown__menu is-open"
+										: "user-dropdown__menu"
+								}
 							>
-								<i className="fa-solid fa-right-from-bracket" />
-								<span>Logout</span>
-							</button>
+								<span className="user-dropdown__username">{user.username}</span>
+								<div className="user-dropdown__divider" />
+								<button
+									type="button"
+									className="user-dropdown__item"
+									onClick={toggle}
+									aria-label="Toggle dark mode"
+								>
+									<i
+										className={
+											theme === "dark" ? "fa-solid fa-sun" : "fa-solid fa-moon"
+										}
+									/>
+									<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+								</button>
+								<button
+									type="button"
+									className="user-dropdown__item"
+									onClick={() => void logout()}
+								>
+									<i className="fa-solid fa-right-from-bracket" />
+									<span>Logout</span>
+								</button>
+							</div>
 						</div>
 					</div>
 				</div>
-			</nav>
+			</header>
 
 			<aside className="admin-sidebar">
 				{SIDEBAR.map((section) => (

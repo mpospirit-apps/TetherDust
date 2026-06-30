@@ -4,7 +4,7 @@
 
 .docs-layout {
 	display: flex;
-	height: calc(100vh - var(--navbar-h));
+	height: 100vh;
 	position: relative;
 	z-index: 2;
 }
@@ -22,6 +22,7 @@
 	transition: all 0.3s var(--ease);
 	z-index: 10;
 	overflow: hidden;
+	padding-top: var(--navbar-h);
 }
 
 .docs-sidebar.collapsed {
@@ -192,7 +193,7 @@
 .docs-toggle-btn {
 	position: absolute;
 	left: 12px;
-	top: 12px;
+	top: calc(var(--navbar-h) + 12px);
 	z-index: 11;
 	width: 36px;
 	height: 36px;
@@ -227,6 +228,7 @@
 	flex: 1;
 	overflow-y: auto;
 	min-height: 0;
+	padding-top: var(--navbar-h);
 }
 
 .docs-content {
