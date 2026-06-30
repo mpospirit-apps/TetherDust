@@ -21,13 +21,23 @@ repos:
         # Demo GIFs in the docs are intentionally large.
         exclude: ^docs/images/.*\.gif$
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.17
+  # Backend Python tooling runs through uv so the lockfile is the single source of
+  # truth for tool versions — mirroring the frontend running Biome/Vitest from its
+  # npm lockfile. `--no-sync` uses the already-synced .venv and never mutates it
+  # (contributors run `uv sync --all-extras` once; see CONTRIBUTING).
+  - repo: local
     hooks:
       - id: ruff-check
-        args: [--fix]
+        name: Ruff lint
+        entry: uv run --no-sync ruff check --fix
+        language: system
+        types_or: [python, pyi]
         files: ^(backend|containers|tdmcp|tests)/
       - id: ruff-format
+        name: Ruff format
+        entry: uv run --no-sync ruff format
+        language: system
+        types_or: [python, pyi]
         files: ^(backend|containers|tdmcp|tests)/
 
   - repo: local
@@ -54,21 +64,21 @@ repos:
     hooks:
       - id: pyrefly
         name: Pyrefly
-        entry: pyrefly check
+        entry: uv run --no-sync pyrefly check
         language: system
         types: [python]
         pass_filenames: false
 
       - id: mypy
         name: Mypy
-        entry: .venv/bin/mypy tdmcp/ backend/ containers/
+        entry: uv run --no-sync mypy tdmcp/ backend/ containers/
         language: system
         types: [python]
         pass_filenames: false
 
       - id: pytest
         name: Pytest
-        entry: .venv/bin/pytest tests/
+        entry: uv run --no-sync pytest tests/
         language: system
         types: [python]
         pass_filenames: false

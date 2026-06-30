@@ -12,10 +12,10 @@ cd TetherDust
 docker compose up --build
 ```
 
-For local linting and testing without Docker:
+For local linting and testing without Docker (install [uv](https://docs.astral.sh/uv/) first):
 
 ```bash
-pip install -e ".[all-databases,web,dev]"
+uv sync --all-extras
 ```
 
 ## What I accept
@@ -39,16 +39,16 @@ pip install -e ".[all-databases,web,dev]"
 
 ```bash
 # Lint
-ruff check tdmcp/ web/ containers/
+uv run ruff check tdmcp/ backend/ containers/
 
 # Format
-ruff format tdmcp/ web/ containers/
+uv run ruff format tdmcp/ backend/ containers/
 
 # Type check
-mypy tdmcp/ web/ containers/
+uv run mypy tdmcp/ backend/ containers/
 
 # Tests
-pytest tests/
+uv run pytest tests/
 ```
 
 ### Pre-commit hooks
@@ -56,8 +56,7 @@ pytest tests/
 Install the hooks once so ruff lint/format runs automatically on every commit:
 
 ```bash
-pip install pre-commit
-pre-commit install
+uv run pre-commit install
 ```
 
 Run them against the whole repo at any time:

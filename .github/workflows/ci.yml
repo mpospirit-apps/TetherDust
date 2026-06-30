@@ -50,20 +50,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: pyproject.toml
+          version: "0.9.28"
+          enable-cache: true
+          python-version: "3.12"
 
-      - name: Install dev dependencies
-        run: pip install -e ".[dev]"
+      - name: Verify uv.lock is in sync with pyproject.toml
+        run: uv lock --check
+
+      - name: Install dependencies
+        run: uv sync --locked
 
       - name: Ruff lint
-        run: ruff check tdmcp/ backend/ containers/ tests/
+        run: uv run ruff check tdmcp/ backend/ containers/ tests/
 
       - name: Ruff format check
-        run: ruff format --check tdmcp/ backend/ containers/ tests/
+        run: uv run ruff format --check tdmcp/ backend/ containers/ tests/
 
   typecheck:
     name: Type Check
@@ -72,17 +76,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: pyproject.toml
+          version: "0.9.28"
+          enable-cache: true
+          python-version: "3.12"
 
       - name: Install all dependencies
-        run: pip install -e ".[all-databases,web,dev]"
+        run: uv sync --locked --extra all-databases --extra web
 
       - name: Mypy
-        run: mypy --show-traceback tdmcp/ backend/ containers/
+        run: uv run mypy --show-traceback tdmcp/ backend/ containers/
         env:
           PYTHONPATH: backend
           DJANGO_SECRET_KEY: "ci-dummy-secret-key-for-static-analysis-checks"
@@ -94,19 +99,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: pyproject.toml
+          version: "0.9.28"
+          enable-cache: true
+          python-version: "3.12"
 
       - name: Install dependencies for Pyrefly (include web & DB extras)
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[all-databases,web,dev]"
+        run: uv sync --locked --extra all-databases --extra web
 
       - name: Pyrefly check
-        run: pyrefly check --python-interpreter-path $(which python) --summarize-errors
+        run: uv run pyrefly check --summarize-errors
         env:
           PYTHONPATH: backend
           DJANGO_SECRET_KEY: "ci-dummy-secret-key-for-static-analysis-checks"
@@ -118,17 +122,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: pyproject.toml
+          version: "0.9.28"
+          enable-cache: true
+          python-version: "3.12"
 
       - name: Install all dependencies
-        run: pip install -e ".[all-databases,web,dev]"
+        run: uv sync --locked --extra all-databases --extra web
 
       - name: Pytest with coverage
-        run: pytest tests/ --cov --cov-report=term-missing --tb=short
+        run: uv run pytest tests/ --cov --cov-report=term-missing --tb=short
         env:
           DJANGO_DEBUG: ${{ secrets.DJANGO_DEBUG }}
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
