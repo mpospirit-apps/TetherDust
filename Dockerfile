@@ -28,9 +28,9 @@ COPY changelog/ changelog/
 
 # Default agent system prompts read by the management when seeding a new or empty
 # agent's system_prompt field (see management.views.agent._default_system_prompt_path).
-# Only these two files are needed from docker/, not the rest of the build context.
-COPY docker/codex/AGENTS.md docker/codex/AGENTS.md
-COPY docker/claude/CLAUDE.md docker/claude/CLAUDE.md
+# Only these two files are needed from containers/, not the rest of the build context.
+COPY containers/codex/AGENTS.md containers/codex/AGENTS.md
+COPY containers/claude/CLAUDE.md containers/claude/CLAUDE.md
 
 # Create static directory so collectstatic doesn't warn
 RUN mkdir -p backend/static

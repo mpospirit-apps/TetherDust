@@ -29,9 +29,9 @@ RUN mkdir -p /opt/codex-homes
 # touch /root.
 RUN mkdir -p /var/codex-home/.codex
 
-COPY docker/codex/AGENTS.md /app/AGENTS.md
-COPY docker/codex/codex_api.py /app/codex_api.py
-COPY docker/codex/entrypoint.sh /entrypoint.sh
+COPY containers/codex/AGENTS.md /app/AGENTS.md
+COPY containers/codex/codex_api.py /app/codex_api.py
+COPY containers/codex/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8002

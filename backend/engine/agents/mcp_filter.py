@@ -5,7 +5,7 @@ the MCP server via a token embedded in the MCP URL path: Django registers a
 filter token, hands the agent a tokenized MCP URL, and the MCP server extracts
 the token and hides/blocks disallowed tools for that request.
 
-Registration used to live in `docker/codex/codex_api.py`, which made it
+Registration used to live in `containers/codex/codex_api.py`, which made it
 Codex-specific. It lives here now so every agent backend can reuse the same
 handshake: call `register_filter(...)` to mint a token, embed it with
 `tokenized_mcp_url(...)`, and `clear_filter(...)` on completion / error /

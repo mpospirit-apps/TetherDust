@@ -16,7 +16,7 @@ services:
   tdmcp:
     build:
       context: .
-      dockerfile: docker/tdmcp/Dockerfile
+      dockerfile: containers/tdmcp/Dockerfile
     depends_on:
       db:
         condition: service_healthy
@@ -46,7 +46,7 @@ services:
   local-mcp:
     build:
       context: .
-      dockerfile: docker/local_mcp/Dockerfile
+      dockerfile: containers/local_mcp/Dockerfile
     depends_on:
       db:
         condition: service_healthy
@@ -64,7 +64,7 @@ services:
   codex:
     build:
       context: .
-      dockerfile: docker/codex/Dockerfile
+      dockerfile: containers/codex/Dockerfile
     environment:
       - MCP_URL=http://tdmcp:8001/mcp
       - MCP_BASE_URL=http://tdmcp:8001
@@ -104,7 +104,7 @@ services:
   codex-api:
     build:
       context: .
-      dockerfile: docker/codex/Dockerfile
+      dockerfile: containers/codex/Dockerfile
     environment:
       - MCP_URL=http://tdmcp:8001/mcp
       - MCP_BASE_URL=http://tdmcp:8001
@@ -139,7 +139,7 @@ services:
   claude:
     build:
       context: .
-      dockerfile: docker/claude/Dockerfile
+      dockerfile: containers/claude/Dockerfile
     environment:
       - MCP_URL=http://tdmcp:8001/mcp
       - MCP_BASE_URL=http://tdmcp:8001
@@ -171,7 +171,7 @@ services:
   claude-api:
     build:
       context: .
-      dockerfile: docker/claude/Dockerfile
+      dockerfile: containers/claude/Dockerfile
     environment:
       - MCP_URL=http://tdmcp:8001/mcp
       - MCP_BASE_URL=http://tdmcp:8001
@@ -310,7 +310,7 @@ services:
   # public entry point — the backend is internal-only.
   nginx:
     build:
-      context: ./docker/nginx
+      context: ./containers/nginx
       dockerfile: Dockerfile
     ports:
       - "8000:80"

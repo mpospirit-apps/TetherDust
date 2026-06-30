@@ -61,7 +61,7 @@ repos:
 
       - id: mypy
         name: Mypy
-        entry: .venv/bin/mypy tdmcp/ backend/ docker/
+        entry: .venv/bin/mypy tdmcp/ backend/ containers/
         language: system
         types: [python]
         pass_filenames: false

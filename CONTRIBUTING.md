@@ -39,13 +39,13 @@ pip install -e ".[all-databases,web,dev]"
 
 ```bash
 # Lint
-ruff check tdmcp/ web/ docker/
+ruff check tdmcp/ web/ containers/
 
 # Format
-ruff format tdmcp/ web/ docker/
+ruff format tdmcp/ web/ containers/
 
 # Type check
-mypy tdmcp/ web/ docker/
+mypy tdmcp/ web/ containers/
 
 # Tests
 pytest tests/
