@@ -113,3 +113,35 @@ show_missing = true
 # CI fails if total coverage drops below this. Set a few points under the
 # current ~45% measured total; ratchet upward as test coverage grows.
 fail_under = 40
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/engine/migrations/*.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+exclude = ["backend/engine/migrations/"]
+mypy_path = ["backend", "stubs", "."]
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "project.settings"
+
+[tool.pyrefly]
+python-interpreter = ".venv/bin/python"
+project-includes = [
+    "tdmcp/**/*.py",
+    "backend/**/*.py",
+    "containers/**/*.py",
+]
+search-path = [
+    "backend",
+    ".",
+]

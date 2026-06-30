@@ -91,4 +91,4 @@ Every user-visible change needs an entry. Add or update `changelog/<version>.md`
 
 ## Questions?
 
-Open a [GitHub Discussion](../../discussions) or file an issue.
+Open a [GitHub Discussion](../../../discussions) or file an issue.
