@@ -406,7 +406,7 @@ for use that doesn't fit AGPLv3 — contact the maintainers.
 ## Contributing
 
 Contributions are welcome. By submitting a contribution you agree to the
-[Contributor License Agreement](CLA.md), signaled by signing off your commits:
+[Contributor License Agreement](.github/CLA.md), signaled by signing off your commits:
 
 ```bash
 git commit -s

@@ -2,7 +2,7 @@
 
 The MCP server only speaks the MCP protocol over streamable-HTTP — there is no
 plain `GET /tools` / `POST /call_tool` REST surface. A Direct API agent therefore
-drives a real `ClientSession` (the same SDK `docker/local_mcp/local_mcp_api.py`
+drives a real `ClientSession` (the same SDK `containers/local_mcp/local_mcp_api.py`
 uses over stdio, here over HTTP) to discover and invoke tools.
 
 `open_mcp_session` yields an initialized session; `mcp_tools_to_openai` converts

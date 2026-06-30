@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -e ".[sse,all-databases]"
 # Copy MCP server source
 COPY tdmcp/ tdmcp/
 
-COPY docker/tdmcp/entrypoint.sh /entrypoint.sh
+COPY containers/tdmcp/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Run from /app so `python -m tdmcp.server` resolves correctly

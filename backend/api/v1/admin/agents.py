@@ -11,7 +11,7 @@ Codex auth-token agents can sign in via the OAuth **device-code** flow: the
 and persist the resulting `auth.json` on completion.
 
 The `default-prompt` action seeds the System Prompt textarea from the baked-in
-container default (`docker/codex/AGENTS.md` / `docker/claude/CLAUDE.md`) so a
+container default (`containers/codex/AGENTS.md` / `containers/claude/CLAUDE.md`) so a
 blank-prompt agent shows the prompt it effectively uses (ports the legacy form
 pre-fill); display only, persisted only if the form is saved.
 """
@@ -47,16 +47,16 @@ def _resolve_codex_url(config: AgentConfiguration) -> str:
 def _default_system_prompt(agent_type: str) -> str:
     """Baked-in default prompt for an agent type (its container's AGENTS.md/CLAUDE.md).
 
-    Claude Code seeds from `docker/claude/CLAUDE.md`; every other CLI / Direct-API
-    type from `docker/codex/AGENTS.md`. These repo files are copied into the
-    backend image via the Dockerfile, resolving to `/app/docker/...`. Missing
+    Claude Code seeds from `containers/claude/CLAUDE.md`; every other CLI / Direct-API
+    type from `containers/codex/AGENTS.md`. These repo files are copied into the
+    backend image via the Dockerfile, resolving to `/app/containers/...`. Missing
     file → "" (the textarea simply stays blank, as in the legacy form).
     """
-    docker_dir = Path(settings.BASE_DIR).parent / "docker"
+    containers_dir = Path(settings.BASE_DIR).parent / "containers"
     if agent_type in ("claude_code", "claude_code_api"):
-        path = docker_dir / "claude" / "CLAUDE.md"
+        path = containers_dir / "claude" / "CLAUDE.md"
     else:
-        path = docker_dir / "codex" / "AGENTS.md"
+        path = containers_dir / "codex" / "AGENTS.md"
     try:
         return path.read_text(encoding="utf-8")
     except OSError:

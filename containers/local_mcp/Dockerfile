@@ -23,7 +23,7 @@ RUN /opt/local-mcp/bin/pip install --no-cache-dir \
     "psycopg2-binary>=2.9.0" \
     "cryptography>=41.0.0"
 
-COPY docker/local_mcp/local_mcp_api.py /app/local_mcp_api.py
+COPY containers/local_mcp/local_mcp_api.py /app/local_mcp_api.py
 
 EXPOSE 8003
 

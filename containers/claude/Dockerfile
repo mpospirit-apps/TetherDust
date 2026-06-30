@@ -26,9 +26,9 @@ RUN /opt/claude-api/bin/pip install --no-cache-dir \
 # Writable CLI config/home + a neutral empty working dir (never /root).
 RUN mkdir -p /var/claude-home/.claude /var/claude-home/work
 
-COPY docker/claude/CLAUDE.md /app/CLAUDE.md
-COPY docker/claude/claude_api.py /app/claude_api.py
-COPY docker/claude/entrypoint.sh /entrypoint.sh
+COPY containers/claude/CLAUDE.md /app/CLAUDE.md
+COPY containers/claude/claude_api.py /app/claude_api.py
+COPY containers/claude/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8002

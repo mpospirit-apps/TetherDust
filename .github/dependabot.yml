@@ -39,10 +39,10 @@ updates:
   - package-ecosystem: docker
     directories:
       - /
-      - /docker/tdmcp
-      - /docker/local_mcp
-      - /docker/codex
-      - /docker/claude
+      - /containers/tdmcp
+      - /containers/local_mcp
+      - /containers/codex
+      - /containers/claude
     schedule:
       interval: weekly
     labels:
