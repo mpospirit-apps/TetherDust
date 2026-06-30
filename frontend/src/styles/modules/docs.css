@@ -25,6 +25,11 @@
 	padding-top: var(--navbar-h);
 }
 
+[data-theme="dark"] .docs-sidebar {
+	background: rgba(15, 15, 13, 0.4);
+	border-right-color: rgba(255, 255, 255, 0.05);
+}
+
 .docs-sidebar.collapsed {
 	width: 0;
 	min-width: 0;
@@ -34,7 +39,7 @@
 }
 
 .docs-sidebar-header {
-	padding: var(--md) var(--lg);
+	padding: var(--md) var(--sm) var(--md) var(--lg);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -48,6 +53,7 @@
 	letter-spacing: 1px;
 	color: var(--text);
 	margin: 0;
+	line-height: 1;
 }
 
 /* Groups multiple header actions (e.g. new-chat + collapse) on the right */
