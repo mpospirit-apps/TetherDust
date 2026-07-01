@@ -184,10 +184,6 @@
 	border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme="dark"] .admin-sidebar {
-	border-right-color: rgba(255, 255, 255, 0.1);
-}
-
 [data-theme="dark"] .help-modal__panel {
 	border-color: rgba(255, 255, 255, 0.1);
 }
