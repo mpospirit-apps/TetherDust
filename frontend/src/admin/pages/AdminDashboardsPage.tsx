@@ -53,7 +53,7 @@ export function AdminDashboardsPage() {
 				) : dashboards.length === 0 ? (
 					<div className="empty-state">
 						<div className="icon">
-							<i className="fa-solid fa-gauge" />
+							<i className="fa-solid fa-chart-bar" />
 						</div>
 						<h3>No Dashboards</h3>
 						<p className="text-sec">

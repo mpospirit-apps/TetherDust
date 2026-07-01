@@ -88,7 +88,7 @@ export function DashboardsPage() {
 									isActive ? "docs-file-btn active" : "docs-file-btn"
 								}
 							>
-								<i className="fa-solid fa-chart-pie" />
+								<i className="fa-solid fa-chart-bar" />
 								<span>{d.name}</span>
 							</NavLink>
 						))

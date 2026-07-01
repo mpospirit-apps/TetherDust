@@ -271,7 +271,7 @@ export function ReportsPage() {
 										}
 										onClick={() => selectReport(r.id)}
 									>
-										<i className="fa-solid fa-chart-bar" />
+										<i className="fa-solid fa-table-list" />
 										<span>{r.name}</span>
 									</button>
 								))}

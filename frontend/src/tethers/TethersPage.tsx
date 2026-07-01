@@ -89,7 +89,7 @@ export function TethersPage() {
 									isActive ? "docs-file-btn active" : "docs-file-btn"
 								}
 							>
-								<i className="fa-solid fa-link" />
+								<i className="fa-solid fa-diagram-project" />
 								<span>{t.name}</span>
 							</NavLink>
 						))

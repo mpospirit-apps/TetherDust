@@ -88,7 +88,7 @@ export function AdminReportsPage() {
 				) : reports.length === 0 ? (
 					<div className="empty-state">
 						<div className="icon">
-							<i className="fa-solid fa-chart-bar" />
+							<i className="fa-solid fa-table-list" />
 						</div>
 						<h3>No Reports</h3>
 						<p className="text-sec">

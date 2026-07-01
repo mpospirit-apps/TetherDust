@@ -133,7 +133,7 @@ export function ChatPage() {
 											}
 											onClick={() => selectSession(s.id)}
 										>
-											<i className="fa-solid fa-message" />
+											<i className="fa-solid fa-comments" />
 											<span>{s.title}</span>
 										</button>
 									</div>

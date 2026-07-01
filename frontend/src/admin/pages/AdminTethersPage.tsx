@@ -54,7 +54,7 @@ export function AdminTethersPage() {
 				) : tethers.length === 0 ? (
 					<div className="empty-state">
 						<div className="icon">
-							<i className="fa-solid fa-link" />
+							<i className="fa-solid fa-diagram-project" />
 						</div>
 						<h3>No Tethers</h3>
 						<p className="text-sec">

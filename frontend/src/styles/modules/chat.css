@@ -165,12 +165,7 @@
 .history-item i {
 	font-size: 14px;
 	flex-shrink: 0;
-	opacity: 0.6;
-}
-
-.history-item.active i {
-	opacity: 1;
-	color: var(--c-cyan);
+	opacity: 0.7;
 }
 
 .history-toggle-btn {

@@ -149,6 +149,7 @@
 	color: var(--text-sec);
 	cursor: pointer;
 	text-align: left;
+	text-decoration: none;
 	transition:
 		background 0.15s,
 		color 0.15s;
@@ -162,8 +163,10 @@
 	color: var(--c-red);
 	font-weight: 700;
 }
-.docs-file-btn .fa-file-lines {
-	font-size: var(--text-sm);
+.docs-file-btn i {
+	font-size: 14px;
+	opacity: 0.7;
+	flex-shrink: 0;
 }
 
 /* ── Content area ── */
