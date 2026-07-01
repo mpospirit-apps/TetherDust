@@ -150,7 +150,6 @@ export function DocsPage() {
 	const navigate = useNavigate();
 	const sourceName = params.source;
 	const filePath = params["*"] || undefined;
-	const [sidebarOpen, setSidebarOpen] = useState(true);
 
 	const sourcesQuery = useQuery({
 		queryKey: ["docs", "sources"],
@@ -183,20 +182,7 @@ export function DocsPage() {
 
 	return (
 		<div className="docs-layout">
-			<aside
-				className={sidebarOpen ? "docs-sidebar" : "docs-sidebar collapsed"}
-			>
-				<div className="docs-sidebar-header">
-					<h3>Documentation</h3>
-					<button
-						type="button"
-						className="btn btn-ghost btn-sm"
-						aria-label="Collapse sidebar"
-						onClick={() => setSidebarOpen(false)}
-					>
-						<i className="fa-solid fa-angles-left" />
-					</button>
-				</div>
+			<aside className="docs-sidebar">
 				<div className="docs-tree">
 					{sourcesQuery.isLoading ? (
 						<p className="text-sec" style={{ padding: "var(--md) var(--lg)" }}>
@@ -221,24 +207,10 @@ export function DocsPage() {
 				</div>
 			</aside>
 
-			{!sidebarOpen && (
-				<button
-					type="button"
-					className="docs-toggle-btn"
-					aria-label="Open sidebar"
-					onClick={() => setSidebarOpen(true)}
-				>
-					<i className="fa-solid fa-angles-right" />
-				</button>
-			)}
-
 			<div className="docs-content-area">
 				<div className="docs-content">
 					{!sourceName || !filePath ? (
 						<div className="docs-empty-state">
-							<div className="empty-brand">
-								Tether<span>Dust</span>
-							</div>
 							<p>Select a document from the sidebar to start reading.</p>
 						</div>
 					) : contentQuery.isLoading ? (

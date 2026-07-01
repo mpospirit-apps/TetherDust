@@ -46,7 +46,6 @@ export function ChatPage() {
 		null,
 	);
 	const [connKey, setConnKey] = useState(0);
-	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const scrollRef = useRef<HTMLDivElement>(null);
 
 	const sessionsQuery = useQuery({
@@ -102,29 +101,12 @@ export function ChatPage() {
 
 	return (
 		<div className="chat-layout">
-			<aside
-				className={sidebarOpen ? "docs-sidebar" : "docs-sidebar collapsed"}
-			>
+			<aside className="docs-sidebar">
 				<div className="docs-sidebar-header">
-					<h3>Chat History</h3>
-					<div className="sidebar-header-actions">
-						<button
-							type="button"
-							className="history-new-btn"
-							title="New chat"
-							onClick={newChat}
-						>
-							<i className="fa-solid fa-pen-to-square" />
-						</button>
-						<button
-							type="button"
-							className="btn btn-ghost btn-sm"
-							aria-label="Collapse sidebar"
-							onClick={() => setSidebarOpen(false)}
-						>
-							<i className="fa-solid fa-angles-left" />
-						</button>
-					</div>
+					<button type="button" className="history-new-btn" onClick={newChat}>
+						<i className="fa-solid fa-pen-to-square" />
+						<span>New Chat</span>
+					</button>
 				</div>
 				<div className="docs-tree">
 					{grouped.length === 0 ? (
@@ -151,7 +133,7 @@ export function ChatPage() {
 											}
 											onClick={() => selectSession(s.id)}
 										>
-											<i className="fa-solid fa-message" />
+											<i className="fa-solid fa-comments" />
 											<span>{s.title}</span>
 										</button>
 									</div>
@@ -162,24 +144,10 @@ export function ChatPage() {
 				</div>
 			</aside>
 
-			{!sidebarOpen && (
-				<button
-					type="button"
-					className="docs-toggle-btn"
-					aria-label="Open sidebar"
-					onClick={() => setSidebarOpen(true)}
-				>
-					<i className="fa-solid fa-angles-right" />
-				</button>
-			)}
-
 			<div className="chat-container">
 				<div className="chat-messages" ref={scrollRef}>
 					{messages.length === 0 && (
 						<div className="chat-empty-state">
-							<div className="empty-brand">
-								Tether<span>Dust</span>
-							</div>
 							<p>
 								{agentName
 									? "Ask the agent anything about your data."

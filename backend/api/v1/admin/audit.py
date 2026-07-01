@@ -45,6 +45,29 @@ class AuditLogView(APIView):
         return Response({"results": results})
 
 
+class AuditLogDetailView(APIView):
+    permission_classes = [IsStaffUser]
+
+    def get(self, request: Request, audit_id: str) -> Response:
+        try:
+            log = QueryAuditLog.objects.select_related("user", "database").get(pk=audit_id)
+        except QueryAuditLog.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {
+                "id": log.id,
+                "created_at": log.created_at.isoformat(),
+                "user": log.user.username if log.user else None,
+                "database": log.database.name if log.database else None,
+                "success": log.success,
+                "row_count": log.row_count,
+                "execution_time_ms": log.execution_time_ms,
+                "query": log.query,
+                "error_message": log.error_message,
+            }
+        )
+
+
 class SessionsView(APIView):
     permission_classes = [IsStaffUser]
 

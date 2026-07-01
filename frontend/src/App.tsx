@@ -8,6 +8,7 @@ import { AdminPlaceholder } from "./admin/pages/AdminPlaceholder";
 import { AdminTethersPage } from "./admin/pages/AdminTethersPage";
 import { AgentFormPage } from "./admin/pages/AgentFormPage";
 import { AgentsPage } from "./admin/pages/AgentsPage";
+import { AuditLogDetailPage } from "./admin/pages/AuditLogDetailPage";
 import { AuditPage } from "./admin/pages/AuditPage";
 import { ChartFormPage } from "./admin/pages/ChartFormPage";
 import { ChartGenLogDetailPage } from "./admin/pages/ChartGenLogDetailPage";
@@ -130,6 +131,7 @@ export function App() {
 				<Route path="users/new" element={<UserFormPage />} />
 				<Route path="users/:id" element={<UserFormPage />} />
 				<Route path="audit" element={<AuditPage />} />
+				<Route path="audit/:id" element={<AuditLogDetailPage />} />
 				<Route path="sessions" element={<SessionsPage />} />
 				<Route path="sessions/:id" element={<SessionDetailPage />} />
 				<Route path="agents" element={<AgentsPage />} />

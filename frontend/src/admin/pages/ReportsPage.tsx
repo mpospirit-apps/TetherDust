@@ -88,7 +88,7 @@ export function AdminReportsPage() {
 				) : reports.length === 0 ? (
 					<div className="empty-state">
 						<div className="icon">
-							<i className="fa-solid fa-chart-bar" />
+							<i className="fa-solid fa-table-list" />
 						</div>
 						<h3>No Reports</h3>
 						<p className="text-sec">
@@ -115,9 +115,7 @@ export function AdminReportsPage() {
 								{reports.map((r) => (
 									<tr key={r.id}>
 										<td>
-											<Link to={`/admin/reports/${r.id}`}>
-												<strong>{r.name}</strong>
-											</Link>
+											<strong>{r.name}</strong>
 											{r.description && (
 												<div className="text-sm text-sec truncate">
 													{r.description}
@@ -136,23 +134,11 @@ export function AdminReportsPage() {
 											)}
 										</td>
 										<td>
-											<button
-												type="button"
-												onClick={() => toggle.mutate(r.id)}
-												title="Toggle active"
-												style={{
-													background: "none",
-													border: "none",
-													padding: 0,
-													cursor: "pointer",
-												}}
-											>
-												{r.is_active ? (
-													<span className="badge badge-success">ACTIVE</span>
-												) : (
-													<span className="badge badge-muted">INACTIVE</span>
-												)}
-											</button>
+											{r.is_active ? (
+												<span className="badge badge-success">ACTIVE</span>
+											) : (
+												<span className="badge badge-muted">INACTIVE</span>
+											)}
 										</td>
 										<td>
 											<div className="flex-gap">
@@ -164,11 +150,21 @@ export function AdminReportsPage() {
 												>
 													<i className="fa-solid fa-play" /> Run
 												</button>
+												<button
+													type="button"
+													className="btn btn-ghost btn-sm"
+													onClick={() => toggle.mutate(r.id)}
+												>
+													<i
+														className={`fa-solid ${r.is_active ? "fa-toggle-off" : "fa-toggle-on"}`}
+													/>{" "}
+													{r.is_active ? "Deactivate" : "Activate"}
+												</button>
 												<Link
 													to={`/admin/reports/${r.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<button
 													type="button"
@@ -179,7 +175,7 @@ export function AdminReportsPage() {
 															remove.mutate(r.id);
 													}}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

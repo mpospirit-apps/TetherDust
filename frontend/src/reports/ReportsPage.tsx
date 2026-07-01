@@ -109,12 +109,14 @@ function LatestView({
 		);
 	}
 	return (
-		<ReportResultTable
-			report={data.report}
-			execution={data.execution}
-			emailEnabled={data.email_enabled}
-			onShowHistory={onShowHistory}
-		/>
+		<div className="card">
+			<ReportResultTable
+				report={data.report}
+				execution={data.execution}
+				emailEnabled={data.email_enabled}
+				onShowHistory={onShowHistory}
+			/>
+		</div>
 	);
 }
 
@@ -138,53 +140,55 @@ function HistoryView({
 			{data.executions.length === 0 ? (
 				<p className="text-sec">No executions yet.</p>
 			) : (
-				<div className="report-table-wrap">
-					<table className="report-table">
-						<thead>
-							<tr>
-								<th>Status</th>
-								<th>Started</th>
-								<th>Duration</th>
-								<th>Rows</th>
-								<th />
-							</tr>
-						</thead>
-						<tbody>
-							{data.executions.map((ex) => (
-								<tr key={ex.id}>
-									<td>
-										<span
-											className={
-												ex.status === "success"
-													? "badge badge-success"
-													: ex.status === "failed"
-														? "badge badge-error"
-														: "badge badge-muted"
-											}
-										>
-											{ex.status.toUpperCase()}
-										</span>
-									</td>
-									<td>{new Date(ex.started_at).toLocaleString()}</td>
-									<td>
-										{ex.execution_time_ms != null
-											? `${ex.execution_time_ms}ms`
-											: "—"}
-									</td>
-									<td>{ex.row_count ?? "—"}</td>
-									<td>
-										<button
-											type="button"
-											className="btn btn-ghost btn-sm"
-											onClick={() => onOpenExecution(ex.id)}
-										>
-											View
-										</button>
-									</td>
+				<div className="card">
+					<div className="report-table-wrap">
+						<table className="report-table">
+							<thead>
+								<tr>
+									<th>Status</th>
+									<th>Started</th>
+									<th>Duration</th>
+									<th>Rows</th>
+									<th />
 								</tr>
-							))}
-						</tbody>
-					</table>
+							</thead>
+							<tbody>
+								{data.executions.map((ex) => (
+									<tr key={ex.id}>
+										<td>
+											<span
+												className={
+													ex.status === "success"
+														? "badge badge-success"
+														: ex.status === "failed"
+															? "badge badge-error"
+															: "badge badge-muted"
+												}
+											>
+												{ex.status.toUpperCase()}
+											</span>
+										</td>
+										<td>{new Date(ex.started_at).toLocaleString()}</td>
+										<td>
+											{ex.execution_time_ms != null
+												? `${ex.execution_time_ms}ms`
+												: "—"}
+										</td>
+										<td>{ex.row_count ?? "—"}</td>
+										<td>
+											<button
+												type="button"
+												className="btn btn-ghost btn-sm"
+												onClick={() => onOpenExecution(ex.id)}
+											>
+												<i className="fa-solid fa-eye" /> View
+											</button>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
 				</div>
 			)}
 		</div>
@@ -200,11 +204,13 @@ function ExecutionView({ execId }: { execId: string }) {
 	if (isError || !data)
 		return <p className="text-sec">Failed to load execution.</p>;
 	return (
-		<ReportResultTable
-			report={data.report}
-			execution={data.execution}
-			emailEnabled={data.email_enabled}
-		/>
+		<div className="card">
+			<ReportResultTable
+				report={data.report}
+				execution={data.execution}
+				emailEnabled={data.email_enabled}
+			/>
+		</div>
 	);
 }
 
@@ -223,7 +229,6 @@ export function ReportsPage() {
 	});
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [content, setContent] = useState<Content>({ kind: "latest" });
-	const [sidebarOpen, setSidebarOpen] = useState(true);
 
 	const groups = useMemo(() => buildGroups(data?.reports ?? []), [data]);
 
@@ -236,20 +241,7 @@ export function ReportsPage() {
 
 	return (
 		<div className="docs-layout">
-			<aside
-				className={sidebarOpen ? "docs-sidebar" : "docs-sidebar collapsed"}
-			>
-				<div className="docs-sidebar-header">
-					<h3>Reports</h3>
-					<button
-						type="button"
-						className="btn btn-ghost btn-sm"
-						aria-label="Collapse sidebar"
-						onClick={() => setSidebarOpen(false)}
-					>
-						<i className="fa-solid fa-angles-left" />
-					</button>
-				</div>
+			<aside className="docs-sidebar">
 				<div className="docs-tree">
 					{isLoading ? (
 						<p className="text-sec" style={{ padding: "var(--md) var(--lg)" }}>
@@ -279,7 +271,7 @@ export function ReportsPage() {
 										}
 										onClick={() => selectReport(r.id)}
 									>
-										<i className="fa-solid fa-chart-bar" />
+										<i className="fa-solid fa-table-list" />
 										<span>{r.name}</span>
 									</button>
 								))}
@@ -289,24 +281,10 @@ export function ReportsPage() {
 				</div>
 			</aside>
 
-			{!sidebarOpen && (
-				<button
-					type="button"
-					className="docs-toggle-btn"
-					aria-label="Open sidebar"
-					onClick={() => setSidebarOpen(true)}
-				>
-					<i className="fa-solid fa-angles-right" />
-				</button>
-			)}
-
 			<div className="docs-content-area">
 				<div className="docs-content">
 					{!selectedId ? (
 						<div className="docs-empty-state">
-							<div className="empty-brand">
-								Tether<span>Dust</span>
-							</div>
 							<p>
 								Select a report from the sidebar to view its latest results.
 							</p>

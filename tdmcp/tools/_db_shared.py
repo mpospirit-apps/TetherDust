@@ -16,6 +16,8 @@ from .._context import (
     request_allowed_reports,
     request_allowed_tethers,
     request_max_row_limit,
+    request_session_id,
+    request_user_id,
 )
 from ..utils.db_service import DatabaseService
 
@@ -83,6 +85,27 @@ def get_allowed_tethers() -> set[str] | None:
 def get_max_row_limit() -> int | None:
     """Max row limit from the per-request context var, or None if unset."""
     return request_max_row_limit.get(None)
+
+
+def get_request_user_id() -> int | None:
+    """Django user id for the current request, or None (unauthenticated stdio)."""
+    return request_user_id.get(None)
+
+
+def get_request_session_id() -> str | None:
+    """Chat session id for the current request, or None when no token is set."""
+    return request_session_id.get(None)
+
+
+def resolve_default_database() -> str | None:
+    """Return the effective database name execute_query() would default to.
+
+    Mirrors ``DatabaseService.execute_query``'s "first configured connection"
+    fallback so an unnamed query can still be attributed to a real database in
+    the audit log. Returns None when nothing is configured.
+    """
+    configs = get_db_service().list_databases()
+    return configs[0].name if configs else None
 
 
 def check_database_access(database: str | None) -> str | None:

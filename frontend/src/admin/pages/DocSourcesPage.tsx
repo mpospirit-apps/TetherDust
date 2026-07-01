@@ -35,7 +35,9 @@ function ValidateButton({ id }: { id: string }) {
 				{mutation.isPending ? (
 					<i className="fa-solid fa-spinner fa-spin" />
 				) : (
-					"Validate"
+					<>
+						<i className="fa-solid fa-check-double" /> Validate
+					</>
 				)}
 			</button>
 			{result && (
@@ -115,7 +117,6 @@ export function DocSourcesPage() {
 									<th>Type</th>
 									<th>Patterns</th>
 									<th>Status</th>
-									<th>Validate</th>
 									<th>Actions</th>
 								</tr>
 							</thead>
@@ -147,15 +148,13 @@ export function DocSourcesPage() {
 											)}
 										</td>
 										<td>
-											<ValidateButton id={src.id} />
-										</td>
-										<td>
 											<div className="flex-gap">
+												<ValidateButton id={src.id} />
 												<Link
 													to={`/admin/docsources/${src.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<button
 													type="button"
@@ -163,7 +162,7 @@ export function DocSourcesPage() {
 													style={{ color: "var(--danger)" }}
 													onClick={() => onDelete(src)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

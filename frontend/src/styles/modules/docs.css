@@ -4,7 +4,7 @@
 
 .docs-layout {
 	display: flex;
-	height: calc(100vh - var(--navbar-h));
+	height: 100vh;
 	position: relative;
 	z-index: 2;
 }
@@ -13,7 +13,7 @@
 .docs-sidebar {
 	width: 280px;
 	min-width: 280px;
-	background: rgba(255, 255, 255, 0.55);
+	background: rgba(245, 243, 238, 0.75);
 	backdrop-filter: blur(12px);
 	-webkit-backdrop-filter: blur(12px);
 	border-right: 1px solid rgba(26, 26, 26, 0.06);
@@ -22,38 +22,19 @@
 	transition: all 0.3s var(--ease);
 	z-index: 10;
 	overflow: hidden;
+	padding-top: var(--navbar-h);
 }
 
-.docs-sidebar.collapsed {
-	width: 0;
-	min-width: 0;
-	border-right: none;
-	opacity: 0;
-	pointer-events: none;
+[data-theme="dark"] .docs-sidebar {
+	background: rgba(15, 15, 13, 0.4);
+	border-right-color: rgba(255, 255, 255, 0.05);
 }
 
 .docs-sidebar-header {
-	padding: var(--md) var(--lg);
+	padding: var(--md) var(--sm) var(--md) var(--lg);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	border-bottom: 1px solid rgba(26, 26, 26, 0.06);
-}
-
-.docs-sidebar-header h3 {
-	font-size: var(--text-sm);
-	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: 1px;
-	color: var(--text);
-	margin: 0;
-}
-
-/* Groups multiple header actions (e.g. new-chat + collapse) on the right */
-.sidebar-header-actions {
-	display: flex;
-	align-items: center;
-	gap: var(--sm);
 }
 
 .docs-tree {
@@ -168,6 +149,7 @@
 	color: var(--text-sec);
 	cursor: pointer;
 	text-align: left;
+	text-decoration: none;
 	transition:
 		background 0.15s,
 		color 0.15s;
@@ -181,45 +163,10 @@
 	color: var(--c-red);
 	font-weight: 700;
 }
-.docs-file-btn .fa-file-lines {
-	font-size: var(--text-sm);
-}
-
-/* ── Toggle button ──
-   Lives inside the layout (`.docs-layout` / `.chat-layout`), which already
-   starts below the sticky navbar, so it offsets from the layout's own top — no
-   `--navbar-h` here. Aligns roughly with the collapsed sidebar header row. */
-.docs-toggle-btn {
-	position: absolute;
-	left: 12px;
-	top: 12px;
-	z-index: 11;
-	width: 36px;
-	height: 36px;
-	border-radius: var(--radius);
-	border: 1px solid rgba(26, 26, 26, 0.08);
-	background: rgba(255, 255, 255, 0.7);
-	backdrop-filter: blur(8px);
-	-webkit-backdrop-filter: blur(8px);
-	box-shadow: var(--shadow-sm);
-	cursor: pointer;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: var(--text-sm);
-	color: var(--text-sec);
-	opacity: 0;
-	pointer-events: none;
-	transition: all 0.3s var(--ease);
-}
-.docs-sidebar.collapsed ~ .docs-toggle-btn {
-	opacity: 1;
-	pointer-events: auto;
-}
-.docs-toggle-btn:hover {
-	background: rgba(61, 188, 217, 0.1);
-	border-color: var(--c-cyan);
-	color: var(--c-cyan);
+.docs-file-btn i {
+	font-size: 14px;
+	opacity: 0.7;
+	flex-shrink: 0;
 }
 
 /* ── Content area ── */
@@ -227,6 +174,7 @@
 	flex: 1;
 	overflow-y: auto;
 	min-height: 0;
+	padding-top: var(--navbar-h);
 }
 
 .docs-content {
@@ -247,23 +195,6 @@
 	text-align: center;
 	color: var(--text-sec);
 	padding: var(--xxl);
-}
-
-.docs-empty-state .empty-brand {
-	font-family: var(--font);
-	font-size: var(--text-4xl);
-	font-weight: 700;
-	color: var(--text);
-	margin-bottom: var(--lg);
-	letter-spacing: -1px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	animation: empty-state-in 500ms var(--ease-out-quint) both;
-}
-
-.docs-empty-state .empty-brand span {
-	color: var(--c-dust);
 }
 
 .docs-empty-state p {
@@ -509,13 +440,5 @@
 		bottom: 0;
 		z-index: 20;
 		box-shadow: var(--shadow-lg);
-	}
-	.docs-sidebar.collapsed {
-		width: 0;
-		min-width: 0;
-	}
-	.docs-sidebar.collapsed ~ .docs-toggle-btn {
-		opacity: 1;
-		pointer-events: auto;
 	}
 }

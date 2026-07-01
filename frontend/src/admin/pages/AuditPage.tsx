@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { getAuditLog } from "../../api/admin";
 
 export function AuditPage() {
@@ -35,6 +36,7 @@ export function AuditPage() {
 									<th>Rows</th>
 									<th>ms</th>
 									<th>Query</th>
+									<th />
 								</tr>
 							</thead>
 							<tbody>
@@ -65,6 +67,14 @@ export function AuditPage() {
 											style={{ maxWidth: 360 }}
 										>
 											{l.query}
+										</td>
+										<td>
+											<Link
+												to={`/admin/audit/${l.id}`}
+												className="btn btn-ghost btn-sm"
+											>
+												<i className="fa-solid fa-eye" /> View
+											</Link>
 										</td>
 									</tr>
 								))}

@@ -219,6 +219,11 @@ export function ChatComposer({
 		}
 	}
 
+	function resizeTextarea(ta: HTMLTextAreaElement) {
+		ta.style.height = "auto";
+		ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+	}
+
 	function submit() {
 		const value = text.trim();
 		if (!value || streaming || !connected) return;
@@ -229,6 +234,7 @@ export function ChatComposer({
 		);
 		setText("");
 		setChips([]);
+		if (textareaRef.current) textareaRef.current.style.height = "auto";
 		close();
 	}
 
@@ -378,7 +384,7 @@ export function ChatComposer({
 				<textarea
 					ref={textareaRef}
 					className="form-control"
-					rows={2}
+					rows={1}
 					placeholder={
 						connected
 							? "Message the agent…  (@ for docs, / for prompts)"
@@ -388,6 +394,7 @@ export function ChatComposer({
 					disabled={!connected}
 					onChange={(e) => {
 						setText(e.target.value);
+						resizeTextarea(e.target);
 						refreshAutocomplete(
 							e.target.value,
 							e.target.selectionStart ?? e.target.value.length,
@@ -395,20 +402,26 @@ export function ChatComposer({
 					}}
 					onKeyDown={onKeyDown}
 				/>
+				{streaming ? (
+					<button
+						type="button"
+						className="chat-send-btn is-stop"
+						aria-label="Stop"
+						onClick={onCancel}
+					>
+						<i className="fa-solid fa-stop" />
+					</button>
+				) : (
+					<button
+						type="submit"
+						className="chat-send-btn"
+						aria-label="Send"
+						disabled={!connected || !text.trim()}
+					>
+						<i className="fa-solid fa-paper-plane" />
+					</button>
+				)}
 			</div>
-			{streaming ? (
-				<button type="button" className="btn btn-secondary" onClick={onCancel}>
-					Stop
-				</button>
-			) : (
-				<button
-					type="submit"
-					className="btn btn-primary"
-					disabled={!connected || !text.trim()}
-				>
-					Send
-				</button>
-			)}
 		</form>
 	);
 }

@@ -700,15 +700,23 @@ table {
 	border-collapse: collapse;
 }
 
+/* Inline test/validate action + its result badge (Databases, Doc Sources) */
+.db-test {
+	display: flex;
+	align-items: center;
+	gap: var(--sm);
+}
+
 thead th {
-	background: linear-gradient(135deg, var(--text) 0%, #2a2a2a 100%);
-	color: var(--text-on-dark);
+	background: rgba(26, 26, 26, 0.04);
+	color: var(--text);
 	font-size: var(--text-xs);
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 1.5px;
 	padding: 14px 20px;
 	text-align: left;
+	border-bottom: 1px solid rgba(26, 26, 26, 0.06);
 	position: sticky;
 	top: 0;
 }
@@ -737,7 +745,9 @@ tr.clickable-row td {
 
 /* ── Badges ── */
 .badge {
-	display: inline-block;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	padding: 3px 10px;
 	font-size: var(--text-xs);
 	font-weight: 700;

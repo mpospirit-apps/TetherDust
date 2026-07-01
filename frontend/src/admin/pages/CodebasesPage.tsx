@@ -110,9 +110,7 @@ export function CodebasesPage() {
 								{codebases.map((c) => (
 									<tr key={c.id}>
 										<td>
-											<Link to={`/admin/codebases/${c.id}`}>
-												<strong>{c.name}</strong>
-											</Link>
+											<strong>{c.name}</strong>
 											{c.description && (
 												<div className="text-sm text-sec truncate">
 													{c.description}
@@ -140,7 +138,7 @@ export function CodebasesPage() {
 													to={`/admin/codebases/${c.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<button
 													type="button"
@@ -148,7 +146,7 @@ export function CodebasesPage() {
 													style={{ color: "var(--danger)" }}
 													onClick={() => onDelete(c)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

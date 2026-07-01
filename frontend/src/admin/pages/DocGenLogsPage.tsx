@@ -54,16 +54,15 @@ export function DocGenLogsPage() {
 									<th>Duration</th>
 									<th>By</th>
 									<th>Started</th>
+									<th />
 								</tr>
 							</thead>
 							<tbody>
 								{logs.map((log) => (
 									<tr key={log.id}>
 										<td className="text-mono text-sm">
-											<Link to={`/admin/docgen-logs/${log.id}`}>
-												{log.destination}
-												{log.filename ? `/${log.filename}` : ""}
-											</Link>
+											{log.destination}
+											{log.filename ? `/${log.filename}` : ""}
 										</td>
 										<td>
 											<span className="type-badge">
@@ -83,6 +82,14 @@ export function DocGenLogsPage() {
 										<td>{fmtDuration(log.execution_time_ms)}</td>
 										<td>{log.user ?? "—"}</td>
 										<td className="text-sm">{fmtDate(log.started_at)}</td>
+										<td>
+											<Link
+												to={`/admin/docgen-logs/${log.id}`}
+												className="btn btn-ghost btn-sm"
+											>
+												<i className="fa-solid fa-eye" /> View
+											</Link>
+										</td>
 									</tr>
 								))}
 							</tbody>

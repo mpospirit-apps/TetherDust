@@ -12,11 +12,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from django.contrib.auth.models import User
 from django.db import transaction
 from engine.engines.report_engine import validate_sql
 from engine.engines.tether_engine import TetherSchemaError
 from engine.engines.tether_engine import validate as validate_graph
-from engine.models import Chart, Dashboard, DatabaseConnection, TetherVersion
+from engine.models import Chart, Dashboard, DatabaseConnection, QueryAuditLog, TetherVersion
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -247,4 +248,47 @@ class TetherGraphSaveView(_InternalView):
                 "edges": len(edges),
             },
             status=status.HTTP_200_OK,
+        )
+
+
+class QueryAuditCreateView(_InternalView):
+    """``query_database`` — record one agent-run query in the audit log.
+
+    Called by the tdmcp ``query_database`` tool after every execution (success
+    or failure) so the audit log captures the real SQL, target database, row
+    count and timing instead of a text-scraped placeholder. The ``user_id`` and
+    ``database`` are threaded through the per-request MCP filter token; either may
+    be absent (e.g. stdio dev use), in which case the FK is left null.
+    """
+
+    def post(self, request: Request) -> Response:
+        query = request.data.get("query") or ""
+        if not query:
+            return Response(
+                {"success": False, "error": "A query is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = None
+        user_id = request.data.get("user_id")
+        if user_id is not None:
+            user = User.objects.filter(pk=user_id).first()
+
+        database = None
+        db_name = (request.data.get("database") or "").strip()
+        if db_name:
+            database = DatabaseConnection.objects.filter(name=db_name).first()
+
+        log = QueryAuditLog.objects.create(
+            user=user,
+            database=database,
+            query=query,
+            row_count=request.data.get("row_count"),
+            execution_time_ms=request.data.get("execution_time_ms"),
+            success=bool(request.data.get("success", True)),
+            error_message=request.data.get("error_message") or "",
+        )
+        return Response(
+            {"success": True, "audit_id": log.id},
+            status=status.HTTP_201_CREATED,
         )

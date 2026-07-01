@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
 import { getDashboard, getDashboards } from "../api/dashboards";
 import { ChartCard } from "./ChartCard";
@@ -61,43 +60,16 @@ function DashboardContent({ id }: { id: string }) {
 
 export function DashboardsPage() {
 	const { id } = useParams();
-	const [search, setSearch] = useState("");
-	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const { data, isLoading } = useQuery({
 		queryKey: ["dashboards"],
 		queryFn: getDashboards,
 	});
 
-	const dashboards = (data?.dashboards ?? []).filter((d) =>
-		d.name.toLowerCase().includes(search.trim().toLowerCase()),
-	);
+	const dashboards = data?.dashboards ?? [];
 
 	return (
 		<div className="docs-layout">
-			<aside
-				className={sidebarOpen ? "docs-sidebar" : "docs-sidebar collapsed"}
-			>
-				<div className="docs-sidebar-header">
-					<h3>Dashboards</h3>
-					<button
-						type="button"
-						className="btn btn-ghost btn-sm"
-						aria-label="Collapse sidebar"
-						onClick={() => setSidebarOpen(false)}
-					>
-						<i className="fa-solid fa-angles-left" />
-					</button>
-				</div>
-				<div className="history-search">
-					<i className="fa-solid fa-magnifying-glass" />
-					<input
-						type="text"
-						placeholder="Search dashboards…"
-						autoComplete="off"
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-					/>
-				</div>
+			<aside className="docs-sidebar">
 				<div className="docs-tree">
 					{isLoading ? (
 						<p className="text-sec" style={{ padding: "var(--md) var(--lg)" }}>
@@ -116,7 +88,7 @@ export function DashboardsPage() {
 									isActive ? "docs-file-btn active" : "docs-file-btn"
 								}
 							>
-								<i className="fa-solid fa-chart-pie" />
+								<i className="fa-solid fa-chart-bar" />
 								<span>{d.name}</span>
 							</NavLink>
 						))
@@ -124,26 +96,14 @@ export function DashboardsPage() {
 				</div>
 			</aside>
 
-			{!sidebarOpen && (
-				<button
-					type="button"
-					className="docs-toggle-btn"
-					aria-label="Open sidebar"
-					onClick={() => setSidebarOpen(true)}
-				>
-					<i className="fa-solid fa-angles-right" />
-				</button>
-			)}
-
 			<div className="docs-content-area">
 				{id ? (
 					<DashboardContent id={id} />
 				) : (
-					<div className="docs-empty-state">
-						<div className="empty-brand">
-							Tether<span>Dust</span>
+					<div className="docs-content">
+						<div className="docs-empty-state">
+							<p>Select a dashboard from the sidebar to view its charts.</p>
 						</div>
-						<p>Select a dashboard from the sidebar to view its charts.</p>
 					</div>
 				)}
 			</div>

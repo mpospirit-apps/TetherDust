@@ -53,7 +53,7 @@ export function AdminDashboardsPage() {
 				) : dashboards.length === 0 ? (
 					<div className="empty-state">
 						<div className="icon">
-							<i className="fa-solid fa-gauge" />
+							<i className="fa-solid fa-chart-bar" />
 						</div>
 						<h3>No Dashboards</h3>
 						<p className="text-sec">
@@ -78,9 +78,7 @@ export function AdminDashboardsPage() {
 								{dashboards.map((d) => (
 									<tr key={d.id}>
 										<td>
-											<Link to={`/admin/dashboards/${d.id}`}>
-												<strong>{d.name}</strong>
-											</Link>
+											<strong>{d.name}</strong>
 											{d.description && (
 												<div className="text-sm text-sec truncate">
 													{d.description}
@@ -101,19 +99,19 @@ export function AdminDashboardsPage() {
 													to={`/admin/dashboards/${d.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Charts
+													<i className="fa-solid fa-chart-column" /> Charts
 												</Link>
 												<Link
 													to={`/admin/dashboards/${d.id}/edit`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<Link
 													to={`/dashboards/${d.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													View
+													<i className="fa-solid fa-eye" /> View
 												</Link>
 												<button
 													type="button"
@@ -121,7 +119,7 @@ export function AdminDashboardsPage() {
 													style={{ color: "var(--danger)" }}
 													onClick={() => onDelete(d)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

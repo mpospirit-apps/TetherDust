@@ -111,14 +111,14 @@ export function AgentsPage() {
 														disabled={activate.isPending}
 														onClick={() => activate.mutate(a.id)}
 													>
-														Activate
+														<i className="fa-solid fa-toggle-on" /> Activate
 													</button>
 												)}
 												<Link
 													to={`/admin/agents/${a.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<button
 													type="button"
@@ -130,7 +130,7 @@ export function AgentsPage() {
 													}
 													onClick={() => onDelete(a)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

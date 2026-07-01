@@ -14,7 +14,7 @@ export function AppLayout() {
 		<>
 			<AuroraBackground />
 			<Navbar />
-			<main>
+			<main className="app-main">
 				<Outlet />
 			</main>
 		</>

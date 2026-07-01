@@ -33,21 +33,28 @@ export function SessionsPage() {
 									<th>User</th>
 									<th>Messages</th>
 									<th>Updated</th>
+									<th />
 								</tr>
 							</thead>
 							<tbody>
 								{sessions.map((s) => (
 									<tr key={s.id}>
 										<td>
-											<Link to={`/admin/sessions/${s.id}`}>
-												<strong>{s.title || "(untitled)"}</strong>
-											</Link>
+											<strong>{s.title || "(untitled)"}</strong>
 											<div className="text-sec text-mono">{s.id}</div>
 										</td>
 										<td>{s.user ?? "—"}</td>
 										<td>{s.message_count}</td>
 										<td className="text-mono">
 											{new Date(s.updated_at).toLocaleString()}
+										</td>
+										<td>
+											<Link
+												to={`/admin/sessions/${s.id}`}
+												className="btn btn-ghost btn-sm"
+											>
+												<i className="fa-solid fa-eye" /> View
+											</Link>
 										</td>
 									</tr>
 								))}

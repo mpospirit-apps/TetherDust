@@ -30,38 +30,11 @@
 .report-table-wrap {
 	overflow-x: auto;
 	margin-top: var(--md);
-	border: 1px solid rgba(26, 26, 26, 0.1);
 }
 .report-table {
 	width: 100%;
 	border-collapse: collapse;
-	font-size: var(--text-sm);
 	white-space: nowrap;
-	background: #fff;
-}
-.report-table th,
-.report-table td {
-	padding: var(--sm) var(--md);
-	text-align: left;
-	border: 1px solid rgba(26, 26, 26, 0.08);
-}
-.report-table thead th {
-	background: linear-gradient(135deg, var(--c-red) 0%, var(--c-pink) 100%);
-	color: var(--text-on-dark);
-	font-size: var(--text-xs);
-	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: 1.5px;
-	position: sticky;
-	top: 0;
-	z-index: 1;
-	border-color: rgba(0, 0, 0, 0.12);
-}
-.report-table tbody tr:nth-child(even) {
-	background: rgba(26, 26, 26, 0.03);
-}
-.report-table tbody tr:hover {
-	background: rgba(26, 26, 26, 0.06);
 }
 .report-sidebar-item {
 	text-align: left;

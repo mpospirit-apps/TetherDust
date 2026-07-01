@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
 import { getTether, getTetherGraph, getTethers } from "../api/tethers";
 import { TetherCanvas } from "./TetherCanvas";
@@ -62,43 +61,16 @@ function TetherViewer({ id }: { id: string }) {
 
 export function TethersPage() {
 	const { id } = useParams();
-	const [search, setSearch] = useState("");
-	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const { data, isLoading } = useQuery({
 		queryKey: ["tethers"],
 		queryFn: getTethers,
 	});
 
-	const tethers = (data?.tethers ?? []).filter((t) =>
-		t.name.toLowerCase().includes(search.trim().toLowerCase()),
-	);
+	const tethers = data?.tethers ?? [];
 
 	return (
 		<div className="docs-layout">
-			<aside
-				className={sidebarOpen ? "docs-sidebar" : "docs-sidebar collapsed"}
-			>
-				<div className="docs-sidebar-header">
-					<h3>Tethers</h3>
-					<button
-						type="button"
-						className="btn btn-ghost btn-sm"
-						aria-label="Collapse sidebar"
-						onClick={() => setSidebarOpen(false)}
-					>
-						<i className="fa-solid fa-angles-left" />
-					</button>
-				</div>
-				<div className="history-search">
-					<i className="fa-solid fa-magnifying-glass" />
-					<input
-						type="text"
-						placeholder="Search tethers…"
-						autoComplete="off"
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-					/>
-				</div>
+			<aside className="docs-sidebar">
 				<div className="docs-tree">
 					{isLoading ? (
 						<p className="text-sec" style={{ padding: "var(--md) var(--lg)" }}>
@@ -117,7 +89,7 @@ export function TethersPage() {
 									isActive ? "docs-file-btn active" : "docs-file-btn"
 								}
 							>
-								<i className="fa-solid fa-link" />
+								<i className="fa-solid fa-diagram-project" />
 								<span>{t.name}</span>
 							</NavLink>
 						))
@@ -125,29 +97,17 @@ export function TethersPage() {
 				</div>
 			</aside>
 
-			{!sidebarOpen && (
-				<button
-					type="button"
-					className="docs-toggle-btn"
-					aria-label="Open sidebar"
-					onClick={() => setSidebarOpen(true)}
-				>
-					<i className="fa-solid fa-angles-right" />
-				</button>
-			)}
-
 			<div className="docs-content-area">
 				{id ? (
 					<TetherViewer id={id} />
 				) : (
-					<div className="docs-empty-state">
-						<div className="empty-brand">
-							Tether<span>Dust</span>
+					<div className="docs-content">
+						<div className="docs-empty-state">
+							<p>
+								Select a tether from the sidebar to explore its code ↔ database
+								graph.
+							</p>
 						</div>
-						<p>
-							Select a tether from the sidebar to explore its code ↔ database
-							graph.
-						</p>
 					</div>
 				)}
 			</div>

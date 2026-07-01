@@ -39,10 +39,11 @@
 
 /* ── Cards ── */
 .card {
-	background: var(--surface);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid rgba(26, 26, 26, 0.08);
 	padding: var(--lg);
-	box-shadow: var(--shadow), var(--rim-light);
 	transition: var(--transition);
 	position: relative;
 }
@@ -67,10 +68,6 @@ form .card {
 			transparent 50%
 		);
 	pointer-events: none;
-}
-
-.card:hover {
-	box-shadow: var(--shadow-lg), var(--rim-light);
 }
 
 .card-header {
