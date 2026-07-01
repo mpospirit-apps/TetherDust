@@ -39,6 +39,8 @@ from ._context import (
     request_allowed_tools,
     request_filter_token,
     request_max_row_limit,
+    request_session_id,
+    request_user_id,
 )
 from .tools import register_tools
 
@@ -105,7 +107,8 @@ def _drain_tool_calls(token: str) -> list[str]:
 # Token-based filter registry:
 #   {token: (allowed_tools, allowed_databases, allowed_doc_sources,
 #            allowed_codebases, max_row_limit,
-#            allowed_reports, allowed_dashboards, allowed_tethers, created_at)}
+#            allowed_reports, allowed_dashboards, allowed_tethers,
+#            user_id, session_id, created_at)}
 # Pre-registered by the Django agent layer before the CLI connects.
 _registered_filters: dict[
     str,
@@ -118,7 +121,9 @@ _registered_filters: dict[
         set[str] | None,
         set[str] | None,
         set[str] | None,
-        float,
+        int | None,  # user_id
+        str | None,  # session_id
+        float,  # created_at (must remain last — _purge_expired_filters unpacks *_, created)
     ],
 ] = {}
 _filters_lock = threading.Lock()
@@ -483,6 +488,8 @@ def _build_streamable_http_app() -> "Starlette":
             allowed_reports,
             allowed_dashboards,
             allowed_tethers,
+            user_id,
+            session_id,
             _,
         ) = entry
         ctx_tools = request_allowed_tools.set(allowed_tools)
@@ -494,6 +501,8 @@ def _build_streamable_http_app() -> "Starlette":
         ctx_reports = request_allowed_reports.set(allowed_reports)
         ctx_dashboards = request_allowed_dashboards.set(allowed_dashboards)
         ctx_tethers = request_allowed_tethers.set(allowed_tethers)
+        ctx_user = request_user_id.set(user_id)
+        ctx_session = request_session_id.set(session_id)
 
         scope["path"] = "/"
 
@@ -509,6 +518,8 @@ def _build_streamable_http_app() -> "Starlette":
             request_allowed_reports.reset(ctx_reports)
             request_allowed_dashboards.reset(ctx_dashboards)
             request_allowed_tethers.reset(ctx_tethers)
+            request_user_id.reset(ctx_user)
+            request_session_id.reset(ctx_session)
 
     def _filter_secret_ok(request: Request) -> bool:
         """Validate the shared secret on filter-management requests.
@@ -549,6 +560,8 @@ def _build_streamable_http_app() -> "Starlette":
         tethers_set = (
             set(body["allowed_tethers"]) if body.get("allowed_tethers") is not None else None
         )
+        user_id = int(body["user_id"]) if body.get("user_id") is not None else None
+        session_id = body.get("session_id") or None
         with _filters_lock:
             _registered_filters[token_str] = (
                 tools_set,
@@ -559,6 +572,8 @@ def _build_streamable_http_app() -> "Starlette":
                 reports_set,
                 dashboards_set,
                 tethers_set,
+                user_id,
+                session_id,
                 time.time(),
             )
         logger.info(

@@ -6,10 +6,12 @@ from .views import (
     ChartCreateView,
     ChartUpdateView,
     DashboardCreateView,
+    QueryAuditCreateView,
     TetherGraphSaveView,
 )
 
 urlpatterns = [
+    path("query-audit/", QueryAuditCreateView.as_view(), name="internal-query-audit"),
     path("dashboards/", DashboardCreateView.as_view(), name="internal-dashboard-create"),
     path(
         "dashboards/<str:dashboard_id>/charts/",

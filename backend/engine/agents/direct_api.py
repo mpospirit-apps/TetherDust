@@ -243,6 +243,8 @@ class OpenAICompatibleAgent(BaseAgent):
                 allowed_dashboards=allowed_dashboards,
                 allowed_tethers=allowed_tethers,
                 max_row_limit=max_row_limit,
+                user_id=user_id,
+                session_id=session_id,
             )
         except httpx.ConnectError:
             logger.error("Cannot connect to MCP server for filter registration")

@@ -80,6 +80,8 @@ async def register_filter(
     allowed_reports: list[str] | None = None,
     allowed_dashboards: list[str] | None = None,
     allowed_tethers: list[str] | None = None,
+    user_id: int | None = None,
+    session_id: str | None = None,
     base_url: str | None = None,
 ) -> str:
     """Register a filter with the MCP server and return its token.
@@ -105,6 +107,10 @@ async def register_filter(
         payload["allowed_tethers"] = allowed_tethers
     if max_row_limit is not None:
         payload["max_row_limit"] = max_row_limit
+    if user_id is not None:
+        payload["user_id"] = user_id
+    if session_id is not None:
+        payload["session_id"] = session_id
 
     base = (base_url or mcp_base_url()).rstrip("/")
     async with httpx.AsyncClient(timeout=10) as client:

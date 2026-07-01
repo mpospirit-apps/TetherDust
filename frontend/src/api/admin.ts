@@ -288,6 +288,10 @@ export function getAuditLog(): Promise<{ results: AuditLogEntry[] }> {
 	return apiFetch("/api/v1/admin/audit/");
 }
 
+export function getAuditLogEntry(id: string): Promise<AuditLogEntry> {
+	return apiFetch(`/api/v1/admin/audit/${id}/`);
+}
+
 export function getSessions(): Promise<{ results: SessionSummary[] }> {
 	return apiFetch("/api/v1/admin/sessions/");
 }

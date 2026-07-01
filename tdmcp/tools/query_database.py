@@ -1,11 +1,20 @@
 """Tool: query_database — execute read-only SQL queries."""
 
+import time
 from typing import Annotated
 
 from pydantic import Field
 
 from ..utils.db_service import QueryValidationError
-from ._db_shared import enforce_db_access, get_db_service, get_max_row_limit
+from ._db_shared import (
+    enforce_db_access,
+    get_db_service,
+    get_max_row_limit,
+    get_request_session_id,
+    get_request_user_id,
+    resolve_default_database,
+)
+from ._internal_api import record_query_audit
 
 
 @enforce_db_access()
@@ -47,6 +56,11 @@ using get_table_schema before retrying."""
 
     db_service = get_db_service()
 
+    # Resolve the effective database name up front so both the query and its
+    # audit entry point at the same (possibly defaulted) connection.
+    effective_database = database or resolve_default_database()
+
+    started = time.perf_counter()
     try:
         rows, row_count = db_service.execute_query(
             sql=sql,
@@ -54,13 +68,18 @@ using get_table_schema before retrying."""
             limit=limit,
         )
     except QueryValidationError as e:
+        await _audit(sql, effective_database, started, success=False, error=f"validation: {e}")
         return f"Query validation error: {e}"
     except ValueError as e:
+        await _audit(sql, effective_database, started, success=False, error=f"config: {e}")
         return f"Configuration error: {e}"
     except Exception as e:
+        await _audit(sql, effective_database, started, success=False, error=str(e))
         return (
             f"Query execution error: {e}\n\nVerify table and column names using get_table_schema."
         )
+
+    await _audit(sql, effective_database, started, success=True, row_count=row_count)
 
     if not rows:
         return "Query returned no results."
@@ -96,3 +115,32 @@ using get_table_schema before retrying."""
         lines.append(f"\n*Results limited to {limit} rows. Increase limit parameter for more.*")
 
     return "\n".join(lines)
+
+
+async def _audit(
+    sql: str,
+    database: str | None,
+    started: float,
+    *,
+    success: bool,
+    row_count: int | None = None,
+    error: str = "",
+) -> None:
+    """Record this query in the backend audit log (best-effort, never raises).
+
+    User + session are read from the per-request MCP filter context; both are
+    absent under stdio, in which case the entry is still logged with a null user.
+    """
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
+    await record_query_audit(
+        {
+            "query": sql,
+            "database": database,
+            "user_id": get_request_user_id(),
+            "session_id": get_request_session_id(),
+            "row_count": row_count,
+            "execution_time_ms": elapsed_ms,
+            "success": success,
+            "error_message": error,
+        }
+    )

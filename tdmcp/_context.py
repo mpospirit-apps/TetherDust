@@ -55,3 +55,16 @@ request_max_row_limit: contextvars.ContextVar[int | None] = contextvars.ContextV
 request_filter_token: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "request_filter_token", default=None
 )
+
+# Per-request user id — the Django user whose chat turn spawned this request.
+# Threaded through the filter token so tools/query_database.py can attribute the
+# audit-log entry to a user. None in unauthenticated (stdio dev) use.
+request_user_id: contextvars.ContextVar[int | None] = contextvars.ContextVar(
+    "request_user_id", default=None
+)
+
+# Per-request chat session id — carried alongside request_user_id for audit
+# context. None when no token is registered.
+request_session_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "request_session_id", default=None
+)

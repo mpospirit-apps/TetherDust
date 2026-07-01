@@ -74,3 +74,15 @@ async def call_internal(method: str, path: str, payload: dict[str, Any] | None =
             }
         )
     return json.dumps(body)
+
+
+async def record_query_audit(payload: dict[str, Any]) -> None:
+    """Best-effort POST of one query audit entry to ``/api/internal/query-audit/``.
+
+    Auditing must never break the query itself, so all failures are swallowed
+    (``call_internal`` already handles transport errors; this guards the rest).
+    """
+    try:
+        await call_internal("POST", "/query-audit/", payload)
+    except Exception:
+        logger.warning("Failed to record query audit entry", exc_info=True)

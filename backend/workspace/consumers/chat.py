@@ -7,7 +7,6 @@ import json
 import logging
 from typing import Any
 
-from engine.consumers.audit import log_queries_from_response
 from engine.consumers.base import BaseAgentConsumer
 from engine.consumers.mcp_client import fetch_tools_called, read_mcp_resources
 from engine.consumers.permissions import PermissionsMixin
@@ -338,7 +337,6 @@ class ChatConsumer(SessionMixin, PermissionsMixin, BaseAgentConsumer):
                     complete_response,
                     tools_used=used_tools,
                 )
-                await log_queries_from_response(self.user, complete_response)
         except Exception:
             logger.exception("Error in post-streaming processing")
 
