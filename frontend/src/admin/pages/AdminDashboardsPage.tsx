@@ -99,19 +99,19 @@ export function AdminDashboardsPage() {
 													to={`/admin/dashboards/${d.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Charts
+													<i className="fa-solid fa-chart-column" /> Charts
 												</Link>
 												<Link
 													to={`/admin/dashboards/${d.id}/edit`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<Link
 													to={`/dashboards/${d.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													View
+													<i className="fa-solid fa-eye" /> View
 												</Link>
 												<button
 													type="button"
@@ -119,7 +119,7 @@ export function AdminDashboardsPage() {
 													style={{ color: "var(--danger)" }}
 													onClick={() => onDelete(d)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

@@ -177,7 +177,7 @@ export function TetherDetailPage() {
 													to={`/tethers/${t.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													View
+													<i className="fa-solid fa-eye" /> View
 												</Link>
 											)}
 										</td>

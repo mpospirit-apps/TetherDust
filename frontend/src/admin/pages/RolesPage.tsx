@@ -80,7 +80,13 @@ export function RolesPage() {
 												<span className="type-badge">Standard</span>
 											)}
 										</td>
-										<td>{r.can_chat ? "Yes" : "No"}</td>
+										<td>
+											{r.can_chat ? (
+												<span className="badge badge-success">YES</span>
+											) : (
+												<span className="badge badge-muted">NO</span>
+											)}
+										</td>
 										<td>
 											{r.is_active ? (
 												<span className="badge badge-success">ACTIVE</span>
@@ -94,7 +100,7 @@ export function RolesPage() {
 													to={`/admin/roles/${r.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<button
 													type="button"
@@ -102,7 +108,7 @@ export function RolesPage() {
 													style={{ color: "var(--danger)" }}
 													onClick={() => onDelete(r)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

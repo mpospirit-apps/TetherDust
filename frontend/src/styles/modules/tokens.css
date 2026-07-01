@@ -173,6 +173,7 @@
 }
 
 [data-theme="dark"] .card {
+	background: rgba(15, 15, 13, 0.4);
 	border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -229,20 +230,8 @@
 }
 
 [data-theme="dark"] thead th {
-	background: linear-gradient(135deg, #1c1b18 0%, #111110 100%);
-}
-
-[data-theme="dark"] .report-table {
-	background: var(--surface);
-}
-
-[data-theme="dark"] .report-table th,
-[data-theme="dark"] .report-table td {
-	border-color: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="dark"] .report-table-wrap {
-	border-color: rgba(255, 255, 255, 0.1);
+	background: rgba(255, 255, 255, 0.04);
+	border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] .report-table tbody tr:nth-child(even) {

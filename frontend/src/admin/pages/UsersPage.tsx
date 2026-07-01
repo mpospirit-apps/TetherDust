@@ -70,7 +70,13 @@ export function UsersPage() {
 										</td>
 										<td className="text-mono">{u.email || "—"}</td>
 										<td>{u.role_name ?? "—"}</td>
-										<td>{u.is_staff ? "Yes" : "No"}</td>
+										<td>
+											{u.is_staff ? (
+												<span className="badge badge-success">YES</span>
+											) : (
+												<span className="badge badge-muted">NO</span>
+											)}
+										</td>
 										<td>
 											{u.is_active ? (
 												<span className="badge badge-success">ACTIVE</span>
@@ -84,7 +90,7 @@ export function UsersPage() {
 													to={`/admin/users/${u.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<button
 													type="button"
@@ -92,7 +98,7 @@ export function UsersPage() {
 													style={{ color: "var(--danger)" }}
 													onClick={() => onDelete(u)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

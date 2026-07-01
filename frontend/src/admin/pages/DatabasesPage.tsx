@@ -27,7 +27,9 @@ function TestButton({ id }: { id: string }) {
 				{mutation.isPending ? (
 					<i className="fa-solid fa-spinner fa-spin" />
 				) : (
-					"Test"
+					<>
+						<i className="fa-solid fa-vial" /> Test
+					</>
 				)}
 			</button>
 			{result && (
@@ -103,7 +105,6 @@ export function DatabasesPage() {
 									<th>Host</th>
 									<th>Database</th>
 									<th>Status</th>
-									<th>Test</th>
 									<th>Actions</th>
 								</tr>
 							</thead>
@@ -126,15 +127,13 @@ export function DatabasesPage() {
 											)}
 										</td>
 										<td>
-											<TestButton id={conn.id} />
-										</td>
-										<td>
 											<div className="flex-gap">
+												<TestButton id={conn.id} />
 												<Link
 													to={`/admin/databases/${conn.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<button
 													type="button"
@@ -142,7 +141,7 @@ export function DatabasesPage() {
 													style={{ color: "var(--danger)" }}
 													onClick={() => onDelete(conn)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

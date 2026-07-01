@@ -138,7 +138,7 @@ export function CodebasesPage() {
 													to={`/admin/codebases/${c.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<button
 													type="button"
@@ -146,7 +146,7 @@ export function CodebasesPage() {
 													style={{ color: "var(--danger)" }}
 													onClick={() => onDelete(c)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

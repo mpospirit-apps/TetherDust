@@ -444,7 +444,7 @@ export function MCPServerDetailPage() {
 													className="btn btn-ghost btn-sm"
 													onClick={() => openEdit(p)}
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</button>
 												<button
 													type="button"
@@ -460,7 +460,7 @@ export function MCPServerDetailPage() {
 														}
 													}}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>

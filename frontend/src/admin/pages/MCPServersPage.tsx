@@ -101,7 +101,7 @@ export function MCPServersPage() {
 													to={`/admin/mcp-servers/${s.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													View
+													<i className="fa-solid fa-eye" /> View
 												</Link>
 												{!s.is_builtin && (
 													<>
@@ -109,7 +109,7 @@ export function MCPServersPage() {
 															to={`/admin/mcp-servers/${s.id}/edit`}
 															className="btn btn-ghost btn-sm"
 														>
-															Edit
+															<i className="fa-solid fa-pen" /> Edit
 														</Link>
 														<button
 															type="button"
@@ -117,7 +117,7 @@ export function MCPServersPage() {
 															style={{ color: "var(--danger)" }}
 															onClick={() => onDelete(s)}
 														>
-															Delete
+															<i className="fa-solid fa-trash" /> Delete
 														</button>
 													</>
 												)}

@@ -87,7 +87,7 @@ export function DocGenLogsPage() {
 												to={`/admin/docgen-logs/${log.id}`}
 												className="btn btn-ghost btn-sm"
 											>
-												View
+												<i className="fa-solid fa-eye" /> View
 											</Link>
 										</td>
 									</tr>

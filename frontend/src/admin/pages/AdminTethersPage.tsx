@@ -95,19 +95,19 @@ export function AdminTethersPage() {
 													to={`/admin/tethers/${t.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													Manage
+													<i className="fa-solid fa-sliders" /> Manage
 												</Link>
 												<Link
 													to={`/admin/tethers/${t.id}/edit`}
 													className="btn btn-ghost btn-sm"
 												>
-													Edit
+													<i className="fa-solid fa-pen" /> Edit
 												</Link>
 												<Link
 													to={`/tethers/${t.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													View
+													<i className="fa-solid fa-eye" /> View
 												</Link>
 												<button
 													type="button"
@@ -115,7 +115,7 @@ export function AdminTethersPage() {
 													style={{ color: "var(--danger)" }}
 													onClick={() => onDelete(t)}
 												>
-													Delete
+													<i className="fa-solid fa-trash" /> Delete
 												</button>
 											</div>
 										</td>
