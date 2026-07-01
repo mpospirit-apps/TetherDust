@@ -13,7 +13,7 @@
 .docs-sidebar {
 	width: 280px;
 	min-width: 280px;
-	background: rgba(255, 255, 255, 0.55);
+	background: rgba(245, 243, 238, 0.75);
 	backdrop-filter: blur(12px);
 	-webkit-backdrop-filter: blur(12px);
 	border-right: 1px solid rgba(26, 26, 26, 0.06);

@@ -287,7 +287,7 @@
 	bottom: 0;
 	width: var(--sidebar-w);
 	z-index: 100;
-	background: rgba(255, 255, 255, 0.55);
+	background: rgba(245, 243, 238, 0.75);
 	backdrop-filter: blur(12px);
 	-webkit-backdrop-filter: blur(12px);
 	border-right: 1px solid rgba(26, 26, 26, 0.06);
