@@ -101,14 +101,13 @@ export function TethersPage() {
 				{id ? (
 					<TetherViewer id={id} />
 				) : (
-					<div className="docs-empty-state">
-						<div className="empty-brand">
-							Tether<span>Dust</span>
+					<div className="docs-content">
+						<div className="docs-empty-state">
+							<p>
+								Select a tether from the sidebar to explore its code ↔ database
+								graph.
+							</p>
 						</div>
-						<p>
-							Select a tether from the sidebar to explore its code ↔ database
-							graph.
-						</p>
 					</div>
 				)}
 			</div>

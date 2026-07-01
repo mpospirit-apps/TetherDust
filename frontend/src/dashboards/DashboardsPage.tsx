@@ -100,11 +100,10 @@ export function DashboardsPage() {
 				{id ? (
 					<DashboardContent id={id} />
 				) : (
-					<div className="docs-empty-state">
-						<div className="empty-brand">
-							Tether<span>Dust</span>
+					<div className="docs-content">
+						<div className="docs-empty-state">
+							<p>Select a dashboard from the sidebar to view its charts.</p>
 						</div>
-						<p>Select a dashboard from the sidebar to view its charts.</p>
 					</div>
 				)}
 			</div>

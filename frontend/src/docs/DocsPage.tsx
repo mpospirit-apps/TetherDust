@@ -211,9 +211,6 @@ export function DocsPage() {
 				<div className="docs-content">
 					{!sourceName || !filePath ? (
 						<div className="docs-empty-state">
-							<div className="empty-brand">
-								Tether<span>Dust</span>
-							</div>
 							<p>Select a document from the sidebar to start reading.</p>
 						</div>
 					) : contentQuery.isLoading ? (

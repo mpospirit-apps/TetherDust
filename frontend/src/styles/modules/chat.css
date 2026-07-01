@@ -506,26 +506,8 @@
 	align-items: center;
 	justify-content: center;
 	padding: var(--xxl);
-	padding-bottom: calc(var(--3xl) + var(--xxl));
 	color: var(--text-sec);
 	text-align: center;
-}
-
-.chat-empty-state .empty-brand {
-	font-family: var(--font);
-	font-size: var(--text-4xl);
-	font-weight: 700;
-	color: var(--text);
-	margin-bottom: var(--lg);
-	letter-spacing: -1px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	animation: empty-state-in 500ms var(--ease-out-quint) both;
-}
-
-.chat-empty-state .empty-brand span {
-	color: var(--c-dust);
 }
 
 .chat-empty-state p {
@@ -957,18 +939,26 @@
 }
 
 .chat-send-btn:disabled {
-	background: var(--disabled);
+	background: transparent;
+	color: var(--text-muted);
 	cursor: not-allowed;
 	box-shadow: none;
 }
 
 .chat-send-btn.is-stop {
-	background: var(--text-sec);
+	background: transparent;
+	color: var(--text-sec);
 	font-size: 14px;
 }
 
 .chat-send-btn.is-stop:hover {
-	box-shadow: var(--shadow);
+	background: rgba(26, 26, 26, 0.06);
+	color: var(--text);
+	box-shadow: none;
+}
+
+[data-theme="dark"] .chat-send-btn.is-stop:hover {
+	background: rgba(255, 255, 255, 0.06);
 }
 
 /* ── Tool Toggles ── */

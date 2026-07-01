@@ -148,9 +148,6 @@ export function ChatPage() {
 				<div className="chat-messages" ref={scrollRef}>
 					{messages.length === 0 && (
 						<div className="chat-empty-state">
-							<div className="empty-brand">
-								Tether<span>Dust</span>
-							</div>
 							<p>
 								{agentName
 									? "Ask the agent anything about your data."

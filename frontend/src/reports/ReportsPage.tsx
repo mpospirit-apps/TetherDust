@@ -285,9 +285,6 @@ export function ReportsPage() {
 				<div className="docs-content">
 					{!selectedId ? (
 						<div className="docs-empty-state">
-							<div className="empty-brand">
-								Tether<span>Dust</span>
-							</div>
 							<p>
 								Select a report from the sidebar to view its latest results.
 							</p>

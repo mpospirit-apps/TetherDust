@@ -197,23 +197,6 @@
 	padding: var(--xxl);
 }
 
-.docs-empty-state .empty-brand {
-	font-family: var(--font);
-	font-size: var(--text-4xl);
-	font-weight: 700;
-	color: var(--text);
-	margin-bottom: var(--lg);
-	letter-spacing: -1px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	animation: empty-state-in 500ms var(--ease-out-quint) both;
-}
-
-.docs-empty-state .empty-brand span {
-	color: var(--c-dust);
-}
-
 .docs-empty-state p {
 	font-size: var(--text-base);
 	max-width: 400px;
