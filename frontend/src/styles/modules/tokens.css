@@ -234,10 +234,6 @@
 	border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme="dark"] .report-table tbody tr:nth-child(even) {
-	background: rgba(255, 255, 255, 0.03);
-}
-
 [data-theme="dark"] .form-control,
 [data-theme="dark"] .custom-select__trigger,
 [data-theme="dark"] .custom-select__dropdown,
