@@ -115,9 +115,7 @@ export function AdminReportsPage() {
 								{reports.map((r) => (
 									<tr key={r.id}>
 										<td>
-											<Link to={`/admin/reports/${r.id}`}>
-												<strong>{r.name}</strong>
-											</Link>
+											<strong>{r.name}</strong>
 											{r.description && (
 												<div className="text-sm text-sec truncate">
 													{r.description}

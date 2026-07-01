@@ -110,9 +110,7 @@ export function CodebasesPage() {
 								{codebases.map((c) => (
 									<tr key={c.id}>
 										<td>
-											<Link to={`/admin/codebases/${c.id}`}>
-												<strong>{c.name}</strong>
-											</Link>
+											<strong>{c.name}</strong>
 											{c.description && (
 												<div className="text-sm text-sec truncate">
 													{c.description}

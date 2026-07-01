@@ -78,9 +78,7 @@ export function AdminDashboardsPage() {
 								{dashboards.map((d) => (
 									<tr key={d.id}>
 										<td>
-											<Link to={`/admin/dashboards/${d.id}`}>
-												<strong>{d.name}</strong>
-											</Link>
+											<strong>{d.name}</strong>
 											{d.description && (
 												<div className="text-sm text-sec truncate">
 													{d.description}

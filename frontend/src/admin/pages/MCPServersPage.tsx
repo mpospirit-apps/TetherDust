@@ -79,9 +79,7 @@ export function MCPServersPage() {
 								{servers.map((s) => (
 									<tr key={s.id}>
 										<td>
-											<Link to={`/admin/mcp-servers/${s.id}`}>
-												<strong>{s.name}</strong>
-											</Link>
+											<strong>{s.name}</strong>
 											{s.description && (
 												<div className="text-sec text-sm">{s.description}</div>
 											)}

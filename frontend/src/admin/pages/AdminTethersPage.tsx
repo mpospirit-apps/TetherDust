@@ -79,9 +79,7 @@ export function AdminTethersPage() {
 								{tethers.map((t) => (
 									<tr key={t.id}>
 										<td>
-											<Link to={`/admin/tethers/${t.id}`}>
-												<strong>{t.name}</strong>
-											</Link>
+											<strong>{t.name}</strong>
 										</td>
 										<td className="text-sm">
 											{t.source_name} ↔ {t.database_name}

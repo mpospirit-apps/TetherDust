@@ -114,7 +114,7 @@ export function Navbar() {
 							aria-label="User menu"
 							onClick={() => setMenuOpen((open) => !open)}
 						>
-							<i className="fa-solid fa-circle-user" />
+							<i className="fa-solid fa-bars" />
 						</button>
 						<div
 							className={
@@ -139,7 +139,7 @@ export function Navbar() {
 							{user.is_staff && (
 								<NavLink to="/admin" className="user-dropdown__item">
 									<i className="fa-solid fa-sliders" />
-									<span>Control</span>
+									<span>Admin Panel</span>
 								</NavLink>
 							)}
 							<button

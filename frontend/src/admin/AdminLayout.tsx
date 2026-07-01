@@ -140,12 +140,15 @@ export function AdminLayout() {
 						<div className="nav-logo">
 							<img src="/images/tetherdust.png" alt="TetherDust" />
 						</div>
-						<span className="nav-title">
-							Tether
-							<span className="accent" style={{ color: activeColor }}>
-								Dust
+						<div className="nav-brand-text">
+							<span className="nav-title">
+								Tether
+								<span className="accent" style={{ color: activeColor }}>
+									Dust
+								</span>
 							</span>
-						</span>
+							<span className="nav-subtitle">Admin Panel</span>
+						</div>
 					</NavLink>
 
 					<nav className="nav-links">
@@ -162,16 +165,6 @@ export function AdminLayout() {
 								<span>{l.label}</span>
 							</NavLink>
 						))}
-						<NavLink
-							to="/admin"
-							className={({ isActive }) =>
-								isActive ? "nav-link-btn active" : "nav-link-btn"
-							}
-							style={{ "--link-color": "var(--c-pink)" } as React.CSSProperties}
-						>
-							<i className="fa-solid fa-sliders" />
-							<span>Control</span>
-						</NavLink>
 					</nav>
 
 					<div className="nav-actions">
@@ -182,7 +175,7 @@ export function AdminLayout() {
 								aria-label="User menu"
 								onClick={() => setMenuOpen((open) => !open)}
 							>
-								<i className="fa-solid fa-circle-user" />
+								<i className="fa-solid fa-bars" />
 							</button>
 							<div
 								className={

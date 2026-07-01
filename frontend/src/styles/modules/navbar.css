@@ -53,6 +53,12 @@
 	display: block;
 }
 
+.nav-brand-text {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.1;
+}
+
 .nav-title {
 	font-size: 1.6rem;
 	font-weight: 700;
@@ -63,6 +69,14 @@
 .nav-title .accent {
 	color: var(--c-dust);
 	transition: color 0.3s;
+}
+
+.nav-subtitle {
+	font-size: var(--text-xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 1.5px;
+	color: var(--text-sec);
 }
 
 .nav-links {
