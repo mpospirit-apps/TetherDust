@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useTheme } from "../hooks/useTheme";
@@ -18,7 +19,12 @@ const SIDEBAR: SidebarSection[] = [
 	{
 		heading: "Overview",
 		items: [
-			{ to: "/admin", label: "Dashboard", icon: "fa-gauge-high", end: true },
+			{
+				to: "/admin",
+				label: "Mission Control",
+				icon: "fa-gauge-high",
+				end: true,
+			},
 			{ to: "/admin/version", label: "Version", icon: "fa-code-compare" },
 		],
 	},
@@ -27,7 +33,7 @@ const SIDEBAR: SidebarSection[] = [
 		items: [
 			{ to: "/admin/databases", label: "Databases", icon: "fa-database" },
 			{ to: "/admin/codebases", label: "Codebases", icon: "fa-code-branch" },
-			{ to: "/admin/docsources", label: "Documentation", icon: "fa-book" },
+			{ to: "/admin/docsources", label: "Documentations", icon: "fa-book" },
 			{ to: "/admin/mcp-servers", label: "MCP Servers", icon: "fa-server" },
 			{ to: "/admin/agents", label: "Agents", icon: "fa-robot" },
 			{ to: "/admin/reports", label: "Reports", icon: "fa-table-list" },
@@ -113,15 +119,38 @@ export function AdminLayout() {
 		"var(--c-pink)"; /* /admin routes fall back to Control pink */
 	const [menuOpen, setMenuOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
+	const menuRef = useRef<HTMLDivElement>(null);
+	const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(
+		null,
+	);
 
 	useEffect(() => {
 		document.body.classList.add("aurora-bg");
 		return () => document.body.classList.remove("aurora-bg");
 	}, []);
 
+	// Portaled to <body> so the menu escapes the navbar's backdrop-filter
+	// "backdrop root" — a nested backdrop-filter can't blur the page behind it.
+	function toggleMenu() {
+		if (!menuOpen) {
+			const rect = dropdownRef.current?.getBoundingClientRect();
+			if (rect) {
+				setMenuPos({
+					top: rect.bottom + 8,
+					right: window.innerWidth - rect.right,
+				});
+			}
+		}
+		setMenuOpen((open) => !open);
+	}
+
 	useEffect(() => {
 		function close(event: MouseEvent) {
-			if (!dropdownRef.current?.contains(event.target as Node)) {
+			const target = event.target as Node;
+			if (
+				!dropdownRef.current?.contains(target) &&
+				!menuRef.current?.contains(target)
+			) {
 				setMenuOpen(false);
 			}
 		}
@@ -173,45 +202,53 @@ export function AdminLayout() {
 								type="button"
 								className="user-dropdown__trigger"
 								aria-label="User menu"
-								onClick={() => setMenuOpen((open) => !open)}
+								onClick={toggleMenu}
 							>
 								<i className="fa-solid fa-bars" />
 							</button>
-							<div
-								className={
-									menuOpen
-										? "user-dropdown__menu is-open"
-										: "user-dropdown__menu"
-								}
-							>
-								<span className="user-dropdown__username">{user.username}</span>
-								<div className="user-dropdown__divider" />
-								<button
-									type="button"
-									className="user-dropdown__item"
-									onClick={toggle}
-									aria-label="Toggle dark mode"
-								>
-									<i
-										className={
-											theme === "dark" ? "fa-solid fa-sun" : "fa-solid fa-moon"
-										}
-									/>
-									<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
-								</button>
-								<button
-									type="button"
-									className="user-dropdown__item"
-									onClick={() => void logout()}
-								>
-									<i className="fa-solid fa-right-from-bracket" />
-									<span>Logout</span>
-								</button>
-							</div>
 						</div>
 					</div>
 				</div>
 			</header>
+
+			{menuOpen &&
+				menuPos &&
+				createPortal(
+					<div
+						className="user-dropdown__menu is-open"
+						ref={menuRef}
+						style={{
+							position: "fixed",
+							top: menuPos.top,
+							right: menuPos.right,
+						}}
+					>
+						<span className="user-dropdown__username">{user.username}</span>
+						<div className="user-dropdown__divider" />
+						<button
+							type="button"
+							className="user-dropdown__item"
+							onClick={toggle}
+							aria-label="Toggle dark mode"
+						>
+							<i
+								className={
+									theme === "dark" ? "fa-solid fa-sun" : "fa-solid fa-moon"
+								}
+							/>
+							<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+						</button>
+						<button
+							type="button"
+							className="user-dropdown__item"
+							onClick={() => void logout()}
+						>
+							<i className="fa-solid fa-right-from-bracket" />
+							<span>Logout</span>
+						</button>
+					</div>,
+					document.body,
+				)}
 
 			<aside className="admin-sidebar">
 				{SIDEBAR.map((section) => (
