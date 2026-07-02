@@ -300,6 +300,106 @@ export function getSession(id: string): Promise<SessionDetail> {
 	return apiFetch(`/api/v1/admin/sessions/${id}/`);
 }
 
+// ── Overview (Mission Control) ──────────────────────────────────────────────
+
+export interface OverviewMetrics {
+	active_databases: number;
+	total_databases: number;
+	active_tools: number;
+	total_tools: number;
+	total_users: number;
+	total_roles: number;
+	doc_sources: number;
+	tethers: number;
+	queries_24h: number;
+	failed_queries_24h: number;
+	active_sessions: number;
+	success_rate: number;
+}
+
+export interface OverviewDelta {
+	value: number;
+	dir: "up" | "down" | "flat";
+	pct: number | null;
+}
+
+export interface TrendDay {
+	date: string;
+	total: number;
+	failed: number;
+	ok: number;
+}
+
+export interface TopDatabase {
+	name: string;
+	count: number;
+}
+
+export interface OverviewHealth {
+	status: "operational" | "degraded" | "setup";
+	label: string;
+	detail: string;
+	agent: { name: string; type: string } | null;
+}
+
+export interface OverviewRecentQuery {
+	id: string;
+	user: string | null;
+	database: string | null;
+	success: boolean;
+	row_count: number | null;
+	execution_time_ms: number | null;
+	created_at: string;
+}
+
+export interface OverviewRecentSession {
+	id: string;
+	title: string | null;
+	user: string | null;
+	message_count: number;
+	updated_at: string;
+}
+
+export interface AdminOverview {
+	metrics: OverviewMetrics;
+	kpis: {
+		queries: { delta: OverviewDelta };
+		sessions: { delta: OverviewDelta };
+		failed: { delta: OverviewDelta };
+	};
+	trend: TrendDay[];
+	top_databases: TopDatabase[];
+	health: OverviewHealth;
+	recent_queries: OverviewRecentQuery[];
+	recent_sessions: OverviewRecentSession[];
+	generated_at: string;
+}
+
+export function getAdminOverview(): Promise<AdminOverview> {
+	return apiFetch("/api/v1/admin/overview/");
+}
+
+// ── Version console ─────────────────────────────────────────────────────────
+
+export interface ChangelogEntry {
+	version: string;
+	raw: string;
+	is_current: boolean;
+}
+
+export interface VersionInfo {
+	current_version: string;
+	latest_version: string;
+	update_available: boolean;
+	latest_release_url: string;
+	latest_checked_at: string;
+	changelog_entries: ChangelogEntry[];
+}
+
+export function getVersionInfo(): Promise<VersionInfo> {
+	return apiFetch("/api/v1/admin/version/");
+}
+
 // ── Agents ──────────────────────────────────────────────────────────────────
 
 export interface AgentAuthInfo {

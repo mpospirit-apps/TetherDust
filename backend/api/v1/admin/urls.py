@@ -14,11 +14,13 @@ from .dashboards import (
 from .databases import DatabaseConnectionViewSet
 from .docsources import DocGenerationLogViewSet, DocSourceViewSet
 from .mcp_servers import MCPServerViewSet, PromptViewSet
+from .overview import OverviewView
 from .reports import ReportDefinitionViewSet, ReportExecutionViewSet
 from .roles import RoleViewSet
 from .settings import GeneralSettingsView, SmtpSettingsView, SmtpTestView
 from .tethers import TetherViewSet
 from .users import UserViewSet
+from .version import VersionView
 
 router = DefaultRouter()
 router.register("agents", AgentViewSet, basename="admin-agent")
@@ -39,6 +41,8 @@ router.register("users", UserViewSet, basename="admin-user")
 
 urlpatterns = [
     *router.urls,
+    path("overview/", OverviewView.as_view(), name="admin-overview"),
+    path("version/", VersionView.as_view(), name="admin-version"),
     path("settings/general/", GeneralSettingsView.as_view(), name="admin-settings-general"),
     path("settings/smtp/", SmtpSettingsView.as_view(), name="admin-settings-smtp"),
     path("settings/smtp/test/", SmtpTestView.as_view(), name="admin-settings-smtp-test"),

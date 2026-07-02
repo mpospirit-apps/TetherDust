@@ -41,6 +41,7 @@ import { TetherDetailPage } from "./admin/pages/TetherDetailPage";
 import { TetherFormPage } from "./admin/pages/TetherFormPage";
 import { UserFormPage } from "./admin/pages/UserFormPage";
 import { UsersPage } from "./admin/pages/UsersPage";
+import { VersionPage } from "./admin/pages/VersionPage";
 import { RequireStaff } from "./admin/RequireStaff";
 import { RequireAuth } from "./auth/RequireAuth";
 import { ChatPage } from "./chat/ChatPage";
@@ -82,6 +83,7 @@ export function App() {
 				}
 			>
 				<Route index element={<AdminHome />} />
+				<Route path="version" element={<VersionPage />} />
 				<Route path="databases" element={<DatabasesPage />} />
 				<Route path="databases/new" element={<DatabaseFormPage />} />
 				<Route path="databases/:id" element={<DatabaseFormPage />} />

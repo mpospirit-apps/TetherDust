@@ -23,11 +23,17 @@
 	gap: var(--md);
 }
 .chart-card {
-	background: var(--surface);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid var(--border);
 	border-radius: 0;
 	overflow: hidden;
 	min-width: 0;
+}
+
+[data-theme="dark"] .chart-card {
+	background: rgba(15, 15, 13, 0.4);
 }
 .chart-card__header {
 	padding: var(--sm) var(--md);

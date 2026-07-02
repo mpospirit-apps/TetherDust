@@ -136,7 +136,9 @@
 	justify-content: space-between;
 	flex-wrap: wrap;
 	gap: var(--md);
-	background: var(--surface);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid var(--border);
 	border-left: 4px solid var(--text-muted);
 	padding: var(--md) var(--lg);
@@ -209,9 +211,10 @@
 	margin-bottom: var(--lg);
 }
 .mc-kpi {
-	background: var(--surface);
-	border: 1px solid rgba(26, 26, 26, 0.06);
-	border-top: 3px solid var(--text-muted);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid var(--border);
 	padding: var(--md) var(--lg) var(--lg);
 	box-shadow: var(--shadow-sm), var(--rim-light);
 	transition: var(--transition);
@@ -220,25 +223,6 @@
 	min-height: 120px;
 	display: flex;
 	flex-direction: column;
-}
-.mc-kpi:hover {
-	box-shadow: var(--shadow-lg), var(--rim-light-strong);
-	transform: translateY(-2px);
-}
-.mc-kpi--cyan {
-	border-top-color: var(--c-cyan);
-}
-.mc-kpi--lime {
-	border-top-color: var(--c-lime);
-}
-.mc-kpi--pink {
-	border-top-color: var(--c-pink);
-}
-.mc-kpi--red {
-	border-top-color: var(--c-red);
-}
-.mc-kpi--muted {
-	border-top-color: var(--border);
 }
 .mc-kpi__top {
 	display: flex;
@@ -282,7 +266,6 @@
 	font-size: var(--text-xs);
 	font-weight: 700;
 	padding: 2px 7px;
-	border-radius: 999px;
 }
 .mc-trend--up {
 	background: rgba(46, 204, 113, 0.12);
@@ -380,7 +363,6 @@
 	flex-direction: column;
 	justify-content: flex-end;
 	background: rgba(26, 26, 26, 0.04);
-	border-radius: 3px;
 	overflow: hidden;
 }
 .mc-bars__seg {
@@ -422,13 +404,11 @@
 .mc-topdb__bar {
 	height: 8px;
 	background: rgba(26, 26, 26, 0.06);
-	border-radius: 999px;
 	overflow: hidden;
 }
 .mc-topdb__fill {
 	height: 100%;
 	background: var(--c-orange);
-	border-radius: 999px;
 }
 .mc-topdb__count {
 	font-size: var(--text-sm);
@@ -450,17 +430,15 @@
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 2px;
-	background: var(--surface);
-	border: 1px solid rgba(26, 26, 26, 0.06);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid var(--border);
 	padding: var(--md);
 	box-shadow: var(--shadow-sm);
 	transition: var(--transition);
 	text-decoration: none;
 	color: inherit;
-}
-.mc-chip:hover {
-	box-shadow: var(--shadow), var(--rim-light-strong);
-	transform: translateY(-1px);
 }
 .mc-chip > i {
 	font-size: 16px;
@@ -482,6 +460,14 @@
 	text-transform: uppercase;
 	letter-spacing: 1px;
 	color: var(--text-sec);
+}
+
+/* Dark-mode glass fill — mirrors `.card`; borders/accents stay theme-aware via
+   var(--border) and their own color vars, so this only swaps the background. */
+[data-theme="dark"] .mc-health,
+[data-theme="dark"] .mc-kpi,
+[data-theme="dark"] .mc-chip {
+	background: rgba(15, 15, 13, 0.4);
 }
 
 /* ── Quick actions ── */

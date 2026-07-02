@@ -70,6 +70,17 @@ form .card {
 	pointer-events: none;
 }
 
+/* Safari fix: the Version tab stacks many glass cards (each a backdrop-filter
+   layer) plus scrollable <pre> blocks in one long document scroll. Safari then
+   fails to re-sample the fixed navbar's own backdrop-filter as that content
+   scrolls under it (the blur only updates on a navbar repaint, e.g. hovering a
+   button). Dropping the per-card blur here removes the nested backdrop layers —
+   the translucent fill still reads as glass over the aurora background. */
+.version-page .card {
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
 .card-header {
 	display: flex;
 	align-items: center;
