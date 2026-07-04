@@ -267,22 +267,79 @@
 	margin-bottom: var(--xs);
 }
 
+.docs-code-block {
+	position: relative;
+	margin: 0 0 var(--md) 0;
+}
+
 .docs-rendered pre {
+	background: none;
+	border: none;
+	box-shadow: none;
+	color: var(--text);
 	border-radius: var(--radius);
 	padding: 0;
 	overflow-x: auto;
-	margin: 0 0 var(--md) 0;
-	font-size: var(--text-sm);
+	margin: 0;
+	font-size: calc(var(--text-sm) + 1px);
 }
 
 .docs-rendered pre code.hljs {
 	display: block;
 	border-radius: var(--radius);
 	padding: var(--md);
+	background: rgba(245, 243, 238, 0.75);
+	border: 1px solid rgba(26, 26, 26, 0.06);
+	box-shadow: none;
 }
 
 [data-theme="dark"] .docs-rendered pre code.hljs {
-	background: #131310;
+	background: rgba(15, 15, 13, 0.4);
+	border-color: rgba(255, 255, 255, 0.05);
+}
+
+.docs-code-toolbar {
+	position: absolute;
+	top: var(--sm);
+	right: var(--sm);
+	display: flex;
+	align-items: center;
+	gap: var(--xs);
+}
+
+.docs-code-lang {
+	font-size: var(--text-xs);
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.docs-code-copy {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	background: rgba(245, 243, 238, 0.9);
+	border: 1px solid rgba(26, 26, 26, 0.1);
+	border-radius: var(--radius);
+	box-shadow: none;
+	color: var(--text-sec);
+	font-size: var(--text-xs);
+	cursor: pointer;
+	transition: var(--transition);
+}
+
+.docs-code-copy:hover {
+	color: var(--c-cyan);
+	border-color: var(--c-cyan);
+}
+
+[data-theme="dark"] .docs-code-copy {
+	background: rgba(15, 15, 13, 0.6);
+	border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* codehilite wrapper from Python-Markdown */
@@ -296,15 +353,11 @@
 	margin: 0;
 }
 
-/* Mermaid diagrams */
+/* Mermaid diagrams — no custom styling; layout only. */
 .docs-rendered .mermaid {
 	display: flex;
 	justify-content: center;
 	margin: 0 0 var(--md) 0;
-	padding: var(--md);
-	background: var(--surface);
-	border-radius: var(--radius);
-	border: 1px solid var(--border);
 	overflow-x: auto;
 }
 
@@ -381,7 +434,22 @@
 }
 
 /* ── Syntax highlighting (rehype-highlight / highlight.js tokens) ──
-   Theme-aware: tokens use the brand palette so they adapt to light/dark. */
+   TetherDust accent palette. The raw accents (esp. lime) don't have enough
+   contrast against the pale light-mode card, so light mode uses a darkened
+   mix of each accent; dark mode uses the accents at full saturation since
+   they read fine against the dark card. */
+.docs-rendered {
+	--hl-keyword: color-mix(in srgb, var(--c-pink) 70%, black);
+	--hl-string: color-mix(in srgb, var(--c-lime) 60%, black);
+	--hl-number: color-mix(in srgb, var(--c-orange) 70%, black);
+	--hl-title: color-mix(in srgb, var(--c-cyan) 70%, black);
+}
+[data-theme="dark"] .docs-rendered {
+	--hl-keyword: var(--c-pink);
+	--hl-string: var(--c-lime);
+	--hl-number: var(--c-orange);
+	--hl-title: var(--c-cyan);
+}
 .docs-rendered .hljs-comment,
 .docs-rendered .hljs-quote {
 	color: var(--text-muted);
@@ -393,25 +461,25 @@
 .docs-rendered .hljs-section,
 .docs-rendered .hljs-doctag,
 .docs-rendered .hljs-name {
-	color: var(--c-pink);
+	color: var(--hl-keyword);
 }
 .docs-rendered .hljs-string,
 .docs-rendered .hljs-regexp,
 .docs-rendered .hljs-addition,
 .docs-rendered .hljs-meta-string {
-	color: var(--c-lime);
+	color: var(--hl-string);
 }
 .docs-rendered .hljs-number,
 .docs-rendered .hljs-bullet,
 .docs-rendered .hljs-symbol,
 .docs-rendered .hljs-link {
-	color: var(--c-orange);
+	color: var(--hl-number);
 }
 .docs-rendered .hljs-title,
 .docs-rendered .hljs-title.function_,
 .docs-rendered .hljs-built_in,
 .docs-rendered .hljs-class .hljs-title {
-	color: var(--c-cyan);
+	color: var(--hl-title);
 }
 .docs-rendered .hljs-attr,
 .docs-rendered .hljs-attribute,
