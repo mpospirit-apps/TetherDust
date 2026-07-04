@@ -65,17 +65,13 @@
 	text-align: left;
 }
 
-/* Composer row. Its own class (not `.chat-input`, which modules/chat.css styles
-   as the legacy textarea with `flex: 1`) so it sizes to content and centers on
-   the same 900px column as `.chat-messages`. */
+/* Composer row layout (display/gap/textarea sizing) lives here; box spacing
+   (padding/margin/max-width) is owned by modules/chat.css to avoid fighting
+   the cascade. */
 .chat-composer-form {
 	display: flex;
 	gap: var(--sm);
 	align-items: flex-end;
-	padding: var(--lg);
-	width: 100%;
-	max-width: 900px;
-	margin: 0 auto;
 }
 .chat-composer-form textarea {
 	flex: 1;

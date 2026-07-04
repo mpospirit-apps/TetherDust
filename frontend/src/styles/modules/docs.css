@@ -272,7 +272,25 @@
 	margin: 0 0 var(--md) 0;
 }
 
-.docs-rendered pre {
+/* Inside a chat bubble, .message-content sizes itself to fit its content
+   (shrink-wrapping short messages, up to `max-width: 80%`) so it hugs prose
+   text nicely — a normal block child (width:auto) fills 100% of whatever
+   width that resolves to, which is what we want for short/medium code (it
+   matches sibling paragraphs) and for a bubble whose *only* content is a
+   code block (it still gets a reasonable size instead of collapsing).
+   The one case that breaks this is a single pathologically long,
+   non-wrapping line: as a percentage, `max-width: 100%` would get treated
+   as `none` while the ancestor's own fit-content width is still being
+   resolved (a circular percentage reference), so it wouldn't actually cap
+   anything. A viewport-relative cap isn't circular — it always resolves to
+   a definite value — so it correctly bounds the contribution during that
+   sizing pass without affecting the common cases above. */
+.message-content .docs-code-block {
+	max-width: 50vw;
+}
+
+.docs-rendered pre,
+.message-content pre {
 	background: none;
 	border: none;
 	box-shadow: none;
@@ -284,8 +302,11 @@
 	font-size: calc(var(--text-sm) + 1px);
 }
 
-.docs-rendered pre code.hljs {
+.docs-rendered pre code.hljs,
+.message-content pre code.hljs {
 	display: block;
+	width: max-content;
+	min-width: 100%;
 	border-radius: var(--radius);
 	padding: var(--md);
 	background: rgba(245, 243, 238, 0.75);
@@ -293,7 +314,8 @@
 	box-shadow: none;
 }
 
-[data-theme="dark"] .docs-rendered pre code.hljs {
+[data-theme="dark"] .docs-rendered pre code.hljs,
+[data-theme="dark"] .message-content pre code.hljs {
 	background: rgba(15, 15, 13, 0.4);
 	border-color: rgba(255, 255, 255, 0.05);
 }
@@ -438,20 +460,24 @@
    contrast against the pale light-mode card, so light mode uses a darkened
    mix of each accent; dark mode uses the accents at full saturation since
    they read fine against the dark card. */
-.docs-rendered {
+.docs-rendered,
+.message-content {
 	--hl-keyword: color-mix(in srgb, var(--c-pink) 70%, black);
 	--hl-string: color-mix(in srgb, var(--c-lime) 60%, black);
 	--hl-number: color-mix(in srgb, var(--c-orange) 70%, black);
 	--hl-title: color-mix(in srgb, var(--c-cyan) 70%, black);
 }
-[data-theme="dark"] .docs-rendered {
+[data-theme="dark"] .docs-rendered,
+[data-theme="dark"] .message-content {
 	--hl-keyword: var(--c-pink);
 	--hl-string: var(--c-lime);
 	--hl-number: var(--c-orange);
 	--hl-title: var(--c-cyan);
 }
 .docs-rendered .hljs-comment,
-.docs-rendered .hljs-quote {
+.docs-rendered .hljs-quote,
+.message-content .hljs-comment,
+.message-content .hljs-quote {
 	color: var(--text-muted);
 	font-style: italic;
 }
@@ -460,25 +486,43 @@
 .docs-rendered .hljs-literal,
 .docs-rendered .hljs-section,
 .docs-rendered .hljs-doctag,
-.docs-rendered .hljs-name {
+.docs-rendered .hljs-name,
+.message-content .hljs-keyword,
+.message-content .hljs-selector-tag,
+.message-content .hljs-literal,
+.message-content .hljs-section,
+.message-content .hljs-doctag,
+.message-content .hljs-name {
 	color: var(--hl-keyword);
 }
 .docs-rendered .hljs-string,
 .docs-rendered .hljs-regexp,
 .docs-rendered .hljs-addition,
-.docs-rendered .hljs-meta-string {
+.docs-rendered .hljs-meta-string,
+.message-content .hljs-string,
+.message-content .hljs-regexp,
+.message-content .hljs-addition,
+.message-content .hljs-meta-string {
 	color: var(--hl-string);
 }
 .docs-rendered .hljs-number,
 .docs-rendered .hljs-bullet,
 .docs-rendered .hljs-symbol,
-.docs-rendered .hljs-link {
+.docs-rendered .hljs-link,
+.message-content .hljs-number,
+.message-content .hljs-bullet,
+.message-content .hljs-symbol,
+.message-content .hljs-link {
 	color: var(--hl-number);
 }
 .docs-rendered .hljs-title,
 .docs-rendered .hljs-title.function_,
 .docs-rendered .hljs-built_in,
-.docs-rendered .hljs-class .hljs-title {
+.docs-rendered .hljs-class .hljs-title,
+.message-content .hljs-title,
+.message-content .hljs-title.function_,
+.message-content .hljs-built_in,
+.message-content .hljs-class .hljs-title {
 	color: var(--hl-title);
 }
 .docs-rendered .hljs-attr,
@@ -486,16 +530,25 @@
 .docs-rendered .hljs-variable,
 .docs-rendered .hljs-template-variable,
 .docs-rendered .hljs-type,
-.docs-rendered .hljs-params {
+.docs-rendered .hljs-params,
+.message-content .hljs-attr,
+.message-content .hljs-attribute,
+.message-content .hljs-variable,
+.message-content .hljs-template-variable,
+.message-content .hljs-type,
+.message-content .hljs-params {
 	color: var(--text);
 }
-.docs-rendered .hljs-deletion {
+.docs-rendered .hljs-deletion,
+.message-content .hljs-deletion {
 	color: var(--c-red);
 }
-.docs-rendered .hljs-emphasis {
+.docs-rendered .hljs-emphasis,
+.message-content .hljs-emphasis {
 	font-style: italic;
 }
-.docs-rendered .hljs-strong {
+.docs-rendered .hljs-strong,
+.message-content .hljs-strong {
 	font-weight: 700;
 }
 

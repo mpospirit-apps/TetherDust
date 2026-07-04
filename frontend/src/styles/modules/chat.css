@@ -274,7 +274,7 @@
 .chat-messages {
 	flex: 1;
 	overflow-y: auto;
-	padding: var(--navbar-h) var(--lg) var(--lg);
+	padding: calc(var(--navbar-h) + var(--lg)) var(--lg) var(--lg);
 	display: flex;
 	flex-direction: column;
 	gap: var(--md);
@@ -431,18 +431,32 @@
 }
 
 .message.user .message-content {
-	background: linear-gradient(135deg, var(--c-red), var(--c-pink));
-	color: #fff;
-	font-weight: 700;
-	box-shadow: var(--shadow-sm);
-	max-width: 65%;
-}
-
-.message.agent .message-content {
-	background: var(--bg-warm);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid rgba(26, 26, 26, 0.06);
 	color: var(--text);
 	box-shadow: var(--shadow-sm), var(--rim-light);
+	max-width: 65%;
+}
+
+[data-theme="dark"] .message.user .message-content {
+	background: rgba(15, 15, 13, 0.4);
+	border-color: rgba(255, 255, 255, 0.05);
+}
+
+.message.agent .message-content {
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid rgba(26, 26, 26, 0.06);
+	color: var(--text);
+	box-shadow: var(--shadow-sm), var(--rim-light);
+}
+
+[data-theme="dark"] .message.agent .message-content {
+	background: rgba(15, 15, 13, 0.4);
+	border-color: rgba(255, 255, 255, 0.05);
 }
 
 .copy-btn {
@@ -859,10 +873,9 @@
 
 /* ── Chat Composer ── */
 .chat-composer-form {
-	padding: var(--lg);
 	max-width: 900px;
 	width: 100%;
-	margin: 0 auto;
+	margin: 0 auto var(--lg);
 	position: relative;
 	z-index: 1;
 }
@@ -872,12 +885,19 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: flex-end;
-	background: var(--bg-warm);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid rgba(26, 26, 26, 0.08);
 	box-shadow: var(--rim-light);
 	transition:
 		border-color 0.2s var(--ease),
 		box-shadow 0.2s var(--ease);
+}
+
+[data-theme="dark"] .chat-composer {
+	background: rgba(15, 15, 13, 0.4);
+	border-color: rgba(255, 255, 255, 0.05);
 }
 
 .chat-composer-form:focus-within .chat-composer {
@@ -1181,7 +1201,7 @@ pre code {
 	font-size: var(--text-base);
 }
 
-.message.agent .message-content code {
+.message.agent .message-content code:not(.hljs) {
 	background: rgba(26, 26, 26, 0.08);
 	color: var(--c-red);
 	padding: 2px 6px;
@@ -1189,24 +1209,9 @@ pre code {
 	font-size: var(--text-sm);
 }
 
-.message.agent .message-content pre {
-	background: #1a1a1a;
-	color: var(--text-on-dark);
-	border-left: 4px solid var(--c-cyan);
-	padding: var(--md);
-	overflow-x: auto;
-	margin: var(--sm) 0;
-	box-shadow: var(--shadow-sm);
-	font-size: var(--text-sm);
-	line-height: 1.5;
-}
-
-.message.agent .message-content pre code {
-	background: none;
-	color: inherit;
-	padding: 0;
-	font-size: inherit;
-}
+/* Fenced code blocks (pre > code.hljs) share the docs viewer's styling — see
+   the code-block rules in docs.css (.docs-code-block, .message-content pre,
+   etc.) instead of a chat-specific look. */
 
 .message.agent .message-content blockquote {
 	border-left: 3px solid var(--c-pink);
