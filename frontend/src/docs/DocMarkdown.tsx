@@ -8,12 +8,12 @@ import Markdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
+import { CodeBlock, type PreProps } from "./CodeBlock";
 import { Mermaid } from "./Mermaid";
 import { remarkWikiLink } from "./wikilink";
 
 type MarkdownProps = ComponentProps<typeof Markdown>;
 type AnchorProps = ComponentProps<"a"> & { node?: unknown };
-type PreProps = ComponentProps<"pre"> & { node?: unknown };
 
 // `mermaid` fences are kept as raw text (rehype-highlight `plainText`) so this
 // can read the source straight off the <code> child instead of un-highlighted
@@ -27,11 +27,11 @@ function mermaidSource(children: ReactNode): string | null {
 }
 
 // Render a ```mermaid fence as an SVG diagram; every other fenced block stays a
-// normal highlighted <pre>.
+// normal highlighted <pre> with a copy button.
 function DocPre({ node: _node, children, ...rest }: PreProps) {
 	const chart = mermaidSource(children);
 	if (chart) return <Mermaid chart={chart} />;
-	return <pre {...rest}>{children}</pre>;
+	return <CodeBlock {...rest}>{children}</CodeBlock>;
 }
 
 // Anchor renderer: WikiLinks and other in-app `/docs/...` hrefs navigate via the
@@ -120,7 +120,10 @@ export function DocCode({
 
 	return (
 		<div className="docs-rendered">
-			<Markdown rehypePlugins={[[rehypeHighlight, { ignoreMissing: true }]]}>
+			<Markdown
+				rehypePlugins={[[rehypeHighlight, { ignoreMissing: true }]]}
+				components={{ pre: DocPre }}
+			>
 				{fenced}
 			</Markdown>
 		</div>

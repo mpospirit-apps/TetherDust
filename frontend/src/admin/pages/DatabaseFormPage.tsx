@@ -2,6 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
+	siClickhouse,
+	siGooglebigquery,
+	siMariadb,
+	siMysql,
+	siPostgresql,
+	siSnowflake,
+	siSqlite,
+} from "simple-icons";
+import {
 	createDatabase,
 	type DatabaseInput,
 	getDatabase,
@@ -40,6 +49,71 @@ const EMPTY: FormState = {
 	is_active: true,
 };
 
+type EngineIcon =
+	| { kind: "logo"; title: string; path: string }
+	| { kind: "fa"; family: "solid" | "brands"; icon: string };
+
+const ENGINE_META: Record<string, { icon: EngineIcon; blurb: string }> = {
+	postgresql: {
+		icon: { kind: "logo", title: siPostgresql.title, path: siPostgresql.path },
+		blurb: "Open-source relational database. Default port 5432.",
+	},
+	mysql: {
+		icon: { kind: "logo", title: siMysql.title, path: siMysql.path },
+		blurb: "Popular open-source RDBMS. Default port 3306.",
+	},
+	mariadb: {
+		icon: { kind: "logo", title: siMariadb.title, path: siMariadb.path },
+		blurb: "MySQL-compatible fork. Default port 3306.",
+	},
+	mssql: {
+		icon: { kind: "fa", family: "brands", icon: "fa-microsoft" },
+		blurb: "Microsoft SQL Server. Default port 1433.",
+	},
+	oracle: {
+		icon: { kind: "fa", family: "solid", icon: "fa-database" },
+		blurb: "Oracle Database. Default port 1521.",
+	},
+	sqlite: {
+		icon: { kind: "logo", title: siSqlite.title, path: siSqlite.path },
+		blurb: "Local file-based database — no host required.",
+	},
+	clickhouse: {
+		icon: { kind: "logo", title: siClickhouse.title, path: siClickhouse.path },
+		blurb: "Columnar OLAP database. Default port 8123.",
+	},
+	snowflake: {
+		icon: { kind: "logo", title: siSnowflake.title, path: siSnowflake.path },
+		blurb: "Cloud data warehouse — configure via connection string.",
+	},
+	bigquery: {
+		icon: {
+			kind: "logo",
+			title: siGooglebigquery.title,
+			path: siGooglebigquery.path,
+		},
+		blurb: "Google BigQuery — serverless cloud warehouse.",
+	},
+};
+const DEFAULT_ENGINE_META: { icon: EngineIcon; blurb: string } = {
+	icon: { kind: "fa", family: "solid", icon: "fa-database" },
+	blurb: "",
+};
+
+function EngineIconGlyph({ icon }: { icon: EngineIcon }) {
+	if (icon.kind === "logo") {
+		return (
+			<span className="choice-card__icon choice-card__icon--logo">
+				<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<title>{icon.title}</title>
+					<path d={icon.path} />
+				</svg>
+			</span>
+		);
+	}
+	return <i className={`fa-${icon.family} ${icon.icon} choice-card__icon`} />;
+}
+
 export function DatabaseFormPage() {
 	const { id } = useParams();
 	const isEdit = Boolean(id);
@@ -48,6 +122,11 @@ export function DatabaseFormPage() {
 
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
+	// Create flow, step 1: pick an engine before showing the connection form.
+	const [enginePicked, setEnginePicked] = useState(isEdit);
+	// Tracks whether the admin has typed a port themselves, so switching
+	// engines keeps updating the auto-filled default until they do.
+	const [portTouched, setPortTouched] = useState(false);
 
 	const engines = useQuery({
 		queryKey: ["admin", "db-engines"],
@@ -84,15 +163,14 @@ export function DatabaseFormPage() {
 
 	// Prefill the default port for the initial engine when creating.
 	useEffect(() => {
-		if (isEdit) return;
+		if (isEdit || portTouched) return;
 		const data = engines.data;
 		if (!data) return;
 		setForm((f) => {
-			if (f.port !== "") return f;
 			const dp = data.default_ports[f.engine];
 			return dp == null ? f : { ...f, port: String(dp) };
 		});
-	}, [engines.data, isEdit]);
+	}, [engines.data, isEdit, portTouched]);
 
 	function set<K extends keyof FormState>(key: K, value: FormState[K]) {
 		setForm((f) => ({ ...f, [key]: value }));
@@ -102,7 +180,7 @@ export function DatabaseFormPage() {
 		setForm((f) => {
 			const dp = engines.data?.default_ports[value];
 			const nextPort =
-				!isEdit && f.port === "" && dp != null ? String(dp) : f.port;
+				!isEdit && !portTouched ? (dp == null ? "" : String(dp)) : f.port;
 			return { ...f, engine: value, port: nextPort };
 		});
 	}
@@ -163,16 +241,81 @@ export function DatabaseFormPage() {
 		{ value: form.engine, label: form.engine },
 	];
 
+	// Create flow, step 1: pick an engine.
+	if (!isEdit && !enginePicked) {
+		return (
+			<div>
+				<div className="page-header">
+					<div>
+						<h1>Add Database Connection</h1>
+						<p>Choose a database engine</p>
+					</div>
+					<Link to="/admin/databases" className="btn btn-ghost">
+						Back
+					</Link>
+				</div>
+				{engines.isLoading ? (
+					<p className="text-sec">Loading…</p>
+				) : (
+					<div className="choice-list choice-list--grid">
+						{engineChoices.map((c) => {
+							const meta = ENGINE_META[c.value] ?? DEFAULT_ENGINE_META;
+							return (
+								<button
+									key={c.value}
+									type="button"
+									className="choice-card"
+									onClick={() => {
+										onEngineChange(c.value);
+										setEnginePicked(true);
+									}}
+								>
+									<EngineIconGlyph icon={meta.icon} />
+									<div className="choice-card__body">
+										<h4>{c.label}</h4>
+										{meta.blurb && <p>{meta.blurb}</p>}
+									</div>
+									<i className="fa-solid fa-chevron-right choice-card__chevron" />
+								</button>
+							);
+						})}
+					</div>
+				)}
+			</div>
+		);
+	}
+
+	const engineLabel =
+		engineChoices.find((c) => c.value === form.engine)?.label ?? form.engine;
+
 	return (
 		<div>
 			<div className="page-header">
 				<div>
 					<h1>{isEdit ? `Edit ${form.name}` : "Add Database Connection"}</h1>
-					<p>Configure a database connection for MCP tools</p>
+					<p>
+						{isEdit
+							? "Configure a database connection for MCP tools"
+							: engineLabel}
+					</p>
 				</div>
-				<Link to="/admin/databases" className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link to="/admin/databases" className="btn btn-ghost">
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="database-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create Connection"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -184,7 +327,7 @@ export function DatabaseFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit}>
+			<form id="database-form" onSubmit={onSubmit}>
 				<div className="form-split">
 					<div className="card">
 						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
@@ -218,19 +361,34 @@ export function DatabaseFormPage() {
 
 					<div className="card">
 						<h3 style={{ margin: "0 0 var(--md)" }}>Connection</h3>
-						<FormField label="Engine">
-							<select
-								className="form-control"
-								value={form.engine}
-								onChange={(e) => onEngineChange(e.target.value)}
-							>
-								{engineChoices.map((c) => (
-									<option key={c.value} value={c.value}>
-										{c.label}
-									</option>
-								))}
-							</select>
-						</FormField>
+						{isEdit ? (
+							<FormField label="Engine">
+								<select
+									className="form-control"
+									value={form.engine}
+									onChange={(e) => onEngineChange(e.target.value)}
+								>
+									{engineChoices.map((c) => (
+										<option key={c.value} value={c.value}>
+											{c.label}
+										</option>
+									))}
+								</select>
+							</FormField>
+						) : (
+							<FormField label="Engine">
+								<div className="picked-control">
+									<span className="type-badge">{engineLabel}</span>
+									<button
+										type="button"
+										className="btn btn-ghost btn-sm"
+										onClick={() => setEnginePicked(false)}
+									>
+										Change
+									</button>
+								</div>
+							</FormField>
+						)}
 						<div className="form-grid">
 							<FormField label="Host">
 								<input
@@ -244,7 +402,10 @@ export function DatabaseFormPage() {
 									className="form-control"
 									type="number"
 									value={form.port}
-									onChange={(e) => set("port", e.target.value)}
+									onChange={(e) => {
+										setPortTouched(true);
+										set("port", e.target.value);
+									}}
 								/>
 							</FormField>
 						</div>
@@ -309,23 +470,6 @@ export function DatabaseFormPage() {
 							/>
 						</FormField>
 					</div>
-				</div>
-
-				<div className="form-actions" style={{ marginTop: "var(--md)" }}>
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create Connection"}
-					</button>
-					<Link to="/admin/databases" className="btn btn-secondary">
-						Cancel
-					</Link>
 				</div>
 			</form>
 		</div>

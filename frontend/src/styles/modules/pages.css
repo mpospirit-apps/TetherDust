@@ -4,66 +4,33 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background:
-		radial-gradient(
-			ellipse at 20% 50%,
-			rgba(242, 75, 153, 0.08) 0%,
-			transparent 50%
-		),
-		radial-gradient(
-			ellipse at 80% 20%,
-			rgba(61, 188, 217, 0.08) 0%,
-			transparent 50%
-		),
-		radial-gradient(
-			ellipse at 50% 80%,
-			rgba(211, 217, 59, 0.06) 0%,
-			transparent 50%
-		),
-		var(--bg);
 }
 
 .login-card {
-	background: var(--surface);
-	border: 1px solid rgba(26, 26, 26, 0.08);
-	border-top: 4px solid var(--c-red);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid rgba(26, 26, 26, 0.06);
 	padding: 48px 40px;
 	width: 100%;
 	max-width: 420px;
-	box-shadow: var(--shadow-xl), var(--rim-light-strong);
 	position: relative;
+	z-index: 2;
 	overflow: hidden;
 }
 
-.login-card::before {
-	content: "";
-	position: absolute;
-	inset: 0;
-	background:
-		radial-gradient(
-			ellipse at 0% 0%,
-			rgba(61, 188, 217, 0.04) 0%,
-			transparent 60%
-		),
-		radial-gradient(
-			ellipse at 100% 100%,
-			rgba(242, 75, 153, 0.04) 0%,
-			transparent 60%
-		);
-	pointer-events: none;
+[data-theme="dark"] .login-card {
+	background: rgba(15, 15, 13, 0.4);
+	border-color: rgba(255, 255, 255, 0.05);
 }
 
 .login-card .brand {
-	font-family: var(--font);
-	font-size: var(--text-2xl);
-	font-weight: 700;
-	color: var(--text);
-	text-align: center;
 	margin-bottom: 4px;
 	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	gap: 0.48rem;
 }
 
 .login-card .subtitle {
@@ -192,11 +159,6 @@
 }
 
 .hero-title span {
-	color: var(--c-dust);
-}
-/* Login brand accent — same color, different component; kept after the lower-
-   specificity `.hero-title span` so source order is ascending. */
-.login-card .brand span {
 	color: var(--c-dust);
 }
 

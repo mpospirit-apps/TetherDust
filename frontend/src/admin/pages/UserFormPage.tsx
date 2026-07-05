@@ -102,9 +102,23 @@ export function UserFormPage() {
 					<h1>{isEdit ? `Edit ${form.username}` : "Add User"}</h1>
 					<p>User account and role assignment.</p>
 				</div>
-				<Link to="/admin/users" className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link to="/admin/users" className="btn btn-ghost">
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="user-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create User"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -116,75 +130,65 @@ export function UserFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit}>
-				<div className="card" style={{ maxWidth: 560 }}>
-					<FormField label="Username">
-						<input
-							className="form-control"
-							value={form.username}
-							required
-							disabled={isEdit}
-							onChange={(e) => set("username", e.target.value)}
-						/>
-					</FormField>
-					<FormField label="Email">
-						<input
-							className="form-control"
-							type="email"
-							value={form.email}
-							onChange={(e) => set("email", e.target.value)}
-						/>
-					</FormField>
-					<FormField
-						label="Password"
-						help={isEdit ? "Leave blank to keep existing." : undefined}
-					>
-						<input
-							className="form-control"
-							type="password"
-							autoComplete="new-password"
-							required={!isEdit}
-							placeholder={isEdit ? "••••••••  (leave blank to keep)" : ""}
-							value={form.password}
-							onChange={(e) => set("password", e.target.value)}
-						/>
-					</FormField>
-					<FormField label="Role">
-						<select
-							className="form-control"
-							value={form.role}
-							onChange={(e) => set("role", e.target.value)}
+			<form id="user-form" onSubmit={onSubmit}>
+				<div className="form-split">
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Account</h3>
+						<FormField label="Username">
+							<input
+								className="form-control"
+								value={form.username}
+								required
+								disabled={isEdit}
+								onChange={(e) => set("username", e.target.value)}
+							/>
+						</FormField>
+						<FormField label="Email">
+							<input
+								className="form-control"
+								type="email"
+								value={form.email}
+								onChange={(e) => set("email", e.target.value)}
+							/>
+						</FormField>
+						<FormField
+							label="Password"
+							help={isEdit ? "Leave blank to keep existing." : undefined}
 						>
-							<option value="">— No role —</option>
-							{roleOptions.map((r) => (
-								<option key={r.id} value={r.id}>
-									{r.name}
-								</option>
-							))}
-						</select>
-					</FormField>
-					<FormCheckbox
-						label="Is active"
-						checked={form.is_active}
-						onChange={(v) => set("is_active", v)}
-					/>
-				</div>
+							<input
+								className="form-control"
+								type="password"
+								autoComplete="new-password"
+								required={!isEdit}
+								placeholder={isEdit ? "••••••••  (leave blank to keep)" : ""}
+								value={form.password}
+								onChange={(e) => set("password", e.target.value)}
+							/>
+						</FormField>
+					</div>
 
-				<div className="form-actions" style={{ marginTop: "var(--md)" }}>
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create User"}
-					</button>
-					<Link to="/admin/users" className="btn btn-secondary">
-						Cancel
-					</Link>
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Access</h3>
+						<FormField label="Role">
+							<select
+								className="form-control"
+								value={form.role}
+								onChange={(e) => set("role", e.target.value)}
+							>
+								<option value="">— No role —</option>
+								{roleOptions.map((r) => (
+									<option key={r.id} value={r.id}>
+										{r.name}
+									</option>
+								))}
+							</select>
+						</FormField>
+						<FormCheckbox
+							label="Is active"
+							checked={form.is_active}
+							onChange={(v) => set("is_active", v)}
+						/>
+					</div>
 				</div>
 			</form>
 		</div>

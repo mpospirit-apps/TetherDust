@@ -126,9 +126,23 @@ export function TetherFormPage() {
 							: "Creating a tether starts an agent generation run."}
 					</p>
 				</div>
-				<Link to="/admin/tethers" className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link to="/admin/tethers" className="btn btn-ghost">
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="tether-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create & Generate"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -140,100 +154,92 @@ export function TetherFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit} className="card" style={{ maxWidth: 640 }}>
-				<FormField label="Name">
-					<input
-						className="form-control"
-						value={form.name}
-						required
-						onChange={(e) => set("name", e.target.value)}
-					/>
-				</FormField>
-				<FormField label="Description">
-					<textarea
-						className="form-control"
-						rows={3}
-						value={form.description}
-						onChange={(e) => set("description", e.target.value)}
-					/>
-				</FormField>
-				<FormField
-					label="Codebase or Codebase Documentation"
-					help="The code side — a live codebase repository or a codebase documentation source."
-				>
-					<select
-						className="form-control"
-						value={form.code_source}
-						required
-						onChange={(e) => set("code_source", e.target.value)}
-					>
-						<option value="">— Select a code source —</option>
-						{src && src.codebases.length > 0 && (
-							<optgroup label="Codebases">
-								{src.codebases.map((c) => (
-									<option key={c.id} value={`codebase:${c.id}`}>
-										{c.name}
-									</option>
-								))}
-							</optgroup>
-						)}
-						{src && src.codebase_docs.length > 0 && (
-							<optgroup label="Codebase Documentation">
-								{src.codebase_docs.map((d) => (
-									<option key={d.id} value={`codebasedoc:${d.id}`}>
+			<form id="tether-form" onSubmit={onSubmit}>
+				<div className="form-split">
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
+						<FormField label="Name">
+							<input
+								className="form-control"
+								value={form.name}
+								required
+								onChange={(e) => set("name", e.target.value)}
+							/>
+						</FormField>
+						<FormField label="Description">
+							<textarea
+								className="form-control"
+								rows={3}
+								value={form.description}
+								onChange={(e) => set("description", e.target.value)}
+							/>
+						</FormField>
+						<FormCheckbox
+							label="Is active"
+							checked={form.is_active}
+							onChange={(v) => set("is_active", v)}
+						/>
+					</div>
+
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Sources & access</h3>
+						<FormField
+							label="Codebase or Codebase Documentation"
+							help="The code side — a live codebase repository or a codebase documentation source."
+						>
+							<select
+								className="form-control"
+								value={form.code_source}
+								required
+								onChange={(e) => set("code_source", e.target.value)}
+							>
+								<option value="">— Select a code source —</option>
+								{src && src.codebases.length > 0 && (
+									<optgroup label="Codebases">
+										{src.codebases.map((c) => (
+											<option key={c.id} value={`codebase:${c.id}`}>
+												{c.name}
+											</option>
+										))}
+									</optgroup>
+								)}
+								{src && src.codebase_docs.length > 0 && (
+									<optgroup label="Codebase Documentation">
+										{src.codebase_docs.map((d) => (
+											<option key={d.id} value={`codebasedoc:${d.id}`}>
+												{d.name}
+											</option>
+										))}
+									</optgroup>
+								)}
+							</select>
+						</FormField>
+						<FormField
+							label="Database documentation"
+							help="The database side of this tether."
+						>
+							<select
+								className="form-control"
+								value={form.database_doc_source}
+								required
+								onChange={(e) => set("database_doc_source", e.target.value)}
+							>
+								<option value="">— Select a database source —</option>
+								{(src?.database_docs ?? []).map((d) => (
+									<option key={d.id} value={d.id}>
 										{d.name}
 									</option>
 								))}
-							</optgroup>
-						)}
-					</select>
-				</FormField>
-				<FormField
-					label="Database documentation"
-					help="The database side of this tether."
-				>
-					<select
-						className="form-control"
-						value={form.database_doc_source}
-						required
-						onChange={(e) => set("database_doc_source", e.target.value)}
-					>
-						<option value="">— Select a database source —</option>
-						{(src?.database_docs ?? []).map((d) => (
-							<option key={d.id} value={d.id}>
-								{d.name}
-							</option>
-						))}
-					</select>
-				</FormField>
-				<CheckboxGroup
-					label="Allowed roles"
-					help="Roles that can view this tether (staff always can)."
-					options={roleOptions}
-					selected={form.allowed_roles}
-					onChange={(ids) => set("allowed_roles", ids)}
-				/>
-				<FormCheckbox
-					label="Is active"
-					checked={form.is_active}
-					onChange={(v) => set("is_active", v)}
-				/>
-
-				<div className="form-actions">
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create & Generate"}
-					</button>
-					<Link to="/admin/tethers" className="btn btn-ghost">
-						Cancel
-					</Link>
+							</select>
+						</FormField>
+						<CheckboxGroup
+							label="Allowed roles"
+							help="Roles that can view this tether (staff always can)."
+							options={roleOptions}
+							selected={form.allowed_roles}
+							onChange={(ids) => set("allowed_roles", ids)}
+						/>
+					</div>
 				</div>
 			</form>
 		</div>

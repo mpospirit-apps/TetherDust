@@ -7,12 +7,14 @@ import {
 	useState,
 } from "react";
 import Markdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import {
 	type ChatSessionItem,
 	getAgentStatus,
 	listChatSessions,
 } from "../api/chat";
+import { CodeBlock } from "../docs/CodeBlock";
 import { ChatComposer } from "./ChatComposer";
 import { useChatSocket } from "./useChatSocket";
 
@@ -228,7 +230,13 @@ export function ChatPage() {
 									) : (
 										<div className="message-content">
 											{m.role === "assistant" ? (
-												<Markdown remarkPlugins={[remarkGfm]}>
+												<Markdown
+													remarkPlugins={[remarkGfm]}
+													rehypePlugins={[
+														[rehypeHighlight, { ignoreMissing: true }],
+													]}
+													components={{ pre: CodeBlock }}
+												>
 													{m.content || "…"}
 												</Markdown>
 											) : (

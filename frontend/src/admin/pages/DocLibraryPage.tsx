@@ -68,9 +68,21 @@ export function DocLibraryPage() {
 						subsystem or table
 					</p>
 				</div>
-				<Link to="/admin/docsources" className="btn btn-ghost">
-					Back
-				</Link>
+				{!logId && (
+					<div className="form-actions">
+						<Link to="/admin/docsources" className="btn btn-ghost">
+							Cancel
+						</Link>
+						<button
+							type="submit"
+							form="doc-library-form"
+							className="btn btn-primary"
+							disabled={start.isPending}
+						>
+							{start.isPending ? "Starting…" : "Generate Library"}
+						</button>
+					</div>
+				)}
 			</div>
 
 			{logId ? (
@@ -99,7 +111,7 @@ export function DocLibraryPage() {
 					)}
 				</div>
 			) : (
-				<form onSubmit={onSubmit} className="card" style={{ maxWidth: 760 }}>
+				<form id="doc-library-form" onSubmit={onSubmit}>
 					{error && (
 						<div
 							className="flash flash-error"
@@ -109,69 +121,71 @@ export function DocLibraryPage() {
 						</div>
 					)}
 
-					<div
-						className="doc-req-row"
-						style={{ gridTemplateColumns: "2fr 1fr" }}
-					>
-						<FormField
-							label="Library name"
-							help="Top-level folder under documentations/ (the library root)."
-						>
-							<input
-								className="form-control"
-								value={libraryName}
-								required
-								placeholder="MyDatabase"
-								onChange={(e) => setLibraryName(e.target.value)}
-							/>
-						</FormField>
-						<FormField label="Library type">
-							<select
-								className="form-control"
-								value={sourceDocType}
-								onChange={(e) => setSourceDocType(e.target.value)}
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Library details</h3>
+							<div
+								className="doc-req-row"
+								style={{ gridTemplateColumns: "2fr 1fr" }}
 							>
-								{(opts?.library_doc_types ?? []).map((t) => (
-									<option key={t.value} value={t.value}>
-										{t.label}
-									</option>
-								))}
-							</select>
-						</FormField>
-					</div>
+								<FormField
+									label="Library name"
+									help="Top-level folder under documentations/ (the library root)."
+								>
+									<input
+										className="form-control"
+										value={libraryName}
+										required
+										placeholder="MyDatabase"
+										onChange={(e) => setLibraryName(e.target.value)}
+									/>
+								</FormField>
+								<FormField label="Library type">
+									<select
+										className="form-control"
+										value={sourceDocType}
+										onChange={(e) => setSourceDocType(e.target.value)}
+									>
+										{(opts?.library_doc_types ?? []).map((t) => (
+											<option key={t.value} value={t.value}>
+												{t.label}
+											</option>
+										))}
+									</select>
+								</FormField>
+							</div>
+						</div>
 
-					<div className="doc-section">
-						<div className="doc-section__title">Source material</div>
-						{opts ? (
-							<SourceSelect
-								options={opts}
-								value={sources}
-								onChange={setSources}
-							/>
-						) : (
-							<p className="text-sec">Loading…</p>
-						)}
-					</div>
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Source & agent</h3>
+							<div className="doc-section">
+								<div className="doc-section__title">Source material</div>
+								{opts ? (
+									<SourceSelect
+										options={opts}
+										value={sources}
+										onChange={setSources}
+									/>
+								) : (
+									<p className="text-sec">Loading…</p>
+								)}
+							</div>
 
-					<FormField label="Agent" help="Generation runs on the active agent.">
-						{opts ? (
-							<AgentSelect options={opts} value={agent} onChange={setAgent} />
-						) : (
-							<p className="text-sec">Loading…</p>
-						)}
-					</FormField>
-
-					<div className="form-actions">
-						<button
-							type="submit"
-							className="btn btn-primary"
-							disabled={start.isPending}
-						>
-							{start.isPending ? "Starting…" : "Generate Library"}
-						</button>
-						<Link to="/admin/docsources" className="btn btn-secondary">
-							Cancel
-						</Link>
+							<FormField
+								label="Agent"
+								help="Generation runs on the active agent."
+							>
+								{opts ? (
+									<AgentSelect
+										options={opts}
+										value={agent}
+										onChange={setAgent}
+									/>
+								) : (
+									<p className="text-sec">Loading…</p>
+								)}
+							</FormField>
+						</div>
 					</div>
 				</form>
 			)}

@@ -28,9 +28,9 @@ vi.mock("react-router-dom", async (importOriginal) => {
 
 async function submitCredentials() {
 	const user = userEvent.setup();
-	await user.type(screen.getByLabelText("Callsign"), "neo");
-	await user.type(screen.getByLabelText("Passphrase"), "trinity");
-	await user.click(screen.getByRole("button", { name: "Initiate Access" }));
+	await user.type(screen.getByLabelText("Username"), "neo");
+	await user.type(screen.getByLabelText("Password"), "trinity");
+	await user.click(screen.getByRole("button", { name: "Sign In" }));
 }
 
 describe("LoginPage", () => {
@@ -75,8 +75,6 @@ describe("LoginPage", () => {
 		h.user = { username: "neo" };
 		renderWithProviders(<LoginPage />);
 
-		expect(
-			screen.queryByRole("button", { name: "Initiate Access" }),
-		).toBeNull();
+		expect(screen.queryByRole("button", { name: "Sign In" })).toBeNull();
 	});
 });

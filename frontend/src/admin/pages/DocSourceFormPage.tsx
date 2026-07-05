@@ -135,12 +135,22 @@ export function DocSourceFormPage() {
 					</h1>
 					<p>Map a folder under documentations/ to a typed source</p>
 				</div>
-				<Link
-					to={isEdit ? "/admin/docsources" : "/admin/docsources/add"}
-					className="btn btn-ghost"
-				>
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link
+						to={isEdit ? "/admin/docsources" : "/admin/docsources/add"}
+						className="btn btn-ghost"
+					>
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="docsource-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending ? "Saving…" : isEdit ? "Save Changes" : "Register"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -152,95 +162,97 @@ export function DocSourceFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit} className="card" style={{ maxWidth: 640 }}>
-				{isEdit ? (
-					<FormField label="Documentation Folder">
-						<input className="form-control" value={form.folder_name} disabled />
-					</FormField>
-				) : (
-					<FormField
-						label="Documentation Folder"
-						help="Select a folder from the documentations/ directory."
-					>
-						<select
-							className="form-control"
-							value={form.folder_name}
-							required
-							onChange={(e) => set("folder_name", e.target.value)}
-						>
-							<option value="">— Select a folder —</option>
-							{unregistered.map((f) => (
-								<option key={f.name} value={f.name}>
-									{f.name}
-								</option>
-							))}
-						</select>
-						{unregistered.length === 0 && !folders.isLoading && (
-							<div className="helptext">
-								No unregistered folders found. Create a folder under
-								documentations/ first, or generate one with AI.
-							</div>
+			<form id="docsource-form" onSubmit={onSubmit}>
+				<div className="form-split">
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Source</h3>
+						{isEdit ? (
+							<FormField label="Documentation Folder">
+								<input
+									className="form-control"
+									value={form.folder_name}
+									disabled
+								/>
+							</FormField>
+						) : (
+							<FormField
+								label="Documentation Folder"
+								help="Select a folder from the documentations/ directory."
+							>
+								<select
+									className="form-control"
+									value={form.folder_name}
+									required
+									onChange={(e) => set("folder_name", e.target.value)}
+								>
+									<option value="">— Select a folder —</option>
+									{unregistered.map((f) => (
+										<option key={f.name} value={f.name}>
+											{f.name}
+										</option>
+									))}
+								</select>
+								{unregistered.length === 0 && !folders.isLoading && (
+									<div className="helptext">
+										No unregistered folders found. Create a folder under
+										documentations/ first, or generate one with AI.
+									</div>
+								)}
+							</FormField>
 						)}
-					</FormField>
-				)}
 
-				<FormField label="Type" help={typeDescription}>
-					<select
-						className="form-control"
-						value={form.doc_type}
-						onChange={(e) => set("doc_type", e.target.value)}
-					>
-						{docTypes.map((t) => (
-							<option key={t.value} value={t.value}>
-								{t.label}
-							</option>
-						))}
-					</select>
-				</FormField>
+						<FormField label="Type" help={typeDescription}>
+							<select
+								className="form-control"
+								value={form.doc_type}
+								onChange={(e) => set("doc_type", e.target.value)}
+							>
+								{docTypes.map((t) => (
+									<option key={t.value} value={t.value}>
+										{t.label}
+									</option>
+								))}
+							</select>
+						</FormField>
 
-				<FormField
-					label="Description"
-					help="Helps the agent understand what this source contains."
-				>
-					<textarea
-						className="form-control"
-						rows={3}
-						value={form.description}
-						onChange={(e) => set("description", e.target.value)}
-					/>
-				</FormField>
+						<FormCheckbox
+							label="Is active"
+							checked={form.is_active}
+							onChange={(v) => set("is_active", v)}
+						/>
+					</div>
 
-				<FormField
-					label="File patterns (JSON)"
-					help='Glob patterns, e.g. ["*.md"] or ["*.py", "*.sql"]. Leave blank for the default (*.md).'
-				>
-					<textarea
-						className="form-control"
-						rows={2}
-						style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 13 }}
-						placeholder='["*.md"]'
-						value={form.file_patterns}
-						onChange={(e) => set("file_patterns", e.target.value)}
-					/>
-				</FormField>
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Details</h3>
+						<FormField
+							label="Description"
+							help="Helps the agent understand what this source contains."
+						>
+							<textarea
+								className="form-control"
+								rows={3}
+								value={form.description}
+								onChange={(e) => set("description", e.target.value)}
+							/>
+						</FormField>
 
-				<FormCheckbox
-					label="Is active"
-					checked={form.is_active}
-					onChange={(v) => set("is_active", v)}
-				/>
-
-				<div className="form-actions">
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending ? "Saving…" : isEdit ? "Save Changes" : "Register"}
-					</button>
-					<Link to="/admin/docsources" className="btn btn-secondary">
-						Cancel
-					</Link>
+						<FormField
+							label="File patterns (JSON)"
+							help='Glob patterns, e.g. ["*.md"] or ["*.py", "*.sql"]. Leave blank for the default (*.md).'
+						>
+							<textarea
+								className="form-control"
+								rows={2}
+								style={{
+									fontFamily: "var(--font-mono, monospace)",
+									fontSize: 13,
+								}}
+								placeholder='["*.md"]'
+								value={form.file_patterns}
+								onChange={(e) => set("file_patterns", e.target.value)}
+							/>
+						</FormField>
+					</div>
 				</div>
 			</form>
 		</div>

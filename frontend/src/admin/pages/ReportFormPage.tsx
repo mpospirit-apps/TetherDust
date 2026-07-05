@@ -217,9 +217,33 @@ export function ReportFormPage() {
 					<h1>{isEdit ? `Edit ${form.name}` : "New Report"}</h1>
 					<p>A read-only SQL query, optionally scheduled and emailed</p>
 				</div>
-				<Link to="/admin/reports" className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link to="/admin/reports" className="btn btn-ghost">
+						Cancel
+					</Link>
+					{isEdit && (
+						<button
+							type="button"
+							className="btn btn-secondary"
+							disabled={runPreview.isPending}
+							onClick={() => runPreview.mutate()}
+						>
+							{runPreview.isPending ? "Running…" : "Preview (10 rows)"}
+						</button>
+					)}
+					<button
+						type="submit"
+						form="report-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create Report"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -231,201 +255,186 @@ export function ReportFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit} className="card" style={{ maxWidth: 720 }}>
-				<FormField label="Name">
-					<input
-						className="form-control"
-						value={form.name}
-						required
-						onChange={(e) => set("name", e.target.value)}
-					/>
-				</FormField>
-				<FormField label="Description">
-					<textarea
-						className="form-control"
-						rows={2}
-						value={form.description}
-						onChange={(e) => set("description", e.target.value)}
-					/>
-				</FormField>
-				<FormField label="Database">
-					<select
-						className="form-control"
-						value={form.database}
-						required
-						onChange={(e) => set("database", e.target.value)}
-					>
-						<option value="">— Select —</option>
-						{dbOptions.map((d) => (
-							<option key={d.id} value={d.id}>
-								{d.name}
-							</option>
-						))}
-					</select>
-				</FormField>
-				<FormField label="SQL query" help="Read-only SELECT or WITH query.">
-					<textarea
-						className="form-control"
-						rows={12}
-						style={{ fontFamily: "var(--font)", fontSize: "13px" }}
-						value={form.sql_query}
-						required
-						onChange={(e) => set("sql_query", e.target.value)}
-						placeholder={
-							"SELECT column1, column2\nFROM table_name\nWHERE condition"
-						}
-					/>
-				</FormField>
+			<form id="report-form" onSubmit={onSubmit}>
+				<div className="form-split">
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Report</h3>
+						<FormField label="Name">
+							<input
+								className="form-control"
+								value={form.name}
+								required
+								onChange={(e) => set("name", e.target.value)}
+							/>
+						</FormField>
+						<FormField label="Description">
+							<textarea
+								className="form-control"
+								rows={2}
+								value={form.description}
+								onChange={(e) => set("description", e.target.value)}
+							/>
+						</FormField>
+						<FormField label="Database">
+							<select
+								className="form-control"
+								value={form.database}
+								required
+								onChange={(e) => set("database", e.target.value)}
+							>
+								<option value="">— Select —</option>
+								{dbOptions.map((d) => (
+									<option key={d.id} value={d.id}>
+										{d.name}
+									</option>
+								))}
+							</select>
+						</FormField>
+						<FormField label="SQL query" help="Read-only SELECT or WITH query.">
+							<textarea
+								className="form-control"
+								rows={12}
+								style={{ fontFamily: "var(--font)", fontSize: "13px" }}
+								value={form.sql_query}
+								required
+								onChange={(e) => set("sql_query", e.target.value)}
+								placeholder={
+									"SELECT column1, column2\nFROM table_name\nWHERE condition"
+								}
+							/>
+						</FormField>
+					</div>
 
-				<FormField label="Schedule">
-					<select
-						className="form-control"
-						value={form.schedule_type}
-						onChange={(e) =>
-							set("schedule_type", e.target.value as ScheduleType)
-						}
-					>
-						{SCHEDULE_TYPES.map((s) => (
-							<option key={s.value} value={s.value}>
-								{s.label}
-							</option>
-						))}
-					</select>
-				</FormField>
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Schedule & delivery</h3>
+						<FormField label="Schedule">
+							<select
+								className="form-control"
+								value={form.schedule_type}
+								onChange={(e) =>
+									set("schedule_type", e.target.value as ScheduleType)
+								}
+							>
+								{SCHEDULE_TYPES.map((s) => (
+									<option key={s.value} value={s.value}>
+										{s.label}
+									</option>
+								))}
+							</select>
+						</FormField>
 
-				{form.schedule_type === "interval" && (
-					<FormField label="Run interval">
-						<select
-							className="form-control"
-							value={form.schedule_interval_minutes}
-							onChange={(e) => set("schedule_interval_minutes", e.target.value)}
-						>
-							<option value="">— Select —</option>
-							{INTERVALS.map((i) => (
-								<option key={i.value} value={i.value}>
-									{i.label}
-								</option>
-							))}
-						</select>
-					</FormField>
-				)}
+						{form.schedule_type === "interval" && (
+							<FormField label="Run interval">
+								<select
+									className="form-control"
+									value={form.schedule_interval_minutes}
+									onChange={(e) =>
+										set("schedule_interval_minutes", e.target.value)
+									}
+								>
+									<option value="">— Select —</option>
+									{INTERVALS.map((i) => (
+										<option key={i.value} value={i.value}>
+											{i.label}
+										</option>
+									))}
+								</select>
+							</FormField>
+						)}
 
-				{(form.schedule_type === "daily" ||
-					form.schedule_type === "weekly" ||
-					form.schedule_type === "monthly") && (
-					<FormField label="Time of day (UTC)">
-						<input
-							type="time"
-							className="form-control"
-							value={form.schedule_time}
-							onChange={(e) => set("schedule_time", e.target.value)}
+						{(form.schedule_type === "daily" ||
+							form.schedule_type === "weekly" ||
+							form.schedule_type === "monthly") && (
+							<FormField label="Time of day (UTC)">
+								<input
+									type="time"
+									className="form-control"
+									value={form.schedule_time}
+									onChange={(e) => set("schedule_time", e.target.value)}
+								/>
+							</FormField>
+						)}
+
+						{form.schedule_type === "weekly" && (
+							<FormField label="Day of week">
+								<select
+									className="form-control"
+									value={form.schedule_day_of_week}
+									onChange={(e) => set("schedule_day_of_week", e.target.value)}
+								>
+									<option value="">— Select —</option>
+									{WEEKDAYS.map((d) => (
+										<option key={d.value} value={d.value}>
+											{d.label}
+										</option>
+									))}
+								</select>
+							</FormField>
+						)}
+
+						{form.schedule_type === "monthly" && (
+							<FormField label="Day of month" help="1–28.">
+								<select
+									className="form-control"
+									value={form.schedule_day_of_month}
+									onChange={(e) => set("schedule_day_of_month", e.target.value)}
+								>
+									<option value="">— Select —</option>
+									{Array.from({ length: 28 }, (_, i) => String(i + 1)).map(
+										(d) => (
+											<option key={d} value={d}>
+												{d}
+											</option>
+										),
+									)}
+								</select>
+							</FormField>
+						)}
+
+						<FormField label="Delivery">
+							<select
+								className="form-control"
+								value={form.delivery_method}
+								onChange={(e) =>
+									set("delivery_method", e.target.value as DeliveryMethod)
+								}
+							>
+								{DELIVERY_METHODS.map((d) => (
+									<option key={d.value} value={d.value}>
+										{d.label}
+									</option>
+								))}
+							</select>
+						</FormField>
+
+						{form.delivery_method === "email" && (
+							<FormField
+								label="Email recipients"
+								help="One address per line. Recipients receive the report on each scheduled run."
+							>
+								<textarea
+									className="form-control"
+									rows={3}
+									value={form.email_recipients}
+									onChange={(e) => set("email_recipients", e.target.value)}
+									placeholder={"one@example.com\ntwo@example.com"}
+								/>
+							</FormField>
+						)}
+
+						<CheckboxGroup
+							label="Allowed roles"
+							help="Roles that can view this report's results (staff always can)."
+							options={roleOptions}
+							selected={form.allowed_roles}
+							onChange={(ids) => set("allowed_roles", ids)}
 						/>
-					</FormField>
-				)}
-
-				{form.schedule_type === "weekly" && (
-					<FormField label="Day of week">
-						<select
-							className="form-control"
-							value={form.schedule_day_of_week}
-							onChange={(e) => set("schedule_day_of_week", e.target.value)}
-						>
-							<option value="">— Select —</option>
-							{WEEKDAYS.map((d) => (
-								<option key={d.value} value={d.value}>
-									{d.label}
-								</option>
-							))}
-						</select>
-					</FormField>
-				)}
-
-				{form.schedule_type === "monthly" && (
-					<FormField label="Day of month" help="1–28.">
-						<select
-							className="form-control"
-							value={form.schedule_day_of_month}
-							onChange={(e) => set("schedule_day_of_month", e.target.value)}
-						>
-							<option value="">— Select —</option>
-							{Array.from({ length: 28 }, (_, i) => String(i + 1)).map((d) => (
-								<option key={d} value={d}>
-									{d}
-								</option>
-							))}
-						</select>
-					</FormField>
-				)}
-
-				<FormField label="Delivery">
-					<select
-						className="form-control"
-						value={form.delivery_method}
-						onChange={(e) =>
-							set("delivery_method", e.target.value as DeliveryMethod)
-						}
-					>
-						{DELIVERY_METHODS.map((d) => (
-							<option key={d.value} value={d.value}>
-								{d.label}
-							</option>
-						))}
-					</select>
-				</FormField>
-
-				{form.delivery_method === "email" && (
-					<FormField
-						label="Email recipients"
-						help="One address per line. Recipients receive the report on each scheduled run."
-					>
-						<textarea
-							className="form-control"
-							rows={3}
-							value={form.email_recipients}
-							onChange={(e) => set("email_recipients", e.target.value)}
-							placeholder={"one@example.com\ntwo@example.com"}
+						<FormCheckbox
+							label="Is active"
+							checked={form.is_active}
+							onChange={(v) => set("is_active", v)}
 						/>
-					</FormField>
-				)}
-
-				<CheckboxGroup
-					label="Allowed roles"
-					help="Roles that can view this report's results (staff always can)."
-					options={roleOptions}
-					selected={form.allowed_roles}
-					onChange={(ids) => set("allowed_roles", ids)}
-				/>
-				<FormCheckbox
-					label="Is active"
-					checked={form.is_active}
-					onChange={(v) => set("is_active", v)}
-				/>
-
-				<div className="form-actions">
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create Report"}
-					</button>
-					{isEdit && (
-						<button
-							type="button"
-							className="btn btn-secondary"
-							disabled={runPreview.isPending}
-							onClick={() => runPreview.mutate()}
-						>
-							{runPreview.isPending ? "Running…" : "Preview (10 rows)"}
-						</button>
-					)}
-					<Link to="/admin/reports" className="btn btn-ghost">
-						Cancel
-					</Link>
+					</div>
 				</div>
 			</form>
 

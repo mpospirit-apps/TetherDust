@@ -16,11 +16,20 @@
 /* ── Page Header ── */
 .page-header {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	margin-bottom: var(--xl);
 	flex-wrap: wrap;
 	gap: var(--md);
+}
+
+/* .form-actions is reused here as the Cancel/primary-action button row, but
+   its padding-top/border-top (meant to divide it from form fields above)
+   would otherwise push it down and misalign it with the title. */
+.page-header .form-actions {
+	padding-top: 0;
+	margin-top: 0;
+	border-top: none;
 }
 
 .page-header h1 {
@@ -50,6 +59,89 @@
 
 form .card {
 	overflow: visible;
+}
+
+/* ── Choice list (glass row picker, e.g. "add doc source" / "add agent") ── */
+.choice-section {
+	margin-bottom: var(--lg);
+}
+.choice-section__title {
+	font-size: var(--text-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 1.5px;
+	color: var(--text-sec);
+	margin: 0 0 var(--sm);
+}
+.choice-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sm);
+}
+.choice-list--grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: var(--sm);
+}
+.choice-card {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	gap: var(--md);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid rgba(26, 26, 26, 0.06);
+	padding: var(--md) var(--lg);
+	text-align: left;
+	text-decoration: none;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	transition: var(--transition);
+}
+[data-theme="dark"] .choice-card {
+	background: rgba(15, 15, 13, 0.4);
+	border-color: rgba(255, 255, 255, 0.05);
+}
+.choice-card:hover {
+	border-color: var(--c-cyan);
+}
+.choice-card__icon {
+	font-size: 1.25rem;
+	color: var(--c-cyan);
+	width: 28px;
+	flex-shrink: 0;
+	text-align: center;
+}
+.choice-card__icon--logo {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.choice-card__icon--logo svg {
+	width: 1.25rem;
+	height: 1.25rem;
+	fill: currentColor;
+}
+.choice-card__body {
+	flex: 1;
+	min-width: 0;
+}
+.choice-card h4 {
+	font-size: var(--text-sm);
+	font-weight: 700;
+	margin: 0 0 2px;
+}
+.choice-card p {
+	font-size: var(--text-xs);
+	color: var(--text-sec);
+	margin: 0;
+}
+.choice-card__chevron {
+	color: var(--text-muted);
+	font-size: 12px;
+	flex-shrink: 0;
 }
 
 .card::before {

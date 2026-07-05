@@ -354,8 +354,6 @@ export function AdminHome() {
 										<th>User</th>
 										<th>Database</th>
 										<th>Status</th>
-										<th>Rows</th>
-										<th>ms</th>
 										<th>When</th>
 									</tr>
 								</thead>
@@ -371,8 +369,6 @@ export function AdminHome() {
 													<span className="badge badge-error">FAIL</span>
 												)}
 											</td>
-											<td>{log.row_count ?? "—"}</td>
-											<td>{log.execution_time_ms ?? "—"}</td>
 											<td className="text-sec text-sm">
 												{shortTime(log.created_at)}
 											</td>
@@ -406,8 +402,7 @@ export function AdminHome() {
 									<tr>
 										<th>Session</th>
 										<th>User</th>
-										<th>Msgs</th>
-										<th>Last Activity</th>
+										<th>When</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -415,7 +410,6 @@ export function AdminHome() {
 										<tr key={s.id}>
 											<td className="truncate">{s.title || "Untitled"}</td>
 											<td>{s.user ?? "—"}</td>
-											<td>{s.message_count}</td>
 											<td className="text-sec text-sm">
 												{shortTime(s.updated_at)}
 											</td>

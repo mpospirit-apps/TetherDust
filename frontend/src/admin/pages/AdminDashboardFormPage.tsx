@@ -117,9 +117,23 @@ export function AdminDashboardFormPage() {
 					<h1>{isEdit ? `Edit ${form.name}` : "New Dashboard"}</h1>
 					<p>A dashboard is a grid of D3 charts</p>
 				</div>
-				<Link to="/admin/dashboards" className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link to="/admin/dashboards" className="btn btn-ghost">
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="dashboard-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create Dashboard"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -131,72 +145,64 @@ export function AdminDashboardFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit} className="card" style={{ maxWidth: 640 }}>
-				<FormField label="Name">
-					<input
-						className="form-control"
-						value={form.name}
-						required
-						onChange={(e) => set("name", e.target.value)}
-					/>
-				</FormField>
-				<FormField label="Description">
-					<textarea
-						className="form-control"
-						rows={3}
-						value={form.description}
-						onChange={(e) => set("description", e.target.value)}
-					/>
-				</FormField>
-				<FormCheckbox
-					label="Auto refresh chart data on a schedule"
-					checked={form.auto_refresh}
-					onChange={(v) => set("auto_refresh", v)}
-				/>
-				{form.auto_refresh && (
-					<FormField label="Refresh interval">
-						<select
-							className="form-control"
-							value={form.refresh_interval}
-							onChange={(e) => set("refresh_interval", e.target.value)}
-						>
-							<option value="">— Select —</option>
-							{REFRESH_INTERVALS.map((r) => (
-								<option key={r.value} value={r.value}>
-									{r.label}
-								</option>
-							))}
-						</select>
-					</FormField>
-				)}
-				<CheckboxGroup
-					label="Allowed roles"
-					help="Roles that can view this dashboard (staff always can)."
-					options={roleOptions}
-					selected={form.allowed_roles}
-					onChange={(ids) => set("allowed_roles", ids)}
-				/>
-				<FormCheckbox
-					label="Is active"
-					checked={form.is_active}
-					onChange={(v) => set("is_active", v)}
-				/>
+			<form id="dashboard-form" onSubmit={onSubmit}>
+				<div className="form-split">
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
+						<FormField label="Name">
+							<input
+								className="form-control"
+								value={form.name}
+								required
+								onChange={(e) => set("name", e.target.value)}
+							/>
+						</FormField>
+						<FormField label="Description">
+							<textarea
+								className="form-control"
+								rows={3}
+								value={form.description}
+								onChange={(e) => set("description", e.target.value)}
+							/>
+						</FormField>
+						<FormCheckbox
+							label="Is active"
+							checked={form.is_active}
+							onChange={(v) => set("is_active", v)}
+						/>
+					</div>
 
-				<div className="form-actions">
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create Dashboard"}
-					</button>
-					<Link to="/admin/dashboards" className="btn btn-secondary">
-						Cancel
-					</Link>
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Refresh & access</h3>
+						<FormCheckbox
+							label="Auto refresh chart data on a schedule"
+							checked={form.auto_refresh}
+							onChange={(v) => set("auto_refresh", v)}
+						/>
+						{form.auto_refresh && (
+							<FormField label="Refresh interval">
+								<select
+									className="form-control"
+									value={form.refresh_interval}
+									onChange={(e) => set("refresh_interval", e.target.value)}
+								>
+									<option value="">— Select —</option>
+									{REFRESH_INTERVALS.map((r) => (
+										<option key={r.value} value={r.value}>
+											{r.label}
+										</option>
+									))}
+								</select>
+							</FormField>
+						)}
+						<CheckboxGroup
+							label="Allowed roles"
+							help="Roles that can view this dashboard (staff always can)."
+							options={roleOptions}
+							selected={form.allowed_roles}
+							onChange={(ids) => set("allowed_roles", ids)}
+						/>
+					</div>
 				</div>
 			</form>
 		</div>

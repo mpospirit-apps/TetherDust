@@ -177,6 +177,7 @@ class OverviewView(APIView):
                 "updated_at": r["updated_at"].isoformat(),
             }
             for r in ChatSession.objects.annotate(message_count=Count("messages"))
+            .filter(message_count__gt=0)
             .order_by("-updated_at")
             .values("id", "title", "updated_at", "user__username", "message_count")[:8]
         ]

@@ -223,9 +223,26 @@ export function ChartFormPage() {
 						Write a read-only SQL query and the d3 code that renders its result
 					</p>
 				</div>
-				<Link to={`/admin/dashboards/${dashboardId}`} className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link
+						to={`/admin/dashboards/${dashboardId}`}
+						className="btn btn-ghost"
+					>
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="chart-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create Chart"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -335,26 +352,6 @@ export function ChartFormPage() {
 							checked={form.is_active}
 							onChange={(v) => set("is_active", v)}
 						/>
-
-						<div className="form-actions">
-							<button
-								type="submit"
-								className="btn btn-primary"
-								disabled={save.isPending}
-							>
-								{save.isPending
-									? "Saving…"
-									: isEdit
-										? "Save Changes"
-										: "Create Chart"}
-							</button>
-							<Link
-								to={`/admin/dashboards/${dashboardId}`}
-								className="btn btn-secondary"
-							>
-								Cancel
-							</Link>
-						</div>
 					</div>
 
 					<div className="chart-edit-sidebar">
