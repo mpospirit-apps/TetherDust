@@ -16,11 +16,20 @@
 /* ── Page Header ── */
 .page-header {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	margin-bottom: var(--xl);
 	flex-wrap: wrap;
 	gap: var(--md);
+}
+
+/* .form-actions is reused here as the Cancel/primary-action button row, but
+   its padding-top/border-top (meant to divide it from form fields above)
+   would otherwise push it down and misalign it with the title. */
+.page-header .form-actions {
+	padding-top: 0;
+	margin-top: 0;
+	border-top: none;
 }
 
 .page-header h1 {
@@ -69,6 +78,11 @@ form .card {
 	flex-direction: column;
 	gap: var(--sm);
 }
+.choice-list--grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: var(--sm);
+}
 .choice-card {
 	display: flex;
 	align-items: center;
@@ -99,6 +113,16 @@ form .card {
 	width: 28px;
 	flex-shrink: 0;
 	text-align: center;
+}
+.choice-card__icon--logo {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.choice-card__icon--logo svg {
+	width: 1.25rem;
+	height: 1.25rem;
+	fill: currentColor;
 }
 .choice-card__body {
 	flex: 1;
