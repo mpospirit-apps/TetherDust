@@ -183,41 +183,6 @@
 	}
 }
 
-.doc-choice-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: var(--md);
-}
-.doc-choice-card {
-	border: 1px solid rgba(26, 26, 26, 0.1);
-	padding: var(--lg);
-	text-align: center;
-	cursor: pointer;
-	transition: var(--transition);
-	background: var(--surface);
-	border-radius: var(--radius);
-}
-.doc-choice-card:hover {
-	border-color: var(--c-cyan);
-	box-shadow: 0 0 0 1px var(--c-cyan);
-}
-.doc-choice-card i {
-	font-size: 1.5rem;
-	color: var(--c-cyan);
-	margin-bottom: var(--sm);
-	display: block;
-}
-.doc-choice-card h4 {
-	font-size: var(--text-sm);
-	font-weight: 700;
-	margin-bottom: var(--xs);
-}
-.doc-choice-card p {
-	font-size: var(--text-xs);
-	color: var(--text-sec);
-	margin: 0;
-}
-
 .doc-form-group {
 	margin-bottom: var(--md);
 }

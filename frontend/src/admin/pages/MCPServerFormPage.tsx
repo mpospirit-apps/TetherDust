@@ -164,9 +164,23 @@ export function MCPServerFormPage() {
 						Set a URL (remote HTTP) or a command (local subprocess) — not both.
 					</p>
 				</div>
-				<Link to="/admin/mcp-servers" className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link to="/admin/mcp-servers" className="btn btn-ghost">
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="mcpserver-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create Server"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -178,7 +192,7 @@ export function MCPServerFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit}>
+			<form id="mcpserver-form" onSubmit={onSubmit}>
 				<div className="form-split">
 					<div className="card">
 						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
@@ -206,7 +220,9 @@ export function MCPServerFormPage() {
 					</div>
 
 					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Remote (HTTP)</h3>
+						<h3 style={{ margin: "0 0 var(--md)" }}>Connection</h3>
+
+						<h4 style={{ margin: "0 0 var(--sm)" }}>Remote (HTTP)</h4>
 						<FormField
 							label="URL"
 							help="Full MCP endpoint, e.g. https://example.com/mcp"
@@ -262,10 +278,10 @@ export function MCPServerFormPage() {
 								onChange={(e) => set("headers", e.target.value)}
 							/>
 						</FormField>
-					</div>
 
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Local (subprocess)</h3>
+						<h4 style={{ margin: "var(--md) 0 var(--sm)" }}>
+							Local (subprocess)
+						</h4>
 						<FormField
 							label="Command"
 							help='Executable to run, e.g. "npx" or "uvx".'
@@ -312,23 +328,6 @@ export function MCPServerFormPage() {
 							/>
 						</FormField>
 					</div>
-				</div>
-
-				<div className="form-actions" style={{ marginTop: "var(--md)" }}>
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create Server"}
-					</button>
-					<Link to="/admin/mcp-servers" className="btn btn-secondary">
-						Cancel
-					</Link>
 				</div>
 			</form>
 		</div>

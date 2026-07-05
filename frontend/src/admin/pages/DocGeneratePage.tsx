@@ -79,9 +79,21 @@ export function DocGeneratePage() {
 						create_documentation tool
 					</p>
 				</div>
-				<Link to="/admin/docsources" className="btn btn-ghost">
-					Back
-				</Link>
+				{!logId && (
+					<div className="form-actions">
+						<Link to="/admin/docsources" className="btn btn-ghost">
+							Cancel
+						</Link>
+						<button
+							type="submit"
+							form="doc-generate-form"
+							className="btn btn-primary"
+							disabled={start.isPending}
+						>
+							{start.isPending ? "Starting…" : "Generate"}
+						</button>
+					</div>
+				)}
 			</div>
 
 			{logId ? (
@@ -107,7 +119,7 @@ export function DocGeneratePage() {
 					)}
 				</div>
 			) : (
-				<form onSubmit={onSubmit} className="card" style={{ maxWidth: 760 }}>
+				<form id="doc-generate-form" onSubmit={onSubmit}>
 					{error && (
 						<div
 							className="flash flash-error"
@@ -117,93 +129,99 @@ export function DocGeneratePage() {
 						</div>
 					)}
 
-					<div className="doc-req-row">
-						<FormField label="File name" help="Saved as <name>.md.">
-							<input
-								className="form-control"
-								value={docName}
-								required
-								placeholder="Orders"
-								onChange={(e) => setDocName(e.target.value)}
-							/>
-						</FormField>
-						<FormField label="Type">
-							<select
-								className="form-control"
-								value={docType}
-								onChange={(e) => setDocType(e.target.value)}
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Page details</h3>
+							<div
+								className="doc-req-row"
+								style={{ gridTemplateColumns: "1fr 1fr" }}
 							>
-								{(opts?.doc_types ?? []).map((t) => (
-									<option key={t.value} value={t.value}>
-										{t.label}
-									</option>
-								))}
-							</select>
-						</FormField>
-						<FormField
-							label="Destination folder"
-							help="Existing or new folder under documentations/."
-						>
-							<input
-								className="form-control"
-								list="dest-folders"
-								value={destination}
-								required
-								placeholder="MyDatabase"
-								onChange={(e) => setDestination(e.target.value)}
-							/>
-							<datalist id="dest-folders">
-								{(opts?.dest_folders ?? []).map((f) => (
-									<option key={f} value={f} />
-								))}
-							</datalist>
-						</FormField>
-					</div>
+								<FormField label="File name" help="Saved as <name>.md.">
+									<input
+										className="form-control"
+										value={docName}
+										required
+										placeholder="Orders"
+										onChange={(e) => setDocName(e.target.value)}
+									/>
+								</FormField>
+								<FormField label="Type">
+									<select
+										className="form-control"
+										value={docType}
+										onChange={(e) => setDocType(e.target.value)}
+									>
+										{(opts?.doc_types ?? []).map((t) => (
+											<option key={t.value} value={t.value}>
+												{t.label}
+											</option>
+										))}
+									</select>
+								</FormField>
+							</div>
 
-					<FormField
-						label="Scope & goals"
-						help="Optional — steer what the page should cover."
-					>
-						<textarea
-							className="form-control"
-							rows={3}
-							value={scope}
-							onChange={(e) => setScope(e.target.value)}
-						/>
-					</FormField>
+							<FormField
+								label="Destination folder"
+								help="Existing or new folder under documentations/."
+							>
+								<input
+									className="form-control"
+									list="dest-folders"
+									value={destination}
+									required
+									placeholder="MyDatabase"
+									onChange={(e) => setDestination(e.target.value)}
+								/>
+								<datalist id="dest-folders">
+									{(opts?.dest_folders ?? []).map((f) => (
+										<option key={f} value={f} />
+									))}
+								</datalist>
+							</FormField>
 
-					<div className="doc-section">
-						<div className="doc-section__title">Source material</div>
-						{opts ? (
-							<SourceSelect
-								options={opts}
-								value={sources}
-								onChange={setSources}
-							/>
-						) : (
-							<p className="text-sec">Loading…</p>
-						)}
-					</div>
+							<FormField
+								label="Scope & goals"
+								help="Optional — steer what the page should cover."
+							>
+								<textarea
+									className="form-control"
+									rows={3}
+									value={scope}
+									onChange={(e) => setScope(e.target.value)}
+								/>
+							</FormField>
+						</div>
 
-					<FormField label="Agent" help="Generation runs on the active agent.">
-						{opts ? (
-							<AgentSelect options={opts} value={agent} onChange={setAgent} />
-						) : (
-							<p className="text-sec">Loading…</p>
-						)}
-					</FormField>
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Source & agent</h3>
+							<div className="doc-section">
+								<div className="doc-section__title">Source material</div>
+								{opts ? (
+									<SourceSelect
+										options={opts}
+										value={sources}
+										onChange={setSources}
+									/>
+								) : (
+									<p className="text-sec">Loading…</p>
+								)}
+							</div>
 
-					<div className="form-actions">
-						<button
-							type="submit"
-							className="btn btn-primary"
-							disabled={start.isPending}
-						>
-							{start.isPending ? "Starting…" : "Generate"}
-						</button>
-						<Link to="/admin/docsources" className="btn btn-secondary">
-							Cancel
-						</Link>
+							<FormField
+								label="Agent"
+								help="Generation runs on the active agent."
+							>
+								{opts ? (
+									<AgentSelect
+										options={opts}
+										value={agent}
+										onChange={setAgent}
+									/>
+								) : (
+									<p className="text-sec">Loading…</p>
+								)}
+							</FormField>
+						</div>
 					</div>
 				</form>
 			)}

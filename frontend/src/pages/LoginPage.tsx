@@ -1,21 +1,8 @@
-import {
-	type CSSProperties,
-	type FormEvent,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-
-const GLIMMERS: CSSProperties[] = [
-	{ top: "15%", left: "10%", animationDuration: "4s" },
-	{ top: "30%", left: "80%", animationDuration: "3.6s" },
-	{ top: "70%", left: "20%", animationDuration: "5s" },
-	{ top: "50%", left: "85%", animationDuration: "3.3s" },
-	{ top: "85%", left: "50%", animationDuration: "4.6s" },
-];
+import { AuroraBackground } from "../components/AuroraBackground";
 
 export function LoginPage() {
 	const { user, login } = useAuth();
@@ -27,9 +14,9 @@ export function LoginPage() {
 	const usernameRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-		document.body.classList.add("login-page");
+		document.body.classList.add("login-page", "aurora-bg");
 		usernameRef.current?.focus();
-		return () => document.body.classList.remove("login-page");
+		return () => document.body.classList.remove("login-page", "aurora-bg");
 	}, []);
 
 	if (user) {
@@ -56,29 +43,21 @@ export function LoginPage() {
 
 	return (
 		<>
-			<div className="glimmer-container" aria-hidden="true">
-				{GLIMMERS.map((style) => (
-					<div
-						key={`${style.top}-${style.left}`}
-						className="glimmer-dot"
-						style={style}
-					/>
-				))}
-			</div>
+			<AuroraBackground />
 			<div className="login-card">
 				<div className="brand">
-					<img
-						src="/images/tetherdust.png"
-						alt="TetherDust"
-						className="brand-icon"
-					/>
-					Tether<span>Dust</span>
+					<div className="nav-logo">
+						<img src="/images/tetherdust.png" alt="TetherDust" />
+					</div>
+					<span className="nav-title">
+						Tether<span className="accent">Dust</span>
+					</span>
 				</div>
-				<div className="subtitle">Sign In</div>
+				<div className="subtitle">Welcome back</div>
 				{error && <div className="error">{error}</div>}
 				<form onSubmit={handleSubmit}>
 					<div className="form-group">
-						<label htmlFor="username">Callsign</label>
+						<label htmlFor="username">Username</label>
 						<input
 							ref={usernameRef}
 							id="username"
@@ -91,7 +70,7 @@ export function LoginPage() {
 						/>
 					</div>
 					<div className="form-group">
-						<label htmlFor="password">Passphrase</label>
+						<label htmlFor="password">Password</label>
 						<input
 							id="password"
 							type="password"
@@ -103,7 +82,7 @@ export function LoginPage() {
 						/>
 					</div>
 					<button type="submit" className="btn" disabled={submitting}>
-						{submitting ? "Authenticating…" : "Initiate Access"}
+						{submitting ? "Signing in…" : "Sign In"}
 					</button>
 				</form>
 			</div>

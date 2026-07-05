@@ -34,12 +34,15 @@ export function DocSourceAddPage() {
 				</Link>
 			</div>
 
-			<div className="doc-choice-grid">
+			<div className="choice-list">
 				{CHOICES.map((c) => (
-					<Link key={c.to} to={c.to} className="doc-choice-card">
-						<i className={`fa-solid ${c.icon}`} />
-						<h4>{c.title}</h4>
-						<p>{c.blurb}</p>
+					<Link key={c.to} to={c.to} className="choice-card">
+						<i className={`fa-solid ${c.icon} choice-card__icon`} />
+						<div className="choice-card__body">
+							<h4>{c.title}</h4>
+							<p>{c.blurb}</p>
+						</div>
+						<i className="fa-solid fa-chevron-right choice-card__chevron" />
 					</Link>
 				))}
 			</div>

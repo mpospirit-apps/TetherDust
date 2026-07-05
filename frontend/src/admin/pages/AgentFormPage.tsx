@@ -31,6 +31,26 @@ interface AgentForm {
 	api_key: string;
 	oauth_token: string;
 }
+function categoryIcon(title: string): string {
+	if (title.startsWith("CLI Tool with Auth Token")) return "fa-terminal";
+	if (title.startsWith("CLI Tool with API Key")) return "fa-key";
+	if (title.startsWith("Direct API")) return "fa-bolt";
+	return "fa-robot";
+}
+
+function categoryHint(title: string): string {
+	if (title.startsWith("CLI Tool with Auth Token")) {
+		return "Sign in with a subscription (ChatGPT/Claude) — no API key needed.";
+	}
+	if (title.startsWith("CLI Tool with API Key")) {
+		return "Runs the CLI, authenticated with a provider API key.";
+	}
+	if (title.startsWith("Direct API")) {
+		return "Runs in-process against an OpenAI-compatible API — no CLI container.";
+	}
+	return "";
+}
+
 const EMPTY: AgentForm = {
 	name: "",
 	system_prompt: "",
@@ -164,21 +184,29 @@ export function AgentFormPage() {
 					<p className="text-sec">Loading…</p>
 				) : (
 					(m?.categories ?? []).map((cat) => (
-						<div
-							className="card"
-							key={cat.title}
-							style={{ marginBottom: "var(--md)" }}
-						>
-							<h3 style={{ margin: "0 0 var(--sm)" }}>{cat.title}</h3>
-							<div className="flex-gap" style={{ flexWrap: "wrap" }}>
+						<div className="choice-section" key={cat.title}>
+							<h3 className="choice-section__title">{cat.title}</h3>
+							<p
+								className="text-sec text-sm"
+								style={{ margin: "0 0 var(--sm)" }}
+							>
+								{categoryHint(cat.title)}
+							</p>
+							<div className="choice-list">
 								{cat.types.map((t) => (
 									<button
 										key={t.value}
 										type="button"
-										className="btn btn-secondary"
+										className="choice-card"
 										onClick={() => setType(t.value)}
 									>
-										{t.label}
+										<i
+											className={`fa-solid ${categoryIcon(cat.title)} choice-card__icon`}
+										/>
+										<div className="choice-card__body">
+											<h4>{t.label}</h4>
+										</div>
+										<i className="fa-solid fa-chevron-right choice-card__chevron" />
 									</button>
 								))}
 							</div>
@@ -209,9 +237,23 @@ export function AgentFormPage() {
 					<h1>{isEdit ? `Edit ${form.name}` : "Add Agent"}</h1>
 					<p>{typeLabel}</p>
 				</div>
-				<Link to="/admin/agents" className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link to="/admin/agents" className="btn btn-ghost">
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="agent-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create Agent"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -249,99 +291,118 @@ export function AgentFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit}>
-				<div className="card">
-					<FormField label="Name">
-						<input
-							className="form-control"
-							value={form.name}
-							required
-							onChange={(e) => set("name", e.target.value)}
-						/>
-					</FormField>
-					{!isDirect && (
-						<FormField
-							label="Service URL"
-							help="Override the agent gateway URL. Blank = default."
-						>
+			<form id="agent-form" onSubmit={onSubmit}>
+				<div className="form-split">
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
+						<FormField label="Name">
 							<input
 								className="form-control"
-								value={form.service_url}
-								placeholder="http://codex:8002"
-								onChange={(e) => set("service_url", e.target.value)}
+								value={form.name}
+								required
+								onChange={(e) => set("name", e.target.value)}
 							/>
 						</FormField>
-					)}
-					{isApiKey && (
-						<FormField
-							label="API Key"
-							help={hasKey ? "Leave blank to keep existing." : "Required."}
-						>
-							<input
-								className="form-control"
-								type="password"
-								autoComplete="new-password"
-								placeholder={
-									hasKey ? "••••••••  (leave blank to keep)" : "sk-…"
-								}
-								value={form.api_key}
-								onChange={(e) => set("api_key", e.target.value)}
-							/>
-						</FormField>
-					)}
-					{isClaudeCode && (
-						<FormField
-							label="OAuth Token"
-							help={
-								hasToken
-									? "Leave blank to keep existing."
-									: "From `claude setup-token`."
-							}
-						>
-							<input
-								className="form-control"
-								type="password"
-								autoComplete="new-password"
-								placeholder={
-									hasToken ? "••••••••  (leave blank to keep)" : "sk-ant-oat…"
-								}
-								value={form.oauth_token}
-								onChange={(e) => set("oauth_token", e.target.value)}
-							/>
-						</FormField>
-					)}
-					{isDirect && (
-						<FormField label="Base URL" help="OpenAI-compatible API base URL.">
-							<input
-								className="form-control"
-								value={form.base_url}
-								placeholder="https://api.openai.com/v1"
-								onChange={(e) => set("base_url", e.target.value)}
-							/>
-						</FormField>
-					)}
-					<FormField label="Model" help="Leave blank for the default.">
-						<input
-							className="form-control"
-							value={form.model}
-							onChange={(e) => set("model", e.target.value)}
-						/>
-					</FormField>
-					{isCodex && (
-						<FormField label="Reasoning Effort">
-							<select
-								className="form-control"
-								value={form.reasoning_effort}
-								onChange={(e) => set("reasoning_effort", e.target.value)}
+						{!isDirect && (
+							<FormField
+								label="Service URL"
+								help="Override the agent gateway URL. Blank = default."
 							>
-								{(m?.reasoning_effort_choices ?? []).map((c) => (
-									<option key={c.value} value={c.value}>
-										{c.label}
-									</option>
-								))}
-							</select>
+								<input
+									className="form-control"
+									value={form.service_url}
+									placeholder="http://codex:8002"
+									onChange={(e) => set("service_url", e.target.value)}
+								/>
+							</FormField>
+						)}
+						<FormField label="Model" help="Leave blank for the default.">
+							<input
+								className="form-control"
+								value={form.model}
+								onChange={(e) => set("model", e.target.value)}
+							/>
 						</FormField>
-					)}
+						{isCodex && (
+							<FormField label="Reasoning Effort">
+								<select
+									className="form-control"
+									value={form.reasoning_effort}
+									onChange={(e) => set("reasoning_effort", e.target.value)}
+								>
+									{(m?.reasoning_effort_choices ?? []).map((c) => (
+										<option key={c.value} value={c.value}>
+											{c.label}
+										</option>
+									))}
+								</select>
+							</FormField>
+						)}
+					</div>
+
+					<div className="card">
+						<h3 style={{ margin: "0 0 var(--md)" }}>Credentials</h3>
+						{isApiKey && (
+							<FormField
+								label="API Key"
+								help={hasKey ? "Leave blank to keep existing." : "Required."}
+							>
+								<input
+									className="form-control"
+									type="password"
+									autoComplete="new-password"
+									placeholder={
+										hasKey ? "••••••••  (leave blank to keep)" : "sk-…"
+									}
+									value={form.api_key}
+									onChange={(e) => set("api_key", e.target.value)}
+								/>
+							</FormField>
+						)}
+						{isClaudeCode && (
+							<FormField
+								label="OAuth Token"
+								help={
+									hasToken
+										? "Leave blank to keep existing."
+										: "From `claude setup-token`."
+								}
+							>
+								<input
+									className="form-control"
+									type="password"
+									autoComplete="new-password"
+									placeholder={
+										hasToken ? "••••••••  (leave blank to keep)" : "sk-ant-oat…"
+									}
+									value={form.oauth_token}
+									onChange={(e) => set("oauth_token", e.target.value)}
+								/>
+							</FormField>
+						)}
+						{isDirect && (
+							<FormField
+								label="Base URL"
+								help="OpenAI-compatible API base URL."
+							>
+								<input
+									className="form-control"
+									value={form.base_url}
+									placeholder="https://api.openai.com/v1"
+									onChange={(e) => set("base_url", e.target.value)}
+								/>
+							</FormField>
+						)}
+						{!isApiKey && !isClaudeCode && !isDirect && (
+							<p className="text-sec text-sm" style={{ margin: 0 }}>
+								No additional credentials required
+								{isCodexAuth ? " — sign in above." : "."}
+							</p>
+						)}
+					</div>
+				</div>
+
+				<div className="card" style={{ marginTop: "var(--lg)" }}>
 					<FormField
 						label="System Prompt"
 						help="Sent to the agent (AGENTS.md). Pre-filled from the container default; edit to customise, or clear to fall back to the container default."
@@ -353,23 +414,6 @@ export function AgentFormPage() {
 							onChange={(e) => set("system_prompt", e.target.value)}
 						/>
 					</FormField>
-				</div>
-
-				<div className="form-actions" style={{ marginTop: "var(--md)" }}>
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create Agent"}
-					</button>
-					<Link to="/admin/agents" className="btn btn-secondary">
-						Cancel
-					</Link>
 				</div>
 			</form>
 		</div>

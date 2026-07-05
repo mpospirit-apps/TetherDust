@@ -82,9 +82,21 @@ export function DashboardGeneratePage() {
 						The agent explores your data and builds a dashboard of D3 charts
 					</p>
 				</div>
-				<Link to="/admin/dashboards" className="btn btn-ghost">
-					Back
-				</Link>
+				{!logId && (
+					<div className="form-actions">
+						<Link to="/admin/dashboards" className="btn btn-ghost">
+							Cancel
+						</Link>
+						<button
+							type="submit"
+							form="dashboard-generate-form"
+							className="btn btn-primary"
+							disabled={start.isPending}
+						>
+							{start.isPending ? "Starting…" : "Generate Dashboard"}
+						</button>
+					</div>
+				)}
 			</div>
 
 			{logId ? (
@@ -131,7 +143,7 @@ export function DashboardGeneratePage() {
 					)}
 				</div>
 			) : (
-				<form onSubmit={onSubmit} className="card" style={{ maxWidth: 760 }}>
+				<form id="dashboard-generate-form" onSubmit={onSubmit}>
 					{error && (
 						<div
 							className="flash flash-error"
@@ -141,78 +153,80 @@ export function DashboardGeneratePage() {
 						</div>
 					)}
 
-					<div
-						className="doc-req-row"
-						style={{ gridTemplateColumns: "2fr 1fr" }}
-					>
-						<FormField label="Dashboard name" help="Must be unique.">
-							<input
-								className="form-control"
-								value={name}
-								required
-								placeholder="Sales Overview"
-								onChange={(e) => setName(e.target.value)}
-							/>
-						</FormField>
-						<FormField label="Style">
-							<select
-								className="form-control"
-								value={dashboardType}
-								onChange={(e) => setDashboardType(e.target.value)}
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Dashboard details</h3>
+							<div
+								className="doc-req-row"
+								style={{ gridTemplateColumns: "2fr 1fr" }}
 							>
-								{(opts?.dashboard_types ?? ["overview"]).map((t) => (
-									<option key={t} value={t}>
-										{titleCase(t)}
-									</option>
-								))}
-							</select>
-						</FormField>
-					</div>
+								<FormField label="Dashboard name" help="Must be unique.">
+									<input
+										className="form-control"
+										value={name}
+										required
+										placeholder="Sales Overview"
+										onChange={(e) => setName(e.target.value)}
+									/>
+								</FormField>
+								<FormField label="Style">
+									<select
+										className="form-control"
+										value={dashboardType}
+										onChange={(e) => setDashboardType(e.target.value)}
+									>
+										{(opts?.dashboard_types ?? ["overview"]).map((t) => (
+											<option key={t} value={t}>
+												{titleCase(t)}
+											</option>
+										))}
+									</select>
+								</FormField>
+							</div>
 
-					<div className="doc-section">
-						<div className="doc-section__title">Source material</div>
-						{opts ? (
-							<SourceSelect
-								options={opts}
-								value={sources}
-								onChange={setSources}
-							/>
-						) : (
-							<p className="text-sec">Loading…</p>
-						)}
-					</div>
+							<FormField
+								label="Custom instructions"
+								help="Optional — replaces the default prompt for the chosen style."
+							>
+								<textarea
+									className="form-control"
+									rows={3}
+									value={promptOverride}
+									onChange={(e) => setPromptOverride(e.target.value)}
+								/>
+							</FormField>
+						</div>
 
-					<FormField
-						label="Custom instructions"
-						help="Optional — replaces the default prompt for the chosen style."
-					>
-						<textarea
-							className="form-control"
-							rows={3}
-							value={promptOverride}
-							onChange={(e) => setPromptOverride(e.target.value)}
-						/>
-					</FormField>
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Source & agent</h3>
+							<div className="doc-section">
+								<div className="doc-section__title">Source material</div>
+								{opts ? (
+									<SourceSelect
+										options={opts}
+										value={sources}
+										onChange={setSources}
+									/>
+								) : (
+									<p className="text-sec">Loading…</p>
+								)}
+							</div>
 
-					<FormField label="Agent" help="Generation runs on the active agent.">
-						{opts ? (
-							<AgentSelect options={opts} value={agent} onChange={setAgent} />
-						) : (
-							<p className="text-sec">Loading…</p>
-						)}
-					</FormField>
-
-					<div className="form-actions">
-						<button
-							type="submit"
-							className="btn btn-primary"
-							disabled={start.isPending}
-						>
-							{start.isPending ? "Starting…" : "Generate Dashboard"}
-						</button>
-						<Link to="/admin/dashboards" className="btn btn-secondary">
-							Cancel
-						</Link>
+							<FormField
+								label="Agent"
+								help="Generation runs on the active agent."
+							>
+								{opts ? (
+									<AgentSelect
+										options={opts}
+										value={agent}
+										onChange={setAgent}
+									/>
+								) : (
+									<p className="text-sec">Loading…</p>
+								)}
+							</FormField>
+						</div>
 					</div>
 				</form>
 			)}

@@ -104,9 +104,23 @@ export function RoleFormPage() {
 					<h1>{isEdit ? `Edit ${form.name}` : "Add Role"}</h1>
 					<p>Configure access for this role.</p>
 				</div>
-				<Link to="/admin/roles" className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link to="/admin/roles" className="btn btn-ghost">
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="role-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create Role"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -118,7 +132,7 @@ export function RoleFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit}>
+			<form id="role-form" onSubmit={onSubmit}>
 				<div className="form-split">
 					<div className="card">
 						<h3 style={{ margin: "0 0 var(--md)" }}>Identity & Permissions</h3>
@@ -224,23 +238,6 @@ export function RoleFormPage() {
 							help="The built-in server is always available."
 						/>
 					</div>
-				</div>
-
-				<div className="form-actions" style={{ marginTop: "var(--md)" }}>
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create Role"}
-					</button>
-					<Link to="/admin/roles" className="btn btn-secondary">
-						Cancel
-					</Link>
 				</div>
 			</form>
 		</div>

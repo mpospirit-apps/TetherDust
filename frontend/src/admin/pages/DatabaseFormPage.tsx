@@ -170,9 +170,23 @@ export function DatabaseFormPage() {
 					<h1>{isEdit ? `Edit ${form.name}` : "Add Database Connection"}</h1>
 					<p>Configure a database connection for MCP tools</p>
 				</div>
-				<Link to="/admin/databases" className="btn btn-ghost">
-					Back
-				</Link>
+				<div className="form-actions">
+					<Link to="/admin/databases" className="btn btn-ghost">
+						Cancel
+					</Link>
+					<button
+						type="submit"
+						form="database-form"
+						className="btn btn-primary"
+						disabled={save.isPending}
+					>
+						{save.isPending
+							? "Saving…"
+							: isEdit
+								? "Save Changes"
+								: "Create Connection"}
+					</button>
+				</div>
 			</div>
 
 			{error && (
@@ -184,7 +198,7 @@ export function DatabaseFormPage() {
 				</div>
 			)}
 
-			<form onSubmit={onSubmit}>
+			<form id="database-form" onSubmit={onSubmit}>
 				<div className="form-split">
 					<div className="card">
 						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
@@ -309,23 +323,6 @@ export function DatabaseFormPage() {
 							/>
 						</FormField>
 					</div>
-				</div>
-
-				<div className="form-actions" style={{ marginTop: "var(--md)" }}>
-					<button
-						type="submit"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create Connection"}
-					</button>
-					<Link to="/admin/databases" className="btn btn-secondary">
-						Cancel
-					</Link>
 				</div>
 			</form>
 		</div>
