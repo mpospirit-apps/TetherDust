@@ -28,6 +28,7 @@ export function DocGeneratePage() {
 	const [sources, setSources] = useState<SourceSelection>(NO_SOURCES);
 	const [error, setError] = useState<string | null>(null);
 	const [logId, setLogId] = useState<string | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	// Default the agent to the active one once options load.
 	useEffect(() => {
@@ -128,6 +129,76 @@ export function DocGeneratePage() {
 							{error}
 						</div>
 					)}
+
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
+							/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-sliders" />
+										</div>
+										<div className="doc-hiw-label">Configure</div>
+										<div className="doc-hiw-desc">
+											Pick a template, optional scope, and select your data
+											sources
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-magnifying-glass" />
+										</div>
+										<div className="doc-hiw-label">Agent explores</div>
+										<div className="doc-hiw-desc">
+											Reads table schemas, query examples, and codebase files
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-pen-to-square" />
+										</div>
+										<div className="doc-hiw-label">Agent writes</div>
+										<div className="doc-hiw-desc">
+											Calls create_documentation once with the full markdown
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-file-lines" />
+										</div>
+										<div className="doc-hiw-label">One page saved</div>
+										<div className="doc-hiw-desc">
+											A single .md file in your chosen destination folder
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
 
 					<div className="form-split">
 						<div className="card">

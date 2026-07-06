@@ -95,6 +95,7 @@ export function ReportFormPage() {
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
 	const [preview, setPreview] = useState<ExecutionResult | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	const databases = useQuery({
 		queryKey: ["admin", "databases"],
@@ -256,6 +257,78 @@ export function ReportFormPage() {
 			)}
 
 			<form id="report-form" onSubmit={onSubmit}>
+				{!isEdit && (
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
+							/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-code" />
+										</div>
+										<div className="doc-hiw-label">Write a query</div>
+										<div className="doc-hiw-desc">
+											Pick a database and write a read-only SELECT or WITH query
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-clock" />
+										</div>
+										<div className="doc-hiw-label">Schedule it</div>
+										<div className="doc-hiw-desc">
+											Run manually, on an interval, or daily, weekly, monthly
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-shield-halved" />
+										</div>
+										<div className="doc-hiw-label">Restrict access</div>
+										<div className="doc-hiw-desc">
+											Choose which roles can view the results — staff always can
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-paper-plane" />
+										</div>
+										<div className="doc-hiw-label">Delivered</div>
+										<div className="doc-hiw-desc">
+											Results land in-app, or get emailed to recipients on each
+											run
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
 				<div className="form-split">
 					<div className="card">
 						<h3 style={{ margin: "0 0 var(--md)" }}>Report</h3>

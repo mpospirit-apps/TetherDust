@@ -67,6 +67,7 @@ export function ChartFormPage() {
 	const [previewData, setPreviewData] = useState<PreviewData | null>(null);
 	const [previewError, setPreviewError] = useState<string | null>(null);
 	const [previewStatus, setPreviewStatus] = useState("");
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	const previewRef = useRef<HTMLDivElement>(null);
 	const formRef = useRef(form);
@@ -255,6 +256,80 @@ export function ChartFormPage() {
 			)}
 
 			<form id="chart-form" onSubmit={onSubmit}>
+				{!isEdit && (
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
+							/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-code" />
+										</div>
+										<div className="doc-hiw-label">Write the query</div>
+										<div className="doc-hiw-desc">
+											Pick a database and write a read-only SELECT that shapes
+											the chart data
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-chart-simple" />
+										</div>
+										<div className="doc-hiw-label">Write the d3 code</div>
+										<div className="doc-hiw-desc">
+											Render the result with d3 — receives data, container, and
+											theme
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-eye" />
+										</div>
+										<div className="doc-hiw-label">Preview live</div>
+										<div className="doc-hiw-desc">
+											Run the query and watch the chart render before saving
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-wand-magic-sparkles" />
+										</div>
+										<div className="doc-hiw-label">Ask AI to tweak it</div>
+										<div className="doc-hiw-desc">
+											Once saved, describe changes in the AI editor and it edits
+											the query and code for you
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
 				<div className="chart-edit-grid">
 					<div className="card">
 						<FormField label="Title">

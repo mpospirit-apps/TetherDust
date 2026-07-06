@@ -777,6 +777,7 @@ tr.clickable-row td {
 	font-family: var(--font);
 	font-size: var(--text-sm);
 	font-weight: 700;
+	line-height: 1.6;
 	text-transform: uppercase;
 	letter-spacing: 1px;
 	padding: 12px 24px;

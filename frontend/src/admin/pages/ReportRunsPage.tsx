@@ -26,9 +26,6 @@ export function ReportRunsPage() {
 					<h1>Report Runs</h1>
 					<p>Recent report executions — manual and scheduled</p>
 				</div>
-				<Link to="/admin/reports" className="btn btn-ghost">
-					Reports
-				</Link>
 			</div>
 
 			<div className="card">

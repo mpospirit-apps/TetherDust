@@ -47,6 +47,7 @@ export function AdminDashboardFormPage() {
 
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	const roles = useQuery({ queryKey: ["admin", "roles"], queryFn: listRoles });
 	const existing = useQuery({
@@ -118,7 +119,10 @@ export function AdminDashboardFormPage() {
 					<p>A dashboard is a grid of D3 charts</p>
 				</div>
 				<div className="form-actions">
-					<Link to="/admin/dashboards" className="btn btn-ghost">
+					<Link
+						to={isEdit ? "/admin/dashboards" : "/admin/dashboards/add"}
+						className="btn btn-ghost"
+					>
 						Cancel
 					</Link>
 					<button
@@ -146,6 +150,78 @@ export function AdminDashboardFormPage() {
 			)}
 
 			<form id="dashboard-form" onSubmit={onSubmit}>
+				{!isEdit && (
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
+							/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-table-cells" />
+										</div>
+										<div className="doc-hiw-label">Create the shell</div>
+										<div className="doc-hiw-desc">
+											Name it and set an optional auto-refresh schedule
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-chart-simple" />
+										</div>
+										<div className="doc-hiw-label">Add charts</div>
+										<div className="doc-hiw-desc">
+											Add SQL + d3 charts one at a time from the dashboard's
+											detail page
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-shield-halved" />
+										</div>
+										<div className="doc-hiw-label">Restrict access</div>
+										<div className="doc-hiw-desc">
+											Choose which roles can view it — staff always can
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-eye" />
+										</div>
+										<div className="doc-hiw-label">View it</div>
+										<div className="doc-hiw-desc">
+											Charts render live and refresh on your schedule
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
 				<div className="form-split">
 					<div className="card">
 						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>

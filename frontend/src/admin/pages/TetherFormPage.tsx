@@ -38,6 +38,7 @@ export function TetherFormPage() {
 
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	const sources = useQuery({
 		queryKey: ["admin", "tether-sources"],
@@ -155,6 +156,80 @@ export function TetherFormPage() {
 			)}
 
 			<form id="tether-form" onSubmit={onSubmit}>
+				{!isEdit && (
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
+							/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-link" />
+										</div>
+										<div className="doc-hiw-label">Link two sources</div>
+										<div className="doc-hiw-desc">
+											Pick a codebase (or its docs) and a database documentation
+											source
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-magnifying-glass" />
+										</div>
+										<div className="doc-hiw-label">Agent explores</div>
+										<div className="doc-hiw-desc">
+											Reads the code and schema on both sides
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-diagram-project" />
+										</div>
+										<div className="doc-hiw-label">Agent maps it</div>
+										<div className="doc-hiw-desc">
+											Links files, symbols, tables, and columns with
+											confidence-scored relationships
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-arrows-rotate" />
+										</div>
+										<div className="doc-hiw-label">Explore & regenerate</div>
+										<div className="doc-hiw-desc">
+											View the interactive graph on the tether's detail page, or
+											regenerate it anytime
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
 				<div className="form-split">
 					<div className="card">
 						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>

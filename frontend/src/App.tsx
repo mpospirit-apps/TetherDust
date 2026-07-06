@@ -15,6 +15,7 @@ import { ChartGenLogDetailPage } from "./admin/pages/ChartGenLogDetailPage";
 import { ChartGenLogsPage } from "./admin/pages/ChartGenLogsPage";
 import { CodebaseFormPage } from "./admin/pages/CodebaseFormPage";
 import { CodebasesPage } from "./admin/pages/CodebasesPage";
+import { DashboardAddPage } from "./admin/pages/DashboardAddPage";
 import { DashboardGeneratePage } from "./admin/pages/DashboardGeneratePage";
 import { DatabaseFormPage } from "./admin/pages/DatabaseFormPage";
 import { DatabasesPage } from "./admin/pages/DatabasesPage";
@@ -96,6 +97,7 @@ export function App() {
 				<Route path="docgen-logs" element={<DocGenLogsPage />} />
 				<Route path="docgen-logs/:id" element={<DocGenLogDetailPage />} />
 				<Route path="dashboards" element={<AdminDashboardsPage />} />
+				<Route path="dashboards/add" element={<DashboardAddPage />} />
 				<Route path="dashboards/new" element={<AdminDashboardFormPage />} />
 				<Route path="dashboards/generate" element={<DashboardGeneratePage />} />
 				<Route path="dashboards/:id" element={<AdminDashboardDetailPage />} />
