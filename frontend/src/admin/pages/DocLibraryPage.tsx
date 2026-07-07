@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { apiErrorDetail } from "../../api/client";
 import { getGenerateOptions, startGenerateLibrary } from "../../api/docs";
 import { FormField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 import {
 	AgentSelect,
 	SourceSelect,
@@ -13,6 +14,22 @@ import {
 } from "./DocGenShared";
 
 const NO_SOURCES: SourceSelection = { databases: [], docs: [], codebases: [] };
+
+// Identity first, the required generation config next — this form has no
+// optional fields, so there's no third step.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity",
+		description: "Name the library — this becomes its root folder.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description:
+			"Pick the library type, agent, and source material to generate from.",
+	},
+];
 
 export function DocLibraryPage() {
 	const options = useQuery({
@@ -205,12 +222,9 @@ export function DocLibraryPage() {
 					</div>
 
 					<div className="form-split">
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Library details</h3>
-							<div
-								className="doc-req-row"
-								style={{ gridTemplateColumns: "2fr 1fr" }}
-							>
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[0]} index={0} />
+							<div className="card">
 								<FormField
 									label="Library name"
 									help="Top-level folder under documentations/ (the library root)."
@@ -223,6 +237,12 @@ export function DocLibraryPage() {
 										onChange={(e) => setLibraryName(e.target.value)}
 									/>
 								</FormField>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[1]} index={1} />
+							<div className="card">
 								<FormField label="Library type">
 									<select
 										className="form-control"
@@ -236,38 +256,35 @@ export function DocLibraryPage() {
 										))}
 									</select>
 								</FormField>
-							</div>
-						</div>
 
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Source & agent</h3>
-							<div className="doc-section">
-								<div className="doc-section__title">Source material</div>
-								{opts ? (
-									<SourceSelect
-										options={opts}
-										value={sources}
-										onChange={setSources}
-									/>
-								) : (
-									<p className="text-sec">Loading…</p>
-								)}
-							</div>
+								<div className="doc-section">
+									<div className="doc-section__title">Source material</div>
+									{opts ? (
+										<SourceSelect
+											options={opts}
+											value={sources}
+											onChange={setSources}
+										/>
+									) : (
+										<p className="text-sec">Loading…</p>
+									)}
+								</div>
 
-							<FormField
-								label="Agent"
-								help="Generation runs on the active agent."
-							>
-								{opts ? (
-									<AgentSelect
-										options={opts}
-										value={agent}
-										onChange={setAgent}
-									/>
-								) : (
-									<p className="text-sec">Loading…</p>
-								)}
-							</FormField>
+								<FormField
+									label="Agent"
+									help="Generation runs on the active agent."
+								>
+									{opts ? (
+										<AgentSelect
+											options={opts}
+											value={agent}
+											onChange={setAgent}
+										/>
+									) : (
+										<p className="text-sec">Loading…</p>
+									)}
+								</FormField>
+							</div>
 						</div>
 					</div>
 				</form>

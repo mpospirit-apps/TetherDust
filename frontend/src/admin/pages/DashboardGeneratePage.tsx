@@ -8,6 +8,7 @@ import {
 	startDashboardGenerate,
 } from "../../api/dashboards";
 import { FormField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 import {
 	AgentSelect,
 	SourceSelect,
@@ -15,6 +16,26 @@ import {
 } from "./DocGenShared";
 
 const NO_SOURCES: SourceSelection = { databases: [], docs: [], codebases: [] };
+
+// Identity first, the required generation config next, optional/advanced
+// fields last.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity",
+		description: "Name the dashboard.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description: "Pick a style, agent, and source material to generate from.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description: "Optional — replace the default prompt for the chosen style.",
+	},
+];
 
 function titleCase(value: string): string {
 	return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -225,79 +246,86 @@ export function DashboardGeneratePage() {
 						</div>
 					</div>
 
-					<div className="form-split">
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Dashboard details</h3>
-							<div
-								className="doc-req-row"
-								style={{ gridTemplateColumns: "2fr 1fr" }}
-							>
-								<FormField label="Dashboard name" help="Must be unique.">
-									<input
-										className="form-control"
-										value={name}
-										required
-										placeholder="Sales Overview"
-										onChange={(e) => setName(e.target.value)}
-									/>
-								</FormField>
-								<FormField label="Style">
-									<select
-										className="form-control"
-										value={dashboardType}
-										onChange={(e) => setDashboardType(e.target.value)}
-									>
-										{(opts?.dashboard_types ?? ["overview"]).map((t) => (
-											<option key={t} value={t}>
-												{titleCase(t)}
-											</option>
-										))}
-									</select>
-								</FormField>
+					<div className="form-split-col">
+						<div className="form-split">
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[0]} index={0} />
+								<div className="card">
+									<FormField label="Dashboard name" help="Must be unique.">
+										<input
+											className="form-control"
+											value={name}
+											required
+											placeholder="Sales Overview"
+											onChange={(e) => setName(e.target.value)}
+										/>
+									</FormField>
+								</div>
 							</div>
 
-							<FormField
-								label="Custom instructions"
-								help="Optional — replaces the default prompt for the chosen style."
-							>
-								<textarea
-									className="form-control"
-									rows={3}
-									value={promptOverride}
-									onChange={(e) => setPromptOverride(e.target.value)}
-								/>
-							</FormField>
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[1]} index={1} />
+								<div className="card">
+									<FormField label="Style">
+										<select
+											className="form-control"
+											value={dashboardType}
+											onChange={(e) => setDashboardType(e.target.value)}
+										>
+											{(opts?.dashboard_types ?? ["overview"]).map((t) => (
+												<option key={t} value={t}>
+													{titleCase(t)}
+												</option>
+											))}
+										</select>
+									</FormField>
+
+									<div className="doc-section">
+										<div className="doc-section__title">Source material</div>
+										{opts ? (
+											<SourceSelect
+												options={opts}
+												value={sources}
+												onChange={setSources}
+											/>
+										) : (
+											<p className="text-sec">Loading…</p>
+										)}
+									</div>
+
+									<FormField
+										label="Agent"
+										help="Generation runs on the active agent."
+									>
+										{opts ? (
+											<AgentSelect
+												options={opts}
+												value={agent}
+												onChange={setAgent}
+											/>
+										) : (
+											<p className="text-sec">Loading…</p>
+										)}
+									</FormField>
+								</div>
+							</div>
 						</div>
 
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Source & agent</h3>
-							<div className="doc-section">
-								<div className="doc-section__title">Source material</div>
-								{opts ? (
-									<SourceSelect
-										options={opts}
-										value={sources}
-										onChange={setSources}
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<div className="card">
+								<FormField
+									label="Custom instructions"
+									help="Optional — replaces the default prompt for the chosen style."
+								>
+									<textarea
+										className="form-control"
+										rows={3}
+										value={promptOverride}
+										onChange={(e) => setPromptOverride(e.target.value)}
 									/>
-								) : (
-									<p className="text-sec">Loading…</p>
-								)}
+								</FormField>
 							</div>
-
-							<FormField
-								label="Agent"
-								help="Generation runs on the active agent."
-							>
-								{opts ? (
-									<AgentSelect
-										options={opts}
-										value={agent}
-										onChange={setAgent}
-									/>
-								) : (
-									<p className="text-sec">Loading…</p>
-								)}
-							</FormField>
 						</div>
 					</div>
 				</form>

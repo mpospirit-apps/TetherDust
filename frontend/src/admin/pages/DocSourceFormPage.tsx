@@ -10,7 +10,8 @@ import {
 	getGenerateOptions,
 	updateDocSource,
 } from "../../api/docs";
-import { FormCheckbox, FormField } from "../components/forms";
+import { FormField, ToggleField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
 interface FormState {
 	folder_name: string;
@@ -27,6 +28,27 @@ const EMPTY: FormState = {
 	file_patterns: "",
 	is_active: true,
 };
+
+// Create flow: identity first, the main classification next, optional/advanced
+// fields last.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity & Status",
+		description: "Pick the folder to register and set whether it's active.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description: "Classify what kind of documentation this folder contains.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description:
+			"Optional — restrict which files are parsed with glob patterns.",
+	},
+];
 
 export function DocSourceFormPage() {
 	const { id } = useParams();
@@ -237,10 +259,10 @@ export function DocSourceFormPage() {
 					</div>
 				)}
 
-				<div className="form-split">
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Source</h3>
-						{isEdit ? (
+				{isEdit ? (
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
 							<FormField label="Documentation Folder">
 								<input
 									className="form-control"
@@ -248,86 +270,152 @@ export function DocSourceFormPage() {
 									disabled
 								/>
 							</FormField>
-						) : (
 							<FormField
-								label="Documentation Folder"
-								help="Select a folder from the documentations/ directory."
+								label="Description"
+								help="Helps the agent understand what this source contains."
 							>
+								<textarea
+									className="form-control"
+									rows={3}
+									value={form.description}
+									onChange={(e) => set("description", e.target.value)}
+								/>
+							</FormField>
+							<ToggleField
+								label="Is active"
+								description="Requests can use this source while it's active."
+								checked={form.is_active}
+								onChange={(v) => set("is_active", v)}
+							/>
+						</div>
+
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Configuration</h3>
+							<FormField label="Type" help={typeDescription}>
 								<select
 									className="form-control"
-									value={form.folder_name}
-									required
-									onChange={(e) => set("folder_name", e.target.value)}
+									value={form.doc_type}
+									onChange={(e) => set("doc_type", e.target.value)}
 								>
-									<option value="">— Select a folder —</option>
-									{unregistered.map((f) => (
-										<option key={f.name} value={f.name}>
-											{f.name}
+									{docTypes.map((t) => (
+										<option key={t.value} value={t.value}>
+											{t.label}
 										</option>
 									))}
 								</select>
-								{unregistered.length === 0 && !folders.isLoading && (
-									<div className="helptext">
-										No unregistered folders found. Create a folder under
-										documentations/ first, or generate one with AI.
-									</div>
-								)}
 							</FormField>
-						)}
 
-						<FormField label="Type" help={typeDescription}>
-							<select
-								className="form-control"
-								value={form.doc_type}
-								onChange={(e) => set("doc_type", e.target.value)}
+							<FormField
+								label="File patterns (JSON)"
+								help='Glob patterns, e.g. ["*.md"] or ["*.py", "*.sql"]. Leave blank for the default (*.md).'
 							>
-								{docTypes.map((t) => (
-									<option key={t.value} value={t.value}>
-										{t.label}
-									</option>
-								))}
-							</select>
-						</FormField>
-
-						<FormCheckbox
-							label="Is active"
-							checked={form.is_active}
-							onChange={(v) => set("is_active", v)}
-						/>
+								<textarea
+									className="form-control"
+									rows={2}
+									style={{
+										fontFamily: "var(--font-mono, monospace)",
+										fontSize: 13,
+									}}
+									placeholder='["*.md"]'
+									value={form.file_patterns}
+									onChange={(e) => set("file_patterns", e.target.value)}
+								/>
+							</FormField>
+						</div>
 					</div>
+				) : (
+					<div className="form-split-col">
+						<div className="form-split">
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[0]} index={0} />
+								<div className="card">
+									<FormField
+										label="Documentation Folder"
+										help="Select a folder from the documentations/ directory."
+									>
+										<select
+											className="form-control"
+											value={form.folder_name}
+											required
+											onChange={(e) => set("folder_name", e.target.value)}
+										>
+											<option value="">— Select a folder —</option>
+											{unregistered.map((f) => (
+												<option key={f.name} value={f.name}>
+													{f.name}
+												</option>
+											))}
+										</select>
+										{unregistered.length === 0 && !folders.isLoading && (
+											<div className="helptext">
+												No unregistered folders found. Create a folder under
+												documentations/ first, or generate one with AI.
+											</div>
+										)}
+									</FormField>
+									<FormField
+										label="Description"
+										help="Helps the agent understand what this source contains."
+									>
+										<textarea
+											className="form-control"
+											rows={3}
+											value={form.description}
+											onChange={(e) => set("description", e.target.value)}
+										/>
+									</FormField>
+									<ToggleField
+										label="Is active"
+										description="Requests can use this source while it's active."
+										checked={form.is_active}
+										onChange={(v) => set("is_active", v)}
+									/>
+								</div>
+							</div>
 
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Details</h3>
-						<FormField
-							label="Description"
-							help="Helps the agent understand what this source contains."
-						>
-							<textarea
-								className="form-control"
-								rows={3}
-								value={form.description}
-								onChange={(e) => set("description", e.target.value)}
-							/>
-						</FormField>
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[1]} index={1} />
+								<div className="card">
+									<FormField label="Type" help={typeDescription}>
+										<select
+											className="form-control"
+											value={form.doc_type}
+											onChange={(e) => set("doc_type", e.target.value)}
+										>
+											{docTypes.map((t) => (
+												<option key={t.value} value={t.value}>
+													{t.label}
+												</option>
+											))}
+										</select>
+									</FormField>
+								</div>
+							</div>
+						</div>
 
-						<FormField
-							label="File patterns (JSON)"
-							help='Glob patterns, e.g. ["*.md"] or ["*.py", "*.sql"]. Leave blank for the default (*.md).'
-						>
-							<textarea
-								className="form-control"
-								rows={2}
-								style={{
-									fontFamily: "var(--font-mono, monospace)",
-									fontSize: 13,
-								}}
-								placeholder='["*.md"]'
-								value={form.file_patterns}
-								onChange={(e) => set("file_patterns", e.target.value)}
-							/>
-						</FormField>
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<div className="card">
+								<FormField
+									label="File patterns (JSON)"
+									help='Glob patterns, e.g. ["*.md"] or ["*.py", "*.sql"]. Leave blank for the default (*.md).'
+								>
+									<textarea
+										className="form-control"
+										rows={2}
+										style={{
+											fontFamily: "var(--font-mono, monospace)",
+											fontSize: 13,
+										}}
+										placeholder='["*.md"]'
+										value={form.file_patterns}
+										onChange={(e) => set("file_patterns", e.target.value)}
+									/>
+								</FormField>
+							</div>
+						</div>
 					</div>
-				</div>
+				)}
 			</form>
 		</div>
 	);

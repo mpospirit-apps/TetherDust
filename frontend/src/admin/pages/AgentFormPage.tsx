@@ -20,6 +20,27 @@ import {
 } from "../../api/admin";
 import { apiErrorDetail } from "../../api/client";
 import { FormField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
+
+// Create flow: identity first, the required gateway/model/credentials config
+// next, the optional system prompt last.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity",
+		description: "Name the agent.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description: "Set the gateway, model, and credentials.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description: "Optional — customize the system prompt sent to the agent.",
+	},
+];
 
 interface AgentForm {
 	name: string;
@@ -292,129 +313,261 @@ export function AgentFormPage() {
 			)}
 
 			<form id="agent-form" onSubmit={onSubmit}>
-				<div className="form-split">
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
-						<FormField label="Name">
-							<input
-								className="form-control"
-								value={form.name}
-								required
-								onChange={(e) => set("name", e.target.value)}
-							/>
-						</FormField>
-						{!isDirect && (
+				{isEdit ? (
+					<>
+						<div className="form-split">
+							<div className="card">
+								<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
+								<FormField label="Name">
+									<input
+										className="form-control"
+										value={form.name}
+										required
+										onChange={(e) => set("name", e.target.value)}
+									/>
+								</FormField>
+								{!isDirect && (
+									<FormField
+										label="Service URL"
+										help="Override the agent gateway URL. Blank = default."
+									>
+										<input
+											className="form-control"
+											value={form.service_url}
+											placeholder="http://codex:8002"
+											onChange={(e) => set("service_url", e.target.value)}
+										/>
+									</FormField>
+								)}
+								<FormField label="Model" help="Leave blank for the default.">
+									<input
+										className="form-control"
+										value={form.model}
+										onChange={(e) => set("model", e.target.value)}
+									/>
+								</FormField>
+								{isCodex && (
+									<FormField label="Reasoning Effort">
+										<select
+											className="form-control"
+											value={form.reasoning_effort}
+											onChange={(e) => set("reasoning_effort", e.target.value)}
+										>
+											{(m?.reasoning_effort_choices ?? []).map((c) => (
+												<option key={c.value} value={c.value}>
+													{c.label}
+												</option>
+											))}
+										</select>
+									</FormField>
+								)}
+							</div>
+
+							<div className="card">
+								<h3 style={{ margin: "0 0 var(--md)" }}>Credentials</h3>
+								{isApiKey && (
+									<FormField
+										label="API Key"
+										help={
+											hasKey ? "Leave blank to keep existing." : "Required."
+										}
+									>
+										<input
+											className="form-control"
+											type="password"
+											autoComplete="new-password"
+											placeholder={
+												hasKey ? "••••••••  (leave blank to keep)" : "sk-…"
+											}
+											value={form.api_key}
+											onChange={(e) => set("api_key", e.target.value)}
+										/>
+									</FormField>
+								)}
+								{isClaudeCode && (
+									<FormField
+										label="OAuth Token"
+										help={
+											hasToken
+												? "Leave blank to keep existing."
+												: "From `claude setup-token`."
+										}
+									>
+										<input
+											className="form-control"
+											type="password"
+											autoComplete="new-password"
+											placeholder={
+												hasToken
+													? "••••••••  (leave blank to keep)"
+													: "sk-ant-oat…"
+											}
+											value={form.oauth_token}
+											onChange={(e) => set("oauth_token", e.target.value)}
+										/>
+									</FormField>
+								)}
+								{isDirect && (
+									<FormField
+										label="Base URL"
+										help="OpenAI-compatible API base URL."
+									>
+										<input
+											className="form-control"
+											value={form.base_url}
+											placeholder="https://api.openai.com/v1"
+											onChange={(e) => set("base_url", e.target.value)}
+										/>
+									</FormField>
+								)}
+								{!isApiKey && !isClaudeCode && !isDirect && (
+									<p className="text-sec text-sm" style={{ margin: 0 }}>
+										No additional credentials required
+										{isCodexAuth ? " — sign in above." : "."}
+									</p>
+								)}
+							</div>
+						</div>
+
+						<div className="card" style={{ marginTop: "var(--lg)" }}>
 							<FormField
-								label="Service URL"
-								help="Override the agent gateway URL. Blank = default."
+								label="System Prompt"
+								help="Sent to the agent (AGENTS.md). Pre-filled from the container default; edit to customise, or clear to fall back to the container default."
 							>
-								<input
+								<textarea
 									className="form-control"
-									value={form.service_url}
-									placeholder="http://codex:8002"
-									onChange={(e) => set("service_url", e.target.value)}
+									rows={10}
+									value={form.system_prompt}
+									onChange={(e) => set("system_prompt", e.target.value)}
 								/>
 							</FormField>
-						)}
-						<FormField label="Model" help="Leave blank for the default.">
-							<input
-								className="form-control"
-								value={form.model}
-								onChange={(e) => set("model", e.target.value)}
-							/>
-						</FormField>
-						{isCodex && (
-							<FormField label="Reasoning Effort">
-								<select
-									className="form-control"
-									value={form.reasoning_effort}
-									onChange={(e) => set("reasoning_effort", e.target.value)}
+						</div>
+					</>
+				) : (
+					<div className="form-split-col">
+						<div className="form-split">
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[0]} index={0} />
+								<div className="card">
+									<FormField label="Name">
+										<input
+											className="form-control"
+											value={form.name}
+											required
+											onChange={(e) => set("name", e.target.value)}
+										/>
+									</FormField>
+								</div>
+							</div>
+
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[1]} index={1} />
+								<div className="card">
+									{!isDirect && (
+										<FormField
+											label="Service URL"
+											help="Override the agent gateway URL. Blank = default."
+										>
+											<input
+												className="form-control"
+												value={form.service_url}
+												placeholder="http://codex:8002"
+												onChange={(e) => set("service_url", e.target.value)}
+											/>
+										</FormField>
+									)}
+									<FormField label="Model" help="Leave blank for the default.">
+										<input
+											className="form-control"
+											value={form.model}
+											onChange={(e) => set("model", e.target.value)}
+										/>
+									</FormField>
+									{isCodex && (
+										<FormField label="Reasoning Effort">
+											<select
+												className="form-control"
+												value={form.reasoning_effort}
+												onChange={(e) =>
+													set("reasoning_effort", e.target.value)
+												}
+											>
+												{(m?.reasoning_effort_choices ?? []).map((c) => (
+													<option key={c.value} value={c.value}>
+														{c.label}
+													</option>
+												))}
+											</select>
+										</FormField>
+									)}
+									{isApiKey && (
+										<FormField label="API Key" help="Required.">
+											<input
+												className="form-control"
+												type="password"
+												autoComplete="new-password"
+												placeholder="sk-…"
+												value={form.api_key}
+												onChange={(e) => set("api_key", e.target.value)}
+											/>
+										</FormField>
+									)}
+									{isClaudeCode && (
+										<FormField
+											label="OAuth Token"
+											help="From `claude setup-token`."
+										>
+											<input
+												className="form-control"
+												type="password"
+												autoComplete="new-password"
+												placeholder="sk-ant-oat…"
+												value={form.oauth_token}
+												onChange={(e) => set("oauth_token", e.target.value)}
+											/>
+										</FormField>
+									)}
+									{isDirect && (
+										<FormField
+											label="Base URL"
+											help="OpenAI-compatible API base URL."
+										>
+											<input
+												className="form-control"
+												value={form.base_url}
+												placeholder="https://api.openai.com/v1"
+												onChange={(e) => set("base_url", e.target.value)}
+											/>
+										</FormField>
+									)}
+									{!isApiKey && !isClaudeCode && !isDirect && (
+										<p className="text-sec text-sm" style={{ margin: 0 }}>
+											No additional credentials required
+											{isCodexAuth ? " — sign in above." : "."}
+										</p>
+									)}
+								</div>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<div className="card">
+								<FormField
+									label="System Prompt"
+									help="Sent to the agent (AGENTS.md). Pre-filled from the container default; edit to customise, or clear to fall back to the container default."
 								>
-									{(m?.reasoning_effort_choices ?? []).map((c) => (
-										<option key={c.value} value={c.value}>
-											{c.label}
-										</option>
-									))}
-								</select>
-							</FormField>
-						)}
+									<textarea
+										className="form-control"
+										rows={10}
+										value={form.system_prompt}
+										onChange={(e) => set("system_prompt", e.target.value)}
+									/>
+								</FormField>
+							</div>
+						</div>
 					</div>
-
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Credentials</h3>
-						{isApiKey && (
-							<FormField
-								label="API Key"
-								help={hasKey ? "Leave blank to keep existing." : "Required."}
-							>
-								<input
-									className="form-control"
-									type="password"
-									autoComplete="new-password"
-									placeholder={
-										hasKey ? "••••••••  (leave blank to keep)" : "sk-…"
-									}
-									value={form.api_key}
-									onChange={(e) => set("api_key", e.target.value)}
-								/>
-							</FormField>
-						)}
-						{isClaudeCode && (
-							<FormField
-								label="OAuth Token"
-								help={
-									hasToken
-										? "Leave blank to keep existing."
-										: "From `claude setup-token`."
-								}
-							>
-								<input
-									className="form-control"
-									type="password"
-									autoComplete="new-password"
-									placeholder={
-										hasToken ? "••••••••  (leave blank to keep)" : "sk-ant-oat…"
-									}
-									value={form.oauth_token}
-									onChange={(e) => set("oauth_token", e.target.value)}
-								/>
-							</FormField>
-						)}
-						{isDirect && (
-							<FormField
-								label="Base URL"
-								help="OpenAI-compatible API base URL."
-							>
-								<input
-									className="form-control"
-									value={form.base_url}
-									placeholder="https://api.openai.com/v1"
-									onChange={(e) => set("base_url", e.target.value)}
-								/>
-							</FormField>
-						)}
-						{!isApiKey && !isClaudeCode && !isDirect && (
-							<p className="text-sec text-sm" style={{ margin: 0 }}>
-								No additional credentials required
-								{isCodexAuth ? " — sign in above." : "."}
-							</p>
-						)}
-					</div>
-				</div>
-
-				<div className="card" style={{ marginTop: "var(--lg)" }}>
-					<FormField
-						label="System Prompt"
-						help="Sent to the agent (AGENTS.md). Pre-filled from the container default; edit to customise, or clear to fall back to the container default."
-					>
-						<textarea
-							className="form-control"
-							rows={10}
-							value={form.system_prompt}
-							onChange={(e) => set("system_prompt", e.target.value)}
-						/>
-					</FormField>
-				</div>
+				)}
 			</form>
 		</div>
 	);

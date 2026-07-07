@@ -17,7 +17,8 @@ import {
 	getEngines,
 	updateDatabase,
 } from "../../api/admin";
-import { FormCheckbox, FormField } from "../components/forms";
+import { FormField, ToggleField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
 interface FormState {
 	name: string;
@@ -99,6 +100,29 @@ const DEFAULT_ENGINE_META: { icon: EngineIcon; blurb: string } = {
 	icon: { kind: "fa", family: "solid", icon: "fa-database" },
 	blurb: "",
 };
+
+// Create flow, steps 2+: fields split across a wizard after the engine is
+// picked (step 1's card grid, handled separately below).
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity & Status",
+		description:
+			"Name the connection and set whether it's read-only and active.",
+	},
+	{
+		key: "host",
+		label: "Host & Database",
+		description:
+			"Enter the engine's host, port, credentials, and target database.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description:
+			"Optional — override the connection fields with a full URL, or pass engine-specific arguments as JSON.",
+	},
+];
 
 function EngineIconGlyph({ icon }: { icon: EngineIcon }) {
 	if (icon.kind === "logo") {
@@ -287,17 +311,23 @@ export function DatabaseFormPage() {
 
 	const engineLabel =
 		engineChoices.find((c) => c.value === form.engine)?.label ?? form.engine;
+	const engineMeta = ENGINE_META[form.engine] ?? DEFAULT_ENGINE_META;
 
 	return (
 		<div>
 			<div className="page-header">
 				<div>
-					<h1>{isEdit ? `Edit ${form.name}` : "Add Database Connection"}</h1>
-					<p>
-						{isEdit
-							? "Configure a database connection for MCP tools"
-							: engineLabel}
-					</p>
+					<h1>
+						{isEdit ? (
+							`Edit ${form.name}`
+						) : (
+							<span className="title-icon-tag">
+								<EngineIconGlyph icon={engineMeta.icon} />
+								{engineLabel}
+							</span>
+						)}
+					</h1>
+					<p>Configure a database connection for MCP tools</p>
 				</div>
 				<div className="form-actions">
 					<Link to="/admin/databases" className="btn btn-ghost">
@@ -328,40 +358,42 @@ export function DatabaseFormPage() {
 			)}
 
 			<form id="database-form" onSubmit={onSubmit}>
-				<div className="form-split">
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
-						<FormField label="Name">
-							<input
-								className="form-control"
-								value={form.name}
-								required
-								onChange={(e) => set("name", e.target.value)}
+				{isEdit ? (
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
+							<FormField label="Name">
+								<input
+									className="form-control"
+									value={form.name}
+									required
+									onChange={(e) => set("name", e.target.value)}
+								/>
+							</FormField>
+							<FormField label="Description">
+								<textarea
+									className="form-control"
+									rows={3}
+									value={form.description}
+									onChange={(e) => set("description", e.target.value)}
+								/>
+							</FormField>
+							<ToggleField
+								label="Is active"
+								description="Requests can use this connection while it's active."
+								checked={form.is_active}
+								onChange={(v) => set("is_active", v)}
 							/>
-						</FormField>
-						<FormField label="Description">
-							<textarea
-								className="form-control"
-								rows={3}
-								value={form.description}
-								onChange={(e) => set("description", e.target.value)}
+							<ToggleField
+								label="Read only"
+								description="Blocks write queries — only SELECT statements are allowed."
+								checked={form.read_only}
+								onChange={(v) => set("read_only", v)}
 							/>
-						</FormField>
-						<FormCheckbox
-							label="Read only"
-							checked={form.read_only}
-							onChange={(v) => set("read_only", v)}
-						/>
-						<FormCheckbox
-							label="Is active"
-							checked={form.is_active}
-							onChange={(v) => set("is_active", v)}
-						/>
-					</div>
+						</div>
 
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Connection</h3>
-						{isEdit ? (
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Connection</h3>
 							<FormField label="Engine">
 								<select
 									className="form-control"
@@ -375,102 +407,202 @@ export function DatabaseFormPage() {
 									))}
 								</select>
 							</FormField>
-						) : (
-							<FormField label="Engine">
-								<div className="picked-control">
-									<span className="type-badge">{engineLabel}</span>
-									<button
-										type="button"
-										className="btn btn-ghost btn-sm"
-										onClick={() => setEnginePicked(false)}
-									>
-										Change
-									</button>
-								</div>
-							</FormField>
-						)}
-						<div className="form-grid">
-							<FormField label="Host">
+							<div className="form-grid">
+								<FormField label="Host">
+									<input
+										className="form-control"
+										value={form.host}
+										onChange={(e) => set("host", e.target.value)}
+									/>
+								</FormField>
+								<FormField label="Port">
+									<input
+										className="form-control"
+										type="number"
+										value={form.port}
+										onChange={(e) => {
+											setPortTouched(true);
+											set("port", e.target.value);
+										}}
+									/>
+								</FormField>
+							</div>
+							<FormField label="Database">
 								<input
 									className="form-control"
-									value={form.host}
-									onChange={(e) => set("host", e.target.value)}
+									value={form.database}
+									onChange={(e) => set("database", e.target.value)}
 								/>
 							</FormField>
-							<FormField label="Port">
-								<input
+							<div className="form-grid">
+								<FormField label="Username">
+									<input
+										className="form-control"
+										value={form.username}
+										autoComplete="off"
+										onChange={(e) => set("username", e.target.value)}
+									/>
+								</FormField>
+								<FormField
+									label="Password"
+									help="Leave blank to keep existing."
+								>
+									<input
+										className="form-control"
+										type="password"
+										autoComplete="new-password"
+										placeholder="••••••••  (leave blank to keep)"
+										value={form.password}
+										onChange={(e) => set("password", e.target.value)}
+									/>
+								</FormField>
+							</div>
+							<FormField
+								label="Connection string"
+								help="Optional: full SQLAlchemy URL (overrides the fields above)."
+							>
+								<textarea
 									className="form-control"
-									type="number"
-									value={form.port}
-									onChange={(e) => {
-										setPortTouched(true);
-										set("port", e.target.value);
-									}}
-								/>
-							</FormField>
-						</div>
-						<FormField label="Database">
-							<input
-								className="form-control"
-								value={form.database}
-								onChange={(e) => set("database", e.target.value)}
-							/>
-						</FormField>
-						<div className="form-grid">
-							<FormField label="Username">
-								<input
-									className="form-control"
-									value={form.username}
-									autoComplete="off"
-									onChange={(e) => set("username", e.target.value)}
+									rows={2}
+									value={form.connection_string}
+									onChange={(e) => set("connection_string", e.target.value)}
 								/>
 							</FormField>
 							<FormField
-								label="Password"
-								help={
-									isEdit
-										? "Leave blank to keep existing."
-										: "Encrypted at rest."
-								}
+								label="Extra options (JSON)"
+								help='e.g. {"sslmode": "require"}'
 							>
-								<input
+								<textarea
 									className="form-control"
-									type="password"
-									autoComplete="new-password"
-									placeholder={
-										isEdit
-											? "••••••••  (leave blank to keep)"
-											: "Enter password"
-									}
-									value={form.password}
-									onChange={(e) => set("password", e.target.value)}
+									rows={3}
+									value={form.extra_options}
+									onChange={(e) => set("extra_options", e.target.value)}
 								/>
 							</FormField>
 						</div>
-						<FormField
-							label="Connection string"
-							help="Optional: full SQLAlchemy URL (overrides the fields above)."
-						>
-							<textarea
-								className="form-control"
-								rows={2}
-								value={form.connection_string}
-								onChange={(e) => set("connection_string", e.target.value)}
-							/>
-						</FormField>
-						<FormField
-							label="Extra options (JSON)"
-							help='e.g. {"sslmode": "require"}'
-						>
-							<textarea
-								className="form-control"
-								rows={3}
-								value={form.extra_options}
-								onChange={(e) => set("extra_options", e.target.value)}
-							/>
-						</FormField>
 					</div>
-				</div>
+				) : (
+					<div className="form-split-col">
+						<div className="form-split">
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[0]} index={0} />
+								<div className="card">
+									<FormField label="Name">
+										<input
+											className="form-control"
+											value={form.name}
+											required
+											onChange={(e) => set("name", e.target.value)}
+										/>
+									</FormField>
+									<FormField label="Description">
+										<textarea
+											className="form-control"
+											rows={3}
+											value={form.description}
+											onChange={(e) => set("description", e.target.value)}
+										/>
+									</FormField>
+									<ToggleField
+										label="Is active"
+										description="Requests can use this connection while it's active."
+										checked={form.is_active}
+										onChange={(v) => set("is_active", v)}
+									/>
+									<ToggleField
+										label="Read only"
+										description="Blocks write queries — only SELECT statements are allowed."
+										checked={form.read_only}
+										onChange={(v) => set("read_only", v)}
+									/>
+								</div>
+							</div>
+
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[1]} index={1} />
+								<div className="card">
+									<div className="form-grid">
+										<FormField label="Host">
+											<input
+												className="form-control"
+												value={form.host}
+												onChange={(e) => set("host", e.target.value)}
+											/>
+										</FormField>
+										<FormField label="Port">
+											<input
+												className="form-control"
+												type="number"
+												value={form.port}
+												onChange={(e) => {
+													setPortTouched(true);
+													set("port", e.target.value);
+												}}
+											/>
+										</FormField>
+									</div>
+									<FormField label="Database">
+										<input
+											className="form-control"
+											value={form.database}
+											onChange={(e) => set("database", e.target.value)}
+										/>
+									</FormField>
+									<div className="form-grid">
+										<FormField label="Username">
+											<input
+												className="form-control"
+												value={form.username}
+												autoComplete="off"
+												onChange={(e) => set("username", e.target.value)}
+											/>
+										</FormField>
+										<FormField label="Password" help="Encrypted at rest.">
+											<input
+												className="form-control"
+												type="password"
+												autoComplete="new-password"
+												placeholder="Enter password"
+												value={form.password}
+												onChange={(e) => set("password", e.target.value)}
+											/>
+										</FormField>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<div className="card">
+								<div className="field-pair">
+									<FormField
+										label="Connection string"
+										help="e.g. postgresql://user:pass@host:5432/dbname"
+									>
+										<textarea
+											className="form-control"
+											rows={3}
+											value={form.connection_string}
+											onChange={(e) => set("connection_string", e.target.value)}
+										/>
+									</FormField>
+									<FormField
+										label="Extra options (JSON)"
+										help='e.g. {"sslmode": "require"}'
+									>
+										<textarea
+											className="form-control"
+											rows={3}
+											value={form.extra_options}
+											onChange={(e) => set("extra_options", e.target.value)}
+										/>
+									</FormField>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
 			</form>
 		</div>
 	);

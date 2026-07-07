@@ -8,7 +8,29 @@ import {
 	type MCPServerInput,
 	updateMCPServer,
 } from "../../api/mcp";
-import { FormCheckbox, FormField } from "../components/forms";
+import { FormField, ToggleField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
+
+// Create flow: identity first, the required connection config next,
+// optional/advanced fields last.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity & Status",
+		description: "Name the server and set whether it's active.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description: "Set how TetherDust connects to this server.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description:
+			"Optional — authentication, headers, or environment variables.",
+	},
+];
 
 interface FormState {
 	name: string;
@@ -214,11 +236,11 @@ export function MCPServerFormPage() {
 		<div>
 			<div className="page-header">
 				<div>
-					<h1>{isEdit ? `Edit ${form.name}` : "Add MCP Server"}</h1>
+					<h1>{isEdit ? `Edit ${form.name}` : kindLabel}</h1>
 					<p>
 						{isEdit
 							? "Set a URL (remote HTTP) or a command (local subprocess) — not both."
-							: kindLabel}
+							: "Configure how TetherDust connects to this server."}
 					</p>
 				</div>
 				<div className="form-actions">
@@ -250,169 +272,286 @@ export function MCPServerFormPage() {
 			)}
 
 			<form id="mcpserver-form" onSubmit={onSubmit}>
-				<div className="form-split">
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
-						<FormField label="Name">
-							<input
-								className="form-control"
-								value={form.name}
-								required
-								onChange={(e) => set("name", e.target.value)}
+				{isEdit ? (
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
+							<FormField label="Name">
+								<input
+									className="form-control"
+									value={form.name}
+									required
+									onChange={(e) => set("name", e.target.value)}
+								/>
+							</FormField>
+							<FormField label="Description">
+								<textarea
+									className="form-control"
+									rows={3}
+									value={form.description}
+									onChange={(e) => set("description", e.target.value)}
+								/>
+							</FormField>
+							<ToggleField
+								label="Is active"
+								description="Requests can use this server while it's active."
+								checked={form.is_active}
+								onChange={(v) => set("is_active", v)}
 							/>
-						</FormField>
-						<FormField label="Description">
-							<textarea
-								className="form-control"
-								rows={3}
-								value={form.description}
-								onChange={(e) => set("description", e.target.value)}
-							/>
-						</FormField>
-						<FormCheckbox
-							label="Is active"
-							checked={form.is_active}
-							onChange={(v) => set("is_active", v)}
-						/>
-					</div>
+						</div>
 
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Connection</h3>
-						{!isEdit && (
-							<div
-								className="picked-control"
-								style={{ marginBottom: "var(--md)" }}
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Connection</h3>
+							<h4 style={{ margin: "0 0 var(--sm)" }}>Remote (HTTP)</h4>
+							<FormField
+								label="URL"
+								help="Full MCP endpoint, e.g. https://example.com/mcp"
 							>
-								<span className="type-badge">{kindLabel}</span>
-								<button
-									type="button"
-									className="btn btn-ghost btn-sm"
-									onClick={() => setKindPicked(false)}
+								<input
+									className="form-control"
+									value={form.url}
+									placeholder="https://example.com/mcp"
+									onChange={(e) => set("url", e.target.value)}
+								/>
+							</FormField>
+							<FormField label="Transport">
+								<select
+									className="form-control"
+									value={form.transport}
+									onChange={(e) => set("transport", e.target.value)}
 								>
-									Change
-								</button>
-							</div>
-						)}
-
-						{(isEdit || kind === "remote") && (
-							<>
-								{isEdit && (
-									<h4 style={{ margin: "0 0 var(--sm)" }}>Remote (HTTP)</h4>
-								)}
-								<FormField
-									label="URL"
-									help="Full MCP endpoint, e.g. https://example.com/mcp"
-								>
-									<input
-										className="form-control"
-										value={form.url}
-										placeholder="https://example.com/mcp"
-										onChange={(e) => set("url", e.target.value)}
-									/>
-								</FormField>
-								<FormField label="Transport">
-									<select
-										className="form-control"
-										value={form.transport}
-										onChange={(e) => set("transport", e.target.value)}
-									>
-										<option value="streamable-http">Streamable HTTP</option>
-										<option value="sse">SSE</option>
-									</select>
-								</FormField>
-								<FormField
-									label="Auth token"
-									help={
+									<option value="streamable-http">Streamable HTTP</option>
+									<option value="sse">SSE</option>
+								</select>
+							</FormField>
+							<FormField
+								label="Auth token"
+								help={
+									hasToken
+										? "Leave blank to keep existing. Sent as Authorization: Bearer …"
+										: "Sent as Authorization: Bearer …. Encrypted at rest."
+								}
+							>
+								<input
+									className="form-control"
+									type="password"
+									autoComplete="new-password"
+									placeholder={
 										hasToken
-											? "Leave blank to keep existing. Sent as Authorization: Bearer …"
-											: "Sent as Authorization: Bearer …. Encrypted at rest."
+											? "••••••••  (leave blank to keep)"
+											: "Enter bearer token"
 									}
-								>
-									<input
-										className="form-control"
-										type="password"
-										autoComplete="new-password"
-										placeholder={
-											hasToken
-												? "••••••••  (leave blank to keep)"
-												: "Enter bearer token"
-										}
-										value={form.auth_token}
-										onChange={(e) => set("auth_token", e.target.value)}
-									/>
-								</FormField>
-								<FormField
-									label="Headers (JSON)"
-									help='Extra HTTP headers, e.g. {"X-API-Key": "..."}'
-								>
-									<textarea
-										className="form-control"
-										rows={3}
-										style={MONO}
-										placeholder='{"X-API-Key": "..."}'
-										value={form.headers}
-										onChange={(e) => set("headers", e.target.value)}
-									/>
-								</FormField>
-							</>
-						)}
+									value={form.auth_token}
+									onChange={(e) => set("auth_token", e.target.value)}
+								/>
+							</FormField>
+							<FormField
+								label="Headers (JSON)"
+								help='Extra HTTP headers, e.g. {"X-API-Key": "..."}'
+							>
+								<textarea
+									className="form-control"
+									rows={3}
+									style={MONO}
+									placeholder='{"X-API-Key": "..."}'
+									value={form.headers}
+									onChange={(e) => set("headers", e.target.value)}
+								/>
+							</FormField>
 
-						{(isEdit || kind === "local") && (
-							<>
-								{isEdit && (
-									<h4 style={{ margin: "var(--md) 0 var(--sm)" }}>
-										Local (subprocess)
-									</h4>
-								)}
-								<FormField
-									label="Command"
-									help='Executable to run, e.g. "npx" or "uvx".'
-								>
-									<input
-										className="form-control"
-										value={form.command}
-										placeholder="npx"
-										onChange={(e) => set("command", e.target.value)}
-									/>
-								</FormField>
-								<FormField
-									label="Args (JSON)"
-									help='e.g. ["-y", "@notionhq/notion-mcp-server"]'
-								>
-									<textarea
-										className="form-control"
-										rows={2}
-										style={MONO}
-										placeholder='["-y", "@notionhq/notion-mcp-server"]'
-										value={form.args}
-										onChange={(e) => set("args", e.target.value)}
-									/>
-								</FormField>
-								<FormField
-									label="Command env (JSON)"
-									help={
+							<h4 style={{ margin: "var(--md) 0 var(--sm)" }}>
+								Local (subprocess)
+							</h4>
+							<FormField
+								label="Command"
+								help='Executable to run, e.g. "npx" or "uvx".'
+							>
+								<input
+									className="form-control"
+									value={form.command}
+									placeholder="npx"
+									onChange={(e) => set("command", e.target.value)}
+								/>
+							</FormField>
+							<FormField
+								label="Args (JSON)"
+								help='e.g. ["-y", "@notionhq/notion-mcp-server"]'
+							>
+								<textarea
+									className="form-control"
+									rows={2}
+									style={MONO}
+									placeholder='["-y", "@notionhq/notion-mcp-server"]'
+									value={form.args}
+									onChange={(e) => set("args", e.target.value)}
+								/>
+							</FormField>
+							<FormField
+								label="Command env (JSON)"
+								help={
+									hasEnv
+										? "Leave blank to keep existing. Encrypted at rest."
+										: 'Env vars for the subprocess, e.g. {"NOTION_API_KEY": "ntn_..."}. Encrypted at rest.'
+								}
+							>
+								<textarea
+									className="form-control"
+									rows={3}
+									style={MONO}
+									placeholder={
 										hasEnv
-											? "Leave blank to keep existing. Encrypted at rest."
-											: 'Env vars for the subprocess, e.g. {"NOTION_API_KEY": "ntn_..."}. Encrypted at rest.'
+											? "••••••••  (leave blank to keep)"
+											: '{"NOTION_API_KEY": "ntn_..."}'
 									}
-								>
-									<textarea
-										className="form-control"
-										rows={3}
-										style={MONO}
-										placeholder={
-											hasEnv
-												? "••••••••  (leave blank to keep)"
-												: '{"NOTION_API_KEY": "ntn_..."}'
-										}
-										value={form.command_env}
-										onChange={(e) => set("command_env", e.target.value)}
-									/>
-								</FormField>
-							</>
-						)}
+									value={form.command_env}
+									onChange={(e) => set("command_env", e.target.value)}
+								/>
+							</FormField>
+						</div>
 					</div>
-				</div>
+				) : (
+					<div className="form-split-col">
+						<div className="form-split">
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[0]} index={0} />
+								<div className="card">
+									<FormField label="Name">
+										<input
+											className="form-control"
+											value={form.name}
+											required
+											onChange={(e) => set("name", e.target.value)}
+										/>
+									</FormField>
+									<FormField label="Description">
+										<textarea
+											className="form-control"
+											rows={3}
+											value={form.description}
+											onChange={(e) => set("description", e.target.value)}
+										/>
+									</FormField>
+									<ToggleField
+										label="Is active"
+										description="Requests can use this server while it's active."
+										checked={form.is_active}
+										onChange={(v) => set("is_active", v)}
+									/>
+								</div>
+							</div>
+
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[1]} index={1} />
+								<div className="card">
+									{kind === "remote" ? (
+										<>
+											<FormField
+												label="URL"
+												help="Full MCP endpoint, e.g. https://example.com/mcp"
+											>
+												<input
+													className="form-control"
+													value={form.url}
+													placeholder="https://example.com/mcp"
+													onChange={(e) => set("url", e.target.value)}
+												/>
+											</FormField>
+											<FormField label="Transport">
+												<select
+													className="form-control"
+													value={form.transport}
+													onChange={(e) => set("transport", e.target.value)}
+												>
+													<option value="streamable-http">
+														Streamable HTTP
+													</option>
+													<option value="sse">SSE</option>
+												</select>
+											</FormField>
+										</>
+									) : (
+										<>
+											<FormField
+												label="Command"
+												help='Executable to run, e.g. "npx" or "uvx".'
+											>
+												<input
+													className="form-control"
+													value={form.command}
+													placeholder="npx"
+													onChange={(e) => set("command", e.target.value)}
+												/>
+											</FormField>
+											<FormField
+												label="Args (JSON)"
+												help='e.g. ["-y", "@notionhq/notion-mcp-server"]'
+											>
+												<textarea
+													className="form-control"
+													rows={2}
+													style={MONO}
+													placeholder='["-y", "@notionhq/notion-mcp-server"]'
+													value={form.args}
+													onChange={(e) => set("args", e.target.value)}
+												/>
+											</FormField>
+										</>
+									)}
+								</div>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<div className="card">
+								{kind === "remote" ? (
+									<div className="field-pair">
+										<FormField
+											label="Auth token"
+											help="Sent as Authorization: Bearer …. Encrypted at rest."
+										>
+											<input
+												className="form-control"
+												type="password"
+												autoComplete="new-password"
+												placeholder="Enter bearer token"
+												value={form.auth_token}
+												onChange={(e) => set("auth_token", e.target.value)}
+											/>
+										</FormField>
+										<FormField
+											label="Headers (JSON)"
+											help='Extra HTTP headers, e.g. {"X-API-Key": "..."}'
+										>
+											<textarea
+												className="form-control"
+												rows={3}
+												style={MONO}
+												placeholder='{"X-API-Key": "..."}'
+												value={form.headers}
+												onChange={(e) => set("headers", e.target.value)}
+											/>
+										</FormField>
+									</div>
+								) : (
+									<FormField
+										label="Command env (JSON)"
+										help='Env vars for the subprocess, e.g. {"NOTION_API_KEY": "ntn_..."}. Encrypted at rest.'
+									>
+										<textarea
+											className="form-control"
+											rows={3}
+											style={MONO}
+											placeholder='{"NOTION_API_KEY": "ntn_..."}'
+											value={form.command_env}
+											onChange={(e) => set("command_env", e.target.value)}
+										/>
+									</FormField>
+								)}
+							</div>
+						</div>
+					</div>
+				)}
 			</form>
 		</div>
 	);

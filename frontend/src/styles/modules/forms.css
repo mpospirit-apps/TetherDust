@@ -243,6 +243,89 @@ input[type="checkbox"]:focus-visible {
 	border-color: var(--c-pink);
 }
 
+/* ── Toggle switch (rectangular, not pill) ── */
+/* .toggle-control is the shared base (hidden checkbox + track + thumb);
+   .toggle is a bare switch sized to sit in a FormField column, .toggle-row
+   adds a label + explanation beside the switch. */
+.toggle-control {
+	display: inline-flex;
+	align-items: center;
+	cursor: pointer;
+}
+.toggle {
+	height: 48px;
+}
+.toggle-control input[type="checkbox"] {
+	position: absolute;
+	appearance: none;
+	width: 0;
+	height: 0;
+	opacity: 0;
+	box-shadow: none;
+	margin: 0;
+}
+.toggle__track {
+	display: inline-block;
+	position: relative;
+	width: 44px;
+	height: 24px;
+	flex-shrink: 0;
+	background: var(--bg-warm);
+	border: 1px solid rgba(26, 26, 26, 0.15);
+	transition: var(--transition);
+}
+[data-theme="dark"] .toggle__track {
+	border-color: rgba(255, 255, 255, 0.15);
+}
+.toggle__thumb {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 18px;
+	height: 18px;
+	background: #fff;
+	box-shadow: var(--shadow-sm);
+	transition: var(--transition);
+}
+.toggle-control input[type="checkbox"]:checked + .toggle__track {
+	background: var(--c-lime);
+	border-color: var(--c-lime);
+}
+.toggle-control input[type="checkbox"]:checked + .toggle__track .toggle__thumb {
+	transform: translateX(20px);
+}
+.toggle-control input[type="checkbox"]:focus-visible + .toggle__track {
+	box-shadow: 0 0 0 3px rgba(211, 217, 59, 0.3);
+}
+
+.toggle-row {
+	align-items: flex-start;
+	gap: var(--md);
+}
+.toggle-row .toggle__track {
+	margin-top: 2px;
+}
+.toggle-row + .toggle-row {
+	margin-top: var(--md);
+}
+.toggle-row__body {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.toggle-row__label {
+	font-size: var(--text-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 1.5px;
+	color: var(--text);
+}
+.toggle-row__desc {
+	font-size: var(--text-sm);
+	color: var(--text-sec);
+	line-height: 1.4;
+}
+
 .errorlist {
 	list-style: none;
 	padding: 0;
@@ -310,6 +393,20 @@ input[type="checkbox"]:focus-visible {
 	}
 }
 
+/* Two fields side by side, even when they're textareas (unlike .form-grid,
+   which always widens a textarea field to the full row). */
+.field-pair {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: var(--lg);
+}
+
+@media (max-width: 768px) {
+	.field-pair {
+		grid-template-columns: 1fr;
+	}
+}
+
 .delete-form {
 	display: inline;
 }
@@ -327,6 +424,16 @@ input[type="checkbox"]:focus-visible {
 	display: flex;
 	flex-direction: column;
 	gap: var(--lg);
+}
+
+/* When a .wizard-section (heading + card) sits directly in a .form-split row,
+   stretch its card to match the taller column instead of leaving it short. */
+.form-split > .wizard-section {
+	display: flex;
+	flex-direction: column;
+}
+.form-split > .wizard-section .card {
+	flex: 1;
 }
 
 /* Makes a card fill its row height and expands its textarea to fill */
