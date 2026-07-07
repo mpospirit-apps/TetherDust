@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { apiErrorDetail } from "../../api/client";
 import { getGenerateOptions, startGenerate } from "../../api/docs";
 import { FormField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 import {
 	AgentSelect,
 	SourceSelect,
@@ -13,6 +14,26 @@ import {
 } from "./DocGenShared";
 
 const NO_SOURCES: SourceSelection = { databases: [], docs: [], codebases: [] };
+
+// Identity first, the required generation config next, optional/advanced
+// fields last.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity",
+		description: "Name the page and choose where it's saved.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description: "Pick the type, agent, and source material to generate from.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description: "Optional — steer what the page should cover.",
+	},
+];
 
 export function DocGeneratePage() {
 	const options = useQuery({
@@ -28,6 +49,7 @@ export function DocGeneratePage() {
 	const [sources, setSources] = useState<SourceSelection>(NO_SOURCES);
 	const [error, setError] = useState<string | null>(null);
 	const [logId, setLogId] = useState<string | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	// Default the agent to the active one once options load.
 	useEffect(() => {
@@ -129,98 +151,174 @@ export function DocGeneratePage() {
 						</div>
 					)}
 
-					<div className="form-split">
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Page details</h3>
-							<div
-								className="doc-req-row"
-								style={{ gridTemplateColumns: "1fr 1fr" }}
-							>
-								<FormField label="File name" help="Saved as <name>.md.">
-									<input
-										className="form-control"
-										value={docName}
-										required
-										placeholder="Orders"
-										onChange={(e) => setDocName(e.target.value)}
-									/>
-								</FormField>
-								<FormField label="Type">
-									<select
-										className="form-control"
-										value={docType}
-										onChange={(e) => setDocType(e.target.value)}
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
+							/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-sliders" />
+										</div>
+										<div className="doc-hiw-label">Configure</div>
+										<div className="doc-hiw-desc">
+											Pick a template, optional scope, and select your data
+											sources
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-magnifying-glass" />
+										</div>
+										<div className="doc-hiw-label">Agent explores</div>
+										<div className="doc-hiw-desc">
+											Reads table schemas, query examples, and codebase files
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-pen-to-square" />
+										</div>
+										<div className="doc-hiw-label">Agent writes</div>
+										<div className="doc-hiw-desc">
+											Calls create_documentation once with the full markdown
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-file-lines" />
+										</div>
+										<div className="doc-hiw-label">One page saved</div>
+										<div className="doc-hiw-desc">
+											A single .md file in your chosen destination folder
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div className="form-split-col">
+						<div className="form-split">
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[0]} index={0} />
+								<div className="card">
+									<FormField label="File name" help="Saved as <name>.md.">
+										<input
+											className="form-control"
+											value={docName}
+											required
+											placeholder="Orders"
+											onChange={(e) => setDocName(e.target.value)}
+										/>
+									</FormField>
+									<FormField
+										label="Destination folder"
+										help="Existing or new folder under documentations/."
 									>
-										{(opts?.doc_types ?? []).map((t) => (
-											<option key={t.value} value={t.value}>
-												{t.label}
-											</option>
-										))}
-									</select>
-								</FormField>
+										<input
+											className="form-control"
+											list="dest-folders"
+											value={destination}
+											required
+											placeholder="MyDatabase"
+											onChange={(e) => setDestination(e.target.value)}
+										/>
+										<datalist id="dest-folders">
+											{(opts?.dest_folders ?? []).map((f) => (
+												<option key={f} value={f} />
+											))}
+										</datalist>
+									</FormField>
+								</div>
 							</div>
 
-							<FormField
-								label="Destination folder"
-								help="Existing or new folder under documentations/."
-							>
-								<input
-									className="form-control"
-									list="dest-folders"
-									value={destination}
-									required
-									placeholder="MyDatabase"
-									onChange={(e) => setDestination(e.target.value)}
-								/>
-								<datalist id="dest-folders">
-									{(opts?.dest_folders ?? []).map((f) => (
-										<option key={f} value={f} />
-									))}
-								</datalist>
-							</FormField>
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[1]} index={1} />
+								<div className="card">
+									<FormField label="Type">
+										<select
+											className="form-control"
+											value={docType}
+											onChange={(e) => setDocType(e.target.value)}
+										>
+											{(opts?.doc_types ?? []).map((t) => (
+												<option key={t.value} value={t.value}>
+													{t.label}
+												</option>
+											))}
+										</select>
+									</FormField>
 
-							<FormField
-								label="Scope & goals"
-								help="Optional — steer what the page should cover."
-							>
-								<textarea
-									className="form-control"
-									rows={3}
-									value={scope}
-									onChange={(e) => setScope(e.target.value)}
-								/>
-							</FormField>
+									<div className="doc-section">
+										<div className="doc-section__title">Source material</div>
+										{opts ? (
+											<SourceSelect
+												options={opts}
+												value={sources}
+												onChange={setSources}
+											/>
+										) : (
+											<p className="text-sec">Loading…</p>
+										)}
+									</div>
+
+									<FormField
+										label="Agent"
+										help="Generation runs on the active agent."
+									>
+										{opts ? (
+											<AgentSelect
+												options={opts}
+												value={agent}
+												onChange={setAgent}
+											/>
+										) : (
+											<p className="text-sec">Loading…</p>
+										)}
+									</FormField>
+								</div>
+							</div>
 						</div>
 
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Source & agent</h3>
-							<div className="doc-section">
-								<div className="doc-section__title">Source material</div>
-								{opts ? (
-									<SourceSelect
-										options={opts}
-										value={sources}
-										onChange={setSources}
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<div className="card">
+								<FormField
+									label="Scope & goals"
+									help="Optional — steer what the page should cover."
+								>
+									<textarea
+										className="form-control"
+										rows={3}
+										value={scope}
+										onChange={(e) => setScope(e.target.value)}
 									/>
-								) : (
-									<p className="text-sec">Loading…</p>
-								)}
+								</FormField>
 							</div>
-
-							<FormField
-								label="Agent"
-								help="Generation runs on the active agent."
-							>
-								{opts ? (
-									<AgentSelect
-										options={opts}
-										value={agent}
-										onChange={setAgent}
-									/>
-								) : (
-									<p className="text-sec">Loading…</p>
-								)}
-							</FormField>
 						</div>
 					</div>
 				</form>

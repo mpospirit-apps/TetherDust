@@ -76,7 +76,7 @@ export function AdminReportsPage() {
 					</p>
 				</div>
 				<Link to="/admin/reports/new" className="btn btn-primary">
-					+ New Report
+					+ Add Report
 				</Link>
 			</div>
 
@@ -95,7 +95,7 @@ export function AdminReportsPage() {
 							Define a SQL report to run on demand or on a schedule.
 						</p>
 						<Link to="/admin/reports/new" className="btn btn-primary mt-md">
-							+ New Report
+							+ Add Report
 						</Link>
 					</div>
 				) : (

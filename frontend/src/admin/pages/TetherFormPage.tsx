@@ -10,7 +10,29 @@ import {
 	getTetherSources,
 	updateTether,
 } from "../../api/tethers";
-import { CheckboxGroup, FormCheckbox, FormField } from "../components/forms";
+import { CheckboxGroup, FormField, ToggleField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
+
+// Identity first, the required source config next, optional/advanced
+// fields last.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity & Status",
+		description: "Name the tether and set whether it's active.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description:
+			"Link a codebase (or its docs) to a database documentation source.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description: "Optional — restrict which roles can view it.",
+	},
+];
 
 interface FormState {
 	name: string;
@@ -38,6 +60,7 @@ export function TetherFormPage() {
 
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	const sources = useQuery({
 		queryKey: ["admin", "tether-sources"],
@@ -155,92 +178,271 @@ export function TetherFormPage() {
 			)}
 
 			<form id="tether-form" onSubmit={onSubmit}>
-				<div className="form-split">
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
-						<FormField label="Name">
-							<input
-								className="form-control"
-								value={form.name}
-								required
-								onChange={(e) => set("name", e.target.value)}
+				{!isEdit && (
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
 							/>
-						</FormField>
-						<FormField label="Description">
-							<textarea
-								className="form-control"
-								rows={3}
-								value={form.description}
-								onChange={(e) => set("description", e.target.value)}
-							/>
-						</FormField>
-						<FormCheckbox
-							label="Is active"
-							checked={form.is_active}
-							onChange={(v) => set("is_active", v)}
-						/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-link" />
+										</div>
+										<div className="doc-hiw-label">Link two sources</div>
+										<div className="doc-hiw-desc">
+											Pick a codebase (or its docs) and a database documentation
+											source
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-magnifying-glass" />
+										</div>
+										<div className="doc-hiw-label">Agent explores</div>
+										<div className="doc-hiw-desc">
+											Reads the code and schema on both sides
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-diagram-project" />
+										</div>
+										<div className="doc-hiw-label">Agent maps it</div>
+										<div className="doc-hiw-desc">
+											Links files, symbols, tables, and columns with
+											confidence-scored relationships
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-arrows-rotate" />
+										</div>
+										<div className="doc-hiw-label">Explore & regenerate</div>
+										<div className="doc-hiw-desc">
+											View the interactive graph on the tether's detail page, or
+											regenerate it anytime
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
+				)}
 
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Sources & access</h3>
-						<FormField
-							label="Codebase or Codebase Documentation"
-							help="The code side — a live codebase repository or a codebase documentation source."
-						>
-							<select
-								className="form-control"
-								value={form.code_source}
-								required
-								onChange={(e) => set("code_source", e.target.value)}
+				{isEdit ? (
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
+							<FormField label="Name">
+								<input
+									className="form-control"
+									value={form.name}
+									required
+									onChange={(e) => set("name", e.target.value)}
+								/>
+							</FormField>
+							<FormField label="Description">
+								<textarea
+									className="form-control"
+									rows={3}
+									value={form.description}
+									onChange={(e) => set("description", e.target.value)}
+								/>
+							</FormField>
+							<ToggleField
+								label="Is active"
+								description="The tether is only viewable while active."
+								checked={form.is_active}
+								onChange={(v) => set("is_active", v)}
+							/>
+						</div>
+
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Sources & access</h3>
+							<FormField
+								label="Codebase or Codebase Documentation"
+								help="The code side — a live codebase repository or a codebase documentation source."
 							>
-								<option value="">— Select a code source —</option>
-								{src && src.codebases.length > 0 && (
-									<optgroup label="Codebases">
-										{src.codebases.map((c) => (
-											<option key={c.id} value={`codebase:${c.id}`}>
-												{c.name}
-											</option>
-										))}
-									</optgroup>
-								)}
-								{src && src.codebase_docs.length > 0 && (
-									<optgroup label="Codebase Documentation">
-										{src.codebase_docs.map((d) => (
-											<option key={d.id} value={`codebasedoc:${d.id}`}>
-												{d.name}
-											</option>
-										))}
-									</optgroup>
-								)}
-							</select>
-						</FormField>
-						<FormField
-							label="Database documentation"
-							help="The database side of this tether."
-						>
-							<select
-								className="form-control"
-								value={form.database_doc_source}
-								required
-								onChange={(e) => set("database_doc_source", e.target.value)}
+								<select
+									className="form-control"
+									value={form.code_source}
+									required
+									onChange={(e) => set("code_source", e.target.value)}
+								>
+									<option value="">— Select a code source —</option>
+									{src && src.codebases.length > 0 && (
+										<optgroup label="Codebases">
+											{src.codebases.map((c) => (
+												<option key={c.id} value={`codebase:${c.id}`}>
+													{c.name}
+												</option>
+											))}
+										</optgroup>
+									)}
+									{src && src.codebase_docs.length > 0 && (
+										<optgroup label="Codebase Documentation">
+											{src.codebase_docs.map((d) => (
+												<option key={d.id} value={`codebasedoc:${d.id}`}>
+													{d.name}
+												</option>
+											))}
+										</optgroup>
+									)}
+								</select>
+							</FormField>
+							<FormField
+								label="Database documentation"
+								help="The database side of this tether."
 							>
-								<option value="">— Select a database source —</option>
-								{(src?.database_docs ?? []).map((d) => (
-									<option key={d.id} value={d.id}>
-										{d.name}
-									</option>
-								))}
-							</select>
-						</FormField>
-						<CheckboxGroup
-							label="Allowed roles"
-							help="Roles that can view this tether (staff always can)."
-							options={roleOptions}
-							selected={form.allowed_roles}
-							onChange={(ids) => set("allowed_roles", ids)}
-						/>
+								<select
+									className="form-control"
+									value={form.database_doc_source}
+									required
+									onChange={(e) => set("database_doc_source", e.target.value)}
+								>
+									<option value="">— Select a database source —</option>
+									{(src?.database_docs ?? []).map((d) => (
+										<option key={d.id} value={d.id}>
+											{d.name}
+										</option>
+									))}
+								</select>
+							</FormField>
+							<CheckboxGroup
+								label="Allowed roles"
+								help="Roles that can view this tether (staff always can)."
+								options={roleOptions}
+								selected={form.allowed_roles}
+								onChange={(ids) => set("allowed_roles", ids)}
+							/>
+						</div>
 					</div>
-				</div>
+				) : (
+					<div className="form-split-col">
+						<div className="form-split">
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[0]} index={0} />
+								<div className="card">
+									<FormField label="Name">
+										<input
+											className="form-control"
+											value={form.name}
+											required
+											onChange={(e) => set("name", e.target.value)}
+										/>
+									</FormField>
+									<FormField label="Description">
+										<textarea
+											className="form-control"
+											rows={3}
+											value={form.description}
+											onChange={(e) => set("description", e.target.value)}
+										/>
+									</FormField>
+									<ToggleField
+										label="Is active"
+										description="The tether is only viewable while active."
+										checked={form.is_active}
+										onChange={(v) => set("is_active", v)}
+									/>
+								</div>
+							</div>
+
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[1]} index={1} />
+								<div className="card">
+									<FormField
+										label="Codebase or Codebase Documentation"
+										help="The code side — a live codebase repository or a codebase documentation source."
+									>
+										<select
+											className="form-control"
+											value={form.code_source}
+											required
+											onChange={(e) => set("code_source", e.target.value)}
+										>
+											<option value="">— Select a code source —</option>
+											{src && src.codebases.length > 0 && (
+												<optgroup label="Codebases">
+													{src.codebases.map((c) => (
+														<option key={c.id} value={`codebase:${c.id}`}>
+															{c.name}
+														</option>
+													))}
+												</optgroup>
+											)}
+											{src && src.codebase_docs.length > 0 && (
+												<optgroup label="Codebase Documentation">
+													{src.codebase_docs.map((d) => (
+														<option key={d.id} value={`codebasedoc:${d.id}`}>
+															{d.name}
+														</option>
+													))}
+												</optgroup>
+											)}
+										</select>
+									</FormField>
+									<FormField
+										label="Database documentation"
+										help="The database side of this tether."
+									>
+										<select
+											className="form-control"
+											value={form.database_doc_source}
+											required
+											onChange={(e) =>
+												set("database_doc_source", e.target.value)
+											}
+										>
+											<option value="">— Select a database source —</option>
+											{(src?.database_docs ?? []).map((d) => (
+												<option key={d.id} value={d.id}>
+													{d.name}
+												</option>
+											))}
+										</select>
+									</FormField>
+								</div>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<div className="card">
+								<CheckboxGroup
+									label="Allowed roles"
+									help="Roles that can view this tether (staff always can)."
+									options={roleOptions}
+									selected={form.allowed_roles}
+									onChange={(ids) => set("allowed_roles", ids)}
+								/>
+							</div>
+						</div>
+					</div>
+				)}
 			</form>
 		</div>
 	);

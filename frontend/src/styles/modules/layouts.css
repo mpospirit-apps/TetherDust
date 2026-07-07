@@ -46,6 +46,14 @@
 	margin-top: var(--xs);
 }
 
+/* Icon + name inline in a page title (e.g. the picked database engine or MCP
+   server kind), replacing a separate text subtitle. */
+.title-icon-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--xs);
+}
+
 /* ── Cards ── */
 .card {
 	background: rgba(245, 243, 238, 0.75);
@@ -142,6 +150,41 @@ form .card {
 	color: var(--text-muted);
 	font-size: 12px;
 	flex-shrink: 0;
+}
+
+/* ── Wizard sections (multi-step "Add …" forms) ── */
+/* Each section's bold step number + title + explanation, rendered directly
+   above its own card so the title only appears once (not repeated in a
+   separate overview bar). */
+.wizard-section-heading {
+	margin-bottom: var(--sm);
+}
+.wizard-section-heading__row {
+	display: flex;
+	align-items: baseline;
+	gap: var(--sm);
+}
+.wizard-section-heading__num {
+	font-family: var(--font);
+	font-size: var(--text-xl);
+	font-weight: 800;
+	color: var(--c-lime);
+	line-height: 1;
+	letter-spacing: -0.5px;
+	font-variant-numeric: tabular-nums;
+}
+.wizard-section-heading__title {
+	font-size: var(--text-xl);
+	font-weight: 800;
+	color: var(--text);
+	letter-spacing: -0.5px;
+	margin: 0;
+}
+.wizard-section-heading__desc {
+	font-size: var(--text-sm);
+	color: var(--text-sec);
+	line-height: 1.5;
+	margin: var(--xs) 0 0;
 }
 
 .card::before {

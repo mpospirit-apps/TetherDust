@@ -14,9 +14,31 @@ import {
 import { buildTheme, runChartCode } from "../../charts/render";
 import { useChartEditSocket } from "../../charts/useChartEditSocket";
 import { useTheme } from "../../hooks/useTheme";
-import { FormCheckbox, FormField } from "../components/forms";
+import { FormField, ToggleField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
 const MONO = { fontFamily: "var(--font-mono, monospace)", fontSize: 13 };
+
+// Identity first, the required query/render config next, optional layout
+// sizing last. Stacked (not paired side by side) since the sticky preview +
+// AI editor sidebar already takes the other half of the page.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity & Status",
+		description: "Name the chart and set whether it's active.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description: "Pick a database, write the query, and render it with d3.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description: "Optional — layout sizing and grid position.",
+	},
+];
 const WIDTHS = [
 	{ value: 3, label: "Quarter" },
 	{ value: 4, label: "Third" },
@@ -67,6 +89,7 @@ export function ChartFormPage() {
 	const [previewData, setPreviewData] = useState<PreviewData | null>(null);
 	const [previewError, setPreviewError] = useState<string | null>(null);
 	const [previewStatus, setPreviewStatus] = useState("");
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	const previewRef = useRef<HTMLDivElement>(null);
 	const formRef = useRef(form);
@@ -255,103 +278,194 @@ export function ChartFormPage() {
 			)}
 
 			<form id="chart-form" onSubmit={onSubmit}>
-				<div className="chart-edit-grid">
-					<div className="card">
-						<FormField label="Title">
-							<input
-								className="form-control"
-								value={form.title}
-								required
-								onChange={(e) => set("title", e.target.value)}
-							/>
-						</FormField>
-						<FormField label="Description">
-							<textarea
-								className="form-control"
-								rows={2}
-								value={form.description}
-								onChange={(e) => set("description", e.target.value)}
-							/>
-						</FormField>
-						<FormField label="Database">
-							<select
-								className="form-control"
-								value={form.database}
-								required
-								onChange={(e) => set("database", e.target.value)}
-							>
-								<option value="">— Select a database —</option>
-								{dbOptions.map((d) => (
-									<option key={d.id} value={d.id}>
-										{d.name}
-									</option>
-								))}
-							</select>
-						</FormField>
-						<FormField
-							label="SQL query"
-							help="Read-only SELECT that produces the chart data."
+				{!isEdit && (
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
 						>
-							<textarea
-								className="form-control"
-								rows={8}
-								style={MONO}
-								value={form.sql_query}
-								placeholder={
-									"SELECT column1, column2\nFROM table_name\nWHERE condition"
-								}
-								onChange={(e) => set("sql_query", e.target.value)}
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
 							/>
-						</FormField>
-						<FormField
-							label="Custom d3 code"
-							help="Receives (data, container, d3, theme). Use d3.select(container) as the root."
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
 						>
-							<textarea
-								className="form-control"
-								rows={16}
-								style={MONO}
-								value={form.custom_d3_code}
-								onChange={(e) => set("custom_d3_code", e.target.value)}
-							/>
-						</FormField>
-
-						<div className="form-grid">
-							<FormField label="Width">
-								<select
-									className="form-control"
-									value={form.width}
-									onChange={(e) => set("width", Number(e.target.value))}
-								>
-									{WIDTHS.map((w) => (
-										<option key={w.value} value={w.value}>
-											{w.label} ({w.value}/12)
-										</option>
-									))}
-								</select>
-							</FormField>
-							<FormField label="Height (px)">
-								<input
-									type="number"
-									className="form-control"
-									value={form.height}
-									onChange={(e) => set("height", Number(e.target.value))}
-								/>
-							</FormField>
-							<FormField label="Position">
-								<input
-									type="number"
-									className="form-control"
-									value={form.position}
-									onChange={(e) => set("position", Number(e.target.value))}
-								/>
-							</FormField>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-code" />
+										</div>
+										<div className="doc-hiw-label">Write the query</div>
+										<div className="doc-hiw-desc">
+											Pick a database and write a read-only SELECT that shapes
+											the chart data
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-chart-simple" />
+										</div>
+										<div className="doc-hiw-label">Write the d3 code</div>
+										<div className="doc-hiw-desc">
+											Render the result with d3 — receives data, container, and
+											theme
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-eye" />
+										</div>
+										<div className="doc-hiw-label">Preview live</div>
+										<div className="doc-hiw-desc">
+											Run the query and watch the chart render before saving
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-wand-magic-sparkles" />
+										</div>
+										<div className="doc-hiw-label">Ask AI to tweak it</div>
+										<div className="doc-hiw-desc">
+											Once saved, describe changes in the AI editor and it edits
+											the query and code for you
+										</div>
+									</div>
+								</div>
+							</div>
 						</div>
-						<FormCheckbox
-							label="Is active"
-							checked={form.is_active}
-							onChange={(v) => set("is_active", v)}
-						/>
+					</div>
+				)}
+
+				<div className="chart-edit-grid">
+					<div className="form-split-col">
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[0]} index={0} />
+							<div className="card">
+								<FormField label="Title">
+									<input
+										className="form-control"
+										value={form.title}
+										required
+										onChange={(e) => set("title", e.target.value)}
+									/>
+								</FormField>
+								<FormField label="Description">
+									<textarea
+										className="form-control"
+										rows={2}
+										value={form.description}
+										onChange={(e) => set("description", e.target.value)}
+									/>
+								</FormField>
+								<ToggleField
+									label="Is active"
+									description="The chart only renders on the dashboard while active."
+									checked={form.is_active}
+									onChange={(v) => set("is_active", v)}
+								/>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[1]} index={1} />
+							<div className="card">
+								<FormField label="Database">
+									<select
+										className="form-control"
+										value={form.database}
+										required
+										onChange={(e) => set("database", e.target.value)}
+									>
+										<option value="">— Select a database —</option>
+										{dbOptions.map((d) => (
+											<option key={d.id} value={d.id}>
+												{d.name}
+											</option>
+										))}
+									</select>
+								</FormField>
+								<FormField
+									label="SQL query"
+									help="Read-only SELECT that produces the chart data."
+								>
+									<textarea
+										className="form-control"
+										rows={8}
+										style={MONO}
+										value={form.sql_query}
+										placeholder={
+											"SELECT column1, column2\nFROM table_name\nWHERE condition"
+										}
+										onChange={(e) => set("sql_query", e.target.value)}
+									/>
+								</FormField>
+								<FormField
+									label="Custom d3 code"
+									help="Receives (data, container, d3, theme). Use d3.select(container) as the root."
+								>
+									<textarea
+										className="form-control"
+										rows={16}
+										style={MONO}
+										value={form.custom_d3_code}
+										onChange={(e) => set("custom_d3_code", e.target.value)}
+									/>
+								</FormField>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<div className="card">
+								<div className="form-grid">
+									<FormField label="Width">
+										<select
+											className="form-control"
+											value={form.width}
+											onChange={(e) => set("width", Number(e.target.value))}
+										>
+											{WIDTHS.map((w) => (
+												<option key={w.value} value={w.value}>
+													{w.label} ({w.value}/12)
+												</option>
+											))}
+										</select>
+									</FormField>
+									<FormField label="Height (px)">
+										<input
+											type="number"
+											className="form-control"
+											value={form.height}
+											onChange={(e) => set("height", Number(e.target.value))}
+										/>
+									</FormField>
+									<FormField label="Position">
+										<input
+											type="number"
+											className="form-control"
+											value={form.position}
+											onChange={(e) => set("position", Number(e.target.value))}
+										/>
+									</FormField>
+								</div>
+							</div>
+						</div>
 					</div>
 
 					<div className="chart-edit-sidebar">

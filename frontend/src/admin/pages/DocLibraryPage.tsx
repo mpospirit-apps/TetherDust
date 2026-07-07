@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { apiErrorDetail } from "../../api/client";
 import { getGenerateOptions, startGenerateLibrary } from "../../api/docs";
 import { FormField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 import {
 	AgentSelect,
 	SourceSelect,
@@ -13,6 +14,22 @@ import {
 } from "./DocGenShared";
 
 const NO_SOURCES: SourceSelection = { databases: [], docs: [], codebases: [] };
+
+// Identity first, the required generation config next — this form has no
+// optional fields, so there's no third step.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity",
+		description: "Name the library — this becomes its root folder.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description:
+			"Pick the library type, agent, and source material to generate from.",
+	},
+];
 
 export function DocLibraryPage() {
 	const options = useQuery({
@@ -26,6 +43,7 @@ export function DocLibraryPage() {
 	const [sources, setSources] = useState<SourceSelection>(NO_SOURCES);
 	const [error, setError] = useState<string | null>(null);
 	const [logId, setLogId] = useState<string | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	useEffect(() => {
 		if (!agent && options.data) {
@@ -121,13 +139,92 @@ export function DocLibraryPage() {
 						</div>
 					)}
 
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
+							/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-sliders" />
+										</div>
+										<div className="doc-hiw-label">Configure</div>
+										<div className="doc-hiw-desc">
+											Name the library and select your data sources
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-magnifying-glass" />
+										</div>
+										<div className="doc-hiw-label">Agent explores</div>
+										<div className="doc-hiw-desc">
+											Reads schemas, existing docs, and codebase files
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-sitemap" />
+										</div>
+										<div className="doc-hiw-label">Agent plans</div>
+										<div className="doc-hiw-desc">
+											Designs a folder tree and page outline for the library
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-pen-to-square" />
+										</div>
+										<div className="doc-hiw-label">Agent writes</div>
+										<div className="doc-hiw-desc">
+											Calls create_documentation per file — subfolders created
+											automatically
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-folder-tree" />
+										</div>
+										<div className="doc-hiw-label">Library saved</div>
+										<div className="doc-hiw-desc">
+											A cross-linked tree of .md files under one root folder
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
 					<div className="form-split">
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Library details</h3>
-							<div
-								className="doc-req-row"
-								style={{ gridTemplateColumns: "2fr 1fr" }}
-							>
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[0]} index={0} />
+							<div className="card">
 								<FormField
 									label="Library name"
 									help="Top-level folder under documentations/ (the library root)."
@@ -140,6 +237,12 @@ export function DocLibraryPage() {
 										onChange={(e) => setLibraryName(e.target.value)}
 									/>
 								</FormField>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[1]} index={1} />
+							<div className="card">
 								<FormField label="Library type">
 									<select
 										className="form-control"
@@ -153,38 +256,35 @@ export function DocLibraryPage() {
 										))}
 									</select>
 								</FormField>
-							</div>
-						</div>
 
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Source & agent</h3>
-							<div className="doc-section">
-								<div className="doc-section__title">Source material</div>
-								{opts ? (
-									<SourceSelect
-										options={opts}
-										value={sources}
-										onChange={setSources}
-									/>
-								) : (
-									<p className="text-sec">Loading…</p>
-								)}
-							</div>
+								<div className="doc-section">
+									<div className="doc-section__title">Source material</div>
+									{opts ? (
+										<SourceSelect
+											options={opts}
+											value={sources}
+											onChange={setSources}
+										/>
+									) : (
+										<p className="text-sec">Loading…</p>
+									)}
+								</div>
 
-							<FormField
-								label="Agent"
-								help="Generation runs on the active agent."
-							>
-								{opts ? (
-									<AgentSelect
-										options={opts}
-										value={agent}
-										onChange={setAgent}
-									/>
-								) : (
-									<p className="text-sec">Loading…</p>
-								)}
-							</FormField>
+								<FormField
+									label="Agent"
+									help="Generation runs on the active agent."
+								>
+									{opts ? (
+										<AgentSelect
+											options={opts}
+											value={agent}
+											onChange={setAgent}
+										/>
+									) : (
+										<p className="text-sec">Loading…</p>
+									)}
+								</FormField>
+							</div>
 						</div>
 					</div>
 				</form>

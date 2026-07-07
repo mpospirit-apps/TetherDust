@@ -8,7 +8,28 @@ import {
 	getCodebase,
 	updateCodebase,
 } from "../../api/tethers";
-import { FormCheckbox, FormField } from "../components/forms";
+import { FormField, ToggleField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
+
+// Identity first, the required repository config next, optional/advanced
+// fields last.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity & Status",
+		description: "Name the codebase and set whether it's active.",
+	},
+	{
+		key: "configuration",
+		label: "Configuration",
+		description: "Point to the GitHub repository the agent should browse.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description: "Optional — branch, path filters, and access token.",
+	},
+];
 
 interface FormState {
 	name: string;
@@ -150,115 +171,233 @@ export function CodebaseFormPage() {
 			)}
 
 			<form id="codebase-form" onSubmit={onSubmit}>
-				<div className="form-split">
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
-						<FormField label="Name">
-							<input
-								className="form-control"
-								value={form.name}
-								required
-								onChange={(e) => set("name", e.target.value)}
-							/>
-						</FormField>
-						<FormField
-							label="Description"
-							help="Helps the agent understand what this repo contains."
-						>
-							<textarea
-								className="form-control"
-								rows={3}
-								value={form.description}
-								onChange={(e) => set("description", e.target.value)}
-							/>
-						</FormField>
-						<FormCheckbox
-							label="Is active"
-							checked={form.is_active}
-							onChange={(v) => set("is_active", v)}
-						/>
-					</div>
-
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Repository</h3>
-						<FormField
-							label="Repository URL"
-							help="e.g. https://github.com/owner/repo"
-						>
-							<input
-								className="form-control"
-								value={form.repo_url}
-								required
-								placeholder="https://github.com/owner/repo"
-								onChange={(e) => set("repo_url", e.target.value)}
-							/>
-						</FormField>
-						<div className="form-grid">
+				{isEdit ? (
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
+							<FormField label="Name">
+								<input
+									className="form-control"
+									value={form.name}
+									required
+									onChange={(e) => set("name", e.target.value)}
+								/>
+							</FormField>
 							<FormField
-								label="Branch"
-								help="Leave blank to use the default branch."
+								label="Description"
+								help="Helps the agent understand what this repo contains."
+							>
+								<textarea
+									className="form-control"
+									rows={3}
+									value={form.description}
+									onChange={(e) => set("description", e.target.value)}
+								/>
+							</FormField>
+							<ToggleField
+								label="Is active"
+								description="The agent only browses this repo while it's active."
+								checked={form.is_active}
+								onChange={(v) => set("is_active", v)}
+							/>
+						</div>
+
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Repository</h3>
+							<FormField
+								label="Repository URL"
+								help="e.g. https://github.com/owner/repo"
 							>
 								<input
 									className="form-control"
-									value={form.branch}
-									onChange={(e) => set("branch", e.target.value)}
+									value={form.repo_url}
+									required
+									placeholder="https://github.com/owner/repo"
+									onChange={(e) => set("repo_url", e.target.value)}
 								/>
 							</FormField>
-							<FormField label="Subpath" help="e.g. services/api">
-								<input
+							<div className="form-grid">
+								<FormField
+									label="Branch"
+									help="Leave blank to use the default branch."
+								>
+									<input
+										className="form-control"
+										value={form.branch}
+										onChange={(e) => set("branch", e.target.value)}
+									/>
+								</FormField>
+								<FormField label="Subpath" help="e.g. services/api">
+									<input
+										className="form-control"
+										value={form.subpath}
+										onChange={(e) => set("subpath", e.target.value)}
+									/>
+								</FormField>
+							</div>
+							<FormField
+								label="Include globs"
+								help="One glob per line, e.g. src/**. Empty = everything."
+							>
+								<textarea
 									className="form-control"
-									value={form.subpath}
-									onChange={(e) => set("subpath", e.target.value)}
+									rows={2}
+									value={form.include_globs}
+									onChange={(e) => set("include_globs", e.target.value)}
+									placeholder={"src/**\n*.py"}
+								/>
+							</FormField>
+							<FormField
+								label="Exclude globs"
+								help="One glob per line. Empty = a sensible default set (node_modules, build output, binaries)."
+							>
+								<textarea
+									className="form-control"
+									rows={2}
+									value={form.exclude_globs}
+									onChange={(e) => set("exclude_globs", e.target.value)}
+									placeholder={"node_modules/*\n*.lock"}
+								/>
+							</FormField>
+							<FormField
+								label="Access token"
+								help={
+									hasToken
+										? "A token is stored. Leave blank to keep it."
+										: "Encrypted at rest. Leave blank for public repositories. A read-only (contents: read) fine-grained PAT is sufficient."
+								}
+							>
+								<input
+									type="password"
+									className="form-control"
+									value={form.access_token}
+									autoComplete="new-password"
+									placeholder={
+										hasToken
+											? "••••••••  (leave blank to keep)"
+											: "Enter GitHub token"
+									}
+									onChange={(e) => set("access_token", e.target.value)}
 								/>
 							</FormField>
 						</div>
-						<FormField
-							label="Include globs"
-							help="One glob per line, e.g. src/**. Empty = everything."
-						>
-							<textarea
-								className="form-control"
-								rows={2}
-								value={form.include_globs}
-								onChange={(e) => set("include_globs", e.target.value)}
-								placeholder={"src/**\n*.py"}
-							/>
-						</FormField>
-						<FormField
-							label="Exclude globs"
-							help="One glob per line. Empty = a sensible default set (node_modules, build output, binaries)."
-						>
-							<textarea
-								className="form-control"
-								rows={2}
-								value={form.exclude_globs}
-								onChange={(e) => set("exclude_globs", e.target.value)}
-								placeholder={"node_modules/*\n*.lock"}
-							/>
-						</FormField>
-						<FormField
-							label="Access token"
-							help={
-								hasToken
-									? "A token is stored. Leave blank to keep it."
-									: "Encrypted at rest. Leave blank for public repositories. A read-only (contents: read) fine-grained PAT is sufficient."
-							}
-						>
-							<input
-								type="password"
-								className="form-control"
-								value={form.access_token}
-								autoComplete="new-password"
-								placeholder={
-									hasToken
-										? "••••••••  (leave blank to keep)"
-										: "Enter GitHub token"
-								}
-								onChange={(e) => set("access_token", e.target.value)}
-							/>
-						</FormField>
 					</div>
-				</div>
+				) : (
+					<div className="form-split-col">
+						<div className="form-split">
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[0]} index={0} />
+								<div className="card">
+									<FormField label="Name">
+										<input
+											className="form-control"
+											value={form.name}
+											required
+											onChange={(e) => set("name", e.target.value)}
+										/>
+									</FormField>
+									<FormField
+										label="Description"
+										help="Helps the agent understand what this repo contains."
+									>
+										<textarea
+											className="form-control"
+											rows={3}
+											value={form.description}
+											onChange={(e) => set("description", e.target.value)}
+										/>
+									</FormField>
+									<ToggleField
+										label="Is active"
+										description="The agent only browses this repo while it's active."
+										checked={form.is_active}
+										onChange={(v) => set("is_active", v)}
+									/>
+								</div>
+							</div>
+
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[1]} index={1} />
+								<div className="card">
+									<FormField
+										label="Repository URL"
+										help="e.g. https://github.com/owner/repo"
+									>
+										<input
+											className="form-control"
+											value={form.repo_url}
+											required
+											placeholder="https://github.com/owner/repo"
+											onChange={(e) => set("repo_url", e.target.value)}
+										/>
+									</FormField>
+								</div>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<div className="card">
+								<div className="form-grid">
+									<FormField
+										label="Branch"
+										help="Leave blank to use the default branch."
+									>
+										<input
+											className="form-control"
+											value={form.branch}
+											onChange={(e) => set("branch", e.target.value)}
+										/>
+									</FormField>
+									<FormField label="Subpath" help="e.g. services/api">
+										<input
+											className="form-control"
+											value={form.subpath}
+											onChange={(e) => set("subpath", e.target.value)}
+										/>
+									</FormField>
+								</div>
+								<FormField
+									label="Include globs"
+									help="One glob per line, e.g. src/**. Empty = everything."
+								>
+									<textarea
+										className="form-control"
+										rows={2}
+										value={form.include_globs}
+										onChange={(e) => set("include_globs", e.target.value)}
+										placeholder={"src/**\n*.py"}
+									/>
+								</FormField>
+								<FormField
+									label="Exclude globs"
+									help="One glob per line. Empty = a sensible default set (node_modules, build output, binaries)."
+								>
+									<textarea
+										className="form-control"
+										rows={2}
+										value={form.exclude_globs}
+										onChange={(e) => set("exclude_globs", e.target.value)}
+										placeholder={"node_modules/*\n*.lock"}
+									/>
+								</FormField>
+								<FormField
+									label="Access token"
+									help="Encrypted at rest. Leave blank for public repositories. A read-only (contents: read) fine-grained PAT is sufficient."
+								>
+									<input
+										type="password"
+										className="form-control"
+										value={form.access_token}
+										autoComplete="new-password"
+										placeholder="Enter GitHub token"
+										onChange={(e) => set("access_token", e.target.value)}
+									/>
+								</FormField>
+							</div>
+						</div>
+					</div>
+				)}
 			</form>
 		</div>
 	);

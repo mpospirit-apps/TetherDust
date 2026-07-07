@@ -77,6 +77,61 @@
 	border: 1px solid rgba(26, 26, 26, 0.09);
 }
 
+/* ── How it works (collapsible card) ── */
+.doc-hiw-card {
+	padding: 0;
+	margin-bottom: var(--md);
+	overflow: hidden;
+}
+.doc-hiw-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	background: none;
+	border: none;
+	padding: var(--md) var(--lg);
+	margin: 0;
+	font: inherit;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: background 0.15s var(--ease);
+}
+.doc-hiw-toggle:hover {
+	background: rgba(26, 26, 26, 0.03);
+}
+.doc-hiw-toggle h3 {
+	font-weight: 700;
+	color: var(--text);
+	margin: 0;
+}
+.doc-hiw-chevron {
+	flex-shrink: 0;
+	color: var(--text-muted);
+	font-size: var(--text-sm);
+	transition: transform 0.2s var(--ease);
+}
+.doc-hiw-chevron.is-open {
+	transform: rotate(180deg);
+}
+.doc-hiw-collapse {
+	display: grid;
+	grid-template-rows: 0fr;
+	transition: grid-template-rows 0.25s var(--ease);
+}
+.doc-hiw-collapse.is-open {
+	grid-template-rows: 1fr;
+}
+.doc-hiw-collapse__inner {
+	overflow: hidden;
+	min-height: 0;
+	padding: 0 var(--lg);
+}
+.doc-hiw-collapse.is-open .doc-hiw-collapse__inner {
+	padding: 0 var(--lg) var(--lg);
+}
+
 /* ── How it works flow ── */
 .doc-hiw {
 	display: flex;
@@ -116,13 +171,6 @@
 	font-size: var(--text-xs);
 	color: var(--text-sec);
 	line-height: 1.55;
-}
-.doc-hiw-desc code {
-	font-family: var(--font-mono);
-	font-size: 0.75em;
-	background: rgba(26, 26, 26, 0.08);
-	padding: 1px 4px;
-	border-radius: 3px;
 }
 .doc-hiw-arrow {
 	flex-shrink: 0;

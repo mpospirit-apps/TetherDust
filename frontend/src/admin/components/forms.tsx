@@ -47,6 +47,61 @@ export function FormCheckbox({
 	);
 }
 
+// Rectangular toggle switch, used in place of a checkbox when the field
+// deserves its own labelled column (e.g. alongside a FormField) rather than an
+// inline "label beside the box".
+export function Toggle({
+	checked,
+	onChange,
+}: {
+	checked: boolean;
+	onChange: (value: boolean) => void;
+}) {
+	return (
+		<label className="toggle-control toggle">
+			<input
+				type="checkbox"
+				checked={checked}
+				onChange={(event) => onChange(event.target.checked)}
+			/>
+			<span className="toggle__track">
+				<span className="toggle__thumb" />
+			</span>
+		</label>
+	);
+}
+
+// Toggle switch with its own label + explanation beside it, used when the
+// field deserves more context than a bare FormField-labelled switch.
+export function ToggleField({
+	label,
+	description,
+	checked,
+	onChange,
+}: {
+	label: string;
+	description: string;
+	checked: boolean;
+	onChange: (value: boolean) => void;
+}) {
+	return (
+		<label className="toggle-control toggle-row">
+			<input
+				type="checkbox"
+				checked={checked}
+				onChange={(event) => onChange(event.target.checked)}
+			/>
+			<span className="toggle__track">
+				<span className="toggle__thumb" />
+			</span>
+			<span className="toggle-row__body">
+				<span className="toggle-row__label">{label}</span>
+				<span className="toggle-row__desc">{description}</span>
+			</span>
+		</label>
+	);
+}
+
 // Multi-select checkbox list (matches the legacy `.checkbox-list`), used for the
 // role access grants.
 export function CheckboxGroup({

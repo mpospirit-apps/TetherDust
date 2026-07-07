@@ -99,21 +99,18 @@ export function AgentsPage() {
 											{a.is_active ? (
 												<span className="badge badge-success">ACTIVE</span>
 											) : (
-												<span className="badge badge-muted">—</span>
+												<button
+													type="button"
+													className="btn btn-ghost btn-sm"
+													disabled={activate.isPending}
+													onClick={() => activate.mutate(a.id)}
+												>
+													<i className="fa-solid fa-toggle-on" /> Activate
+												</button>
 											)}
 										</td>
 										<td>
 											<div className="flex-gap">
-												{!a.is_active && (
-													<button
-														type="button"
-														className="btn btn-ghost btn-sm"
-														disabled={activate.isPending}
-														onClick={() => activate.mutate(a.id)}
-													>
-														<i className="fa-solid fa-toggle-on" /> Activate
-													</button>
-												)}
 												<Link
 													to={`/admin/agents/${a.id}`}
 													className="btn btn-ghost btn-sm"

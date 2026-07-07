@@ -9,7 +9,8 @@ import {
 	getAdminDashboard,
 	updateDashboard,
 } from "../../api/dashboards";
-import { CheckboxGroup, FormCheckbox, FormField } from "../components/forms";
+import { CheckboxGroup, FormField, ToggleField } from "../components/forms";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
 const REFRESH_INTERVALS: { value: string; label: string }[] = [
 	{ value: "5", label: "Every 5 minutes" },
@@ -39,6 +40,21 @@ const EMPTY: FormState = {
 	allowed_roles: [],
 };
 
+// Identity first; refresh schedule and access are both optional, so there's
+// no separate required-configuration step.
+const STEPS: WizardStepDef[] = [
+	{
+		key: "identity",
+		label: "Identity & Status",
+		description: "Name the dashboard and set whether it's active.",
+	},
+	{
+		key: "optional",
+		label: "Optional Configurations",
+		description: "Optional — auto-refresh schedule and role-based access.",
+	},
+];
+
 export function AdminDashboardFormPage() {
 	const { id } = useParams();
 	const isEdit = Boolean(id);
@@ -47,6 +63,7 @@ export function AdminDashboardFormPage() {
 
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
 	const roles = useQuery({ queryKey: ["admin", "roles"], queryFn: listRoles });
 	const existing = useQuery({
@@ -118,7 +135,10 @@ export function AdminDashboardFormPage() {
 					<p>A dashboard is a grid of D3 charts</p>
 				</div>
 				<div className="form-actions">
-					<Link to="/admin/dashboards" className="btn btn-ghost">
+					<Link
+						to={isEdit ? "/admin/dashboards" : "/admin/dashboards/add"}
+						className="btn btn-ghost"
+					>
 						Cancel
 					</Link>
 					<button
@@ -146,64 +166,205 @@ export function AdminDashboardFormPage() {
 			)}
 
 			<form id="dashboard-form" onSubmit={onSubmit}>
-				<div className="form-split">
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
-						<FormField label="Name">
-							<input
-								className="form-control"
-								value={form.name}
-								required
-								onChange={(e) => set("name", e.target.value)}
+				{!isEdit && (
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
 							/>
-						</FormField>
-						<FormField label="Description">
-							<textarea
-								className="form-control"
-								rows={3}
-								value={form.description}
-								onChange={(e) => set("description", e.target.value)}
-							/>
-						</FormField>
-						<FormCheckbox
-							label="Is active"
-							checked={form.is_active}
-							onChange={(v) => set("is_active", v)}
-						/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-table-cells" />
+										</div>
+										<div className="doc-hiw-label">Create the shell</div>
+										<div className="doc-hiw-desc">
+											Name it and set an optional auto-refresh schedule
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-chart-simple" />
+										</div>
+										<div className="doc-hiw-label">Add charts</div>
+										<div className="doc-hiw-desc">
+											Add SQL + d3 charts one at a time from the dashboard's
+											detail page
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-shield-halved" />
+										</div>
+										<div className="doc-hiw-label">Restrict access</div>
+										<div className="doc-hiw-desc">
+											Choose which roles can view it — staff always can
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-eye" />
+										</div>
+										<div className="doc-hiw-label">View it</div>
+										<div className="doc-hiw-desc">
+											Charts render live and refresh on your schedule
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
+				)}
 
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Refresh & access</h3>
-						<FormCheckbox
-							label="Auto refresh chart data on a schedule"
-							checked={form.auto_refresh}
-							onChange={(v) => set("auto_refresh", v)}
-						/>
-						{form.auto_refresh && (
-							<FormField label="Refresh interval">
-								<select
+				{isEdit ? (
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
+							<FormField label="Name">
+								<input
 									className="form-control"
-									value={form.refresh_interval}
-									onChange={(e) => set("refresh_interval", e.target.value)}
-								>
-									<option value="">— Select —</option>
-									{REFRESH_INTERVALS.map((r) => (
-										<option key={r.value} value={r.value}>
-											{r.label}
-										</option>
-									))}
-								</select>
+									value={form.name}
+									required
+									onChange={(e) => set("name", e.target.value)}
+								/>
 							</FormField>
-						)}
-						<CheckboxGroup
-							label="Allowed roles"
-							help="Roles that can view this dashboard (staff always can)."
-							options={roleOptions}
-							selected={form.allowed_roles}
-							onChange={(ids) => set("allowed_roles", ids)}
-						/>
+							<FormField label="Description">
+								<textarea
+									className="form-control"
+									rows={3}
+									value={form.description}
+									onChange={(e) => set("description", e.target.value)}
+								/>
+							</FormField>
+							<ToggleField
+								label="Is active"
+								description="The dashboard is only viewable while active."
+								checked={form.is_active}
+								onChange={(v) => set("is_active", v)}
+							/>
+						</div>
+
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Refresh & access</h3>
+							<ToggleField
+								label="Auto refresh"
+								description="Refresh chart data automatically at the interval below."
+								checked={form.auto_refresh}
+								onChange={(v) => set("auto_refresh", v)}
+							/>
+							{form.auto_refresh && (
+								<FormField label="Refresh interval">
+									<select
+										className="form-control"
+										value={form.refresh_interval}
+										onChange={(e) => set("refresh_interval", e.target.value)}
+									>
+										<option value="">— Select —</option>
+										{REFRESH_INTERVALS.map((r) => (
+											<option key={r.value} value={r.value}>
+												{r.label}
+											</option>
+										))}
+									</select>
+								</FormField>
+							)}
+							<CheckboxGroup
+								label="Allowed roles"
+								help="Roles that can view this dashboard (staff always can)."
+								options={roleOptions}
+								selected={form.allowed_roles}
+								onChange={(ids) => set("allowed_roles", ids)}
+							/>
+						</div>
 					</div>
-				</div>
+				) : (
+					<div className="form-split">
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[0]} index={0} />
+							<div className="card">
+								<FormField label="Name">
+									<input
+										className="form-control"
+										value={form.name}
+										required
+										onChange={(e) => set("name", e.target.value)}
+									/>
+								</FormField>
+								<FormField label="Description">
+									<textarea
+										className="form-control"
+										rows={3}
+										value={form.description}
+										onChange={(e) => set("description", e.target.value)}
+									/>
+								</FormField>
+								<ToggleField
+									label="Is active"
+									description="The dashboard is only viewable while active."
+									checked={form.is_active}
+									onChange={(v) => set("is_active", v)}
+								/>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[1]} index={1} />
+							<div className="card">
+								<ToggleField
+									label="Auto refresh"
+									description="Refresh chart data automatically at the interval below."
+									checked={form.auto_refresh}
+									onChange={(v) => set("auto_refresh", v)}
+								/>
+								{form.auto_refresh && (
+									<FormField label="Refresh interval">
+										<select
+											className="form-control"
+											value={form.refresh_interval}
+											onChange={(e) => set("refresh_interval", e.target.value)}
+										>
+											<option value="">— Select —</option>
+											{REFRESH_INTERVALS.map((r) => (
+												<option key={r.value} value={r.value}>
+													{r.label}
+												</option>
+											))}
+										</select>
+									</FormField>
+								)}
+								<CheckboxGroup
+									label="Allowed roles"
+									help="Roles that can view this dashboard (staff always can)."
+									options={roleOptions}
+									selected={form.allowed_roles}
+									onChange={(ids) => set("allowed_roles", ids)}
+								/>
+							</div>
+						</div>
+					</div>
+				)}
 			</form>
 		</div>
 	);
