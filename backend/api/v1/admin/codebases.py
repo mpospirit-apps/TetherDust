@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from engine.integrations.github_client import parse_owner_repo
+from engine.integrations.gitlab_client import parse_gitlab_path
 from engine.models import Codebase
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
@@ -76,14 +77,30 @@ class CodebaseSerializer(serializers.ModelSerializer[Codebase]):
     def get_has_token(self, obj: Codebase) -> bool:
         return bool(obj.access_token)
 
-    def validate_repo_url(self, value: str) -> str:
+    def validate(self, attrs: Any) -> Any:
+        repo_url = attrs.get("repo_url")
+        if repo_url is None and self.instance is not None:
+            repo_url = self.instance.repo_url
+        if repo_url is None:
+            return attrs
+
+        provider = attrs.get("provider")
+        if provider is None:
+            provider = self.instance.provider if self.instance is not None else "github"
+
         try:
-            parse_owner_repo(value)
+            if provider == "gitlab":
+                parse_gitlab_path(repo_url)
+            else:
+                parse_owner_repo(repo_url)
         except ValueError as exc:
-            raise serializers.ValidationError(
-                "Enter a GitHub repository URL like https://github.com/owner/repo"
-            ) from exc
-        return value
+            message = (
+                "Enter a GitLab repository URL like https://gitlab.com/group/project"
+                if provider == "gitlab"
+                else "Enter a GitHub repository URL like https://github.com/owner/repo"
+            )
+            raise serializers.ValidationError({"repo_url": message}) from exc
+        return attrs
 
     def create(self, validated_data: Any) -> Codebase:
         token = validated_data.pop("access_token", "")

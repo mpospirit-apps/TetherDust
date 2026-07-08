@@ -1,4 +1,4 @@
-"""Tool: search_codebase — search code within a codebase via GitHub code search."""
+"""Tool: search_codebase — search code within a codebase via GitHub or GitLab code search."""
 
 import logging
 from typing import Annotated
@@ -6,13 +6,14 @@ from typing import Annotated
 from pydantic import Field
 
 from ..utils.github_client import GitHubClient, GitHubError, parse_owner_repo
+from ..utils.gitlab_client import GitLabClient, GitLabError, parse_gitlab_path
 from ._codebase_shared import get_codebase
 
 logger = logging.getLogger(__name__)
 
 _FALLBACK = (
     "Code search is unavailable for this codebase "
-    "(GitHub code search needs an access token, only indexes the default branch, "
+    "(GitHub/GitLab code search needs an access token, only indexes the default branch, "
     "and isn't available for every repository). Browse with get_codebase_tree and "
     "read files with read_codebase_file instead."
 )
@@ -23,8 +24,8 @@ async def search_codebase(
     query: Annotated[str, Field(description="Search terms, e.g. a function or symbol name")],
 ) -> str:
     """Search for code within a codebase by keyword. \
-Uses GitHub code search (default branch only; requires the codebase to have an \
-access token). If search is unavailable, fall back to get_codebase_tree and \
+Uses GitHub or GitLab code search (default branch only; may require the codebase to \
+have an access token). If search is unavailable, fall back to get_codebase_tree and \
 read_codebase_file to navigate the repository."""
     cb = get_codebase(codebase)
     if cb is None:
@@ -35,10 +36,15 @@ read_codebase_file to navigate the repository."""
         return "Error: query is required."
 
     try:
-        owner, repo = parse_owner_repo(cb.repo_url)
-        client = GitHubClient(token=cb.access_token or None)
-        hits = client.search_code(owner, repo, query)
-    except GitHubError as exc:
+        if cb.provider == "gitlab":
+            project = parse_gitlab_path(cb.repo_url)
+            gl_client = GitLabClient(token=cb.access_token or None)
+            hits = gl_client.search_code(project, query)
+        else:
+            owner, repo = parse_owner_repo(cb.repo_url)
+            gh_client = GitHubClient(token=cb.access_token or None)
+            hits = gh_client.search_code(owner, repo, query)
+    except (GitHubError, GitLabError) as exc:
         return f"{_FALLBACK}\n\n(Reason: {exc})"
     except Exception:
         logger.exception("Unexpected error searching codebase %s", codebase)

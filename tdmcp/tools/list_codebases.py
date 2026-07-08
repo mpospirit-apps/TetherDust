@@ -6,7 +6,7 @@ from ._codebase_shared import get_allowed_codebases, load_codebases
 async def list_codebases() -> str:
     """List the source-code repositories (codebases) available to you. \
 Use this to discover which codebases exist before browsing or reading files. \
-Each codebase is a GitHub repository you can explore with get_codebase_tree, \
+Each codebase is a GitHub or GitLab repository you can explore with get_codebase_tree, \
 read_codebase_file, and search_codebase."""
     codebases = load_codebases()
 
@@ -20,6 +20,7 @@ read_codebase_file, and search_codebase."""
     lines = ["# Available Codebases\n"]
     for cb in codebases:
         lines.append(f"## {cb.name}")
+        lines.append(f"**Provider:** {cb.provider}")
         lines.append(f"**Repository:** {cb.repo_url}")
         lines.append(f"**Branch:** {cb.ref}")
         if cb.subpath:

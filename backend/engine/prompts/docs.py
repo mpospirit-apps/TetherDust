@@ -59,7 +59,7 @@ syntax highlighting, plus mermaid and wiki-links):
 - Non-markdown files (.sql, .py) render as highlighted code, not as markdown.
 
 Saving — `create_documentation` is the only way to write; never emit documentation as a
-chat response. Parameters: `destination` (folder under documentations/, subfolders
+chat response. Parameters: `destination` (folder under sources/docs/, subfolders
 allowed, created if absent), `filename` (.md appended automatically), `content` (your full
 markdown), `databases` (optional — names to introspect; appends a Database Schema
 Reference with the table/column dump, so use it on schema pages instead of hand-copying

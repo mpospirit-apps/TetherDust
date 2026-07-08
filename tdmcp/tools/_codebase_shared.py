@@ -24,6 +24,7 @@ __all__ = ["CodebaseConfig", "get_allowed_codebases", "load_codebases", "get_cod
 class CodebaseConfig:
     name: str
     repo_url: str
+    provider: str = "github"
     branch: str = ""
     subpath: str = ""
     include_globs: list[str] = field(default_factory=list)
@@ -67,7 +68,7 @@ def load_codebases() -> list[CodebaseConfig]:
         with engine.connect() as conn:
             rows = conn.execute(
                 text(
-                    "SELECT name, repo_url, branch, subpath, include_globs, "
+                    "SELECT name, repo_url, provider, branch, subpath, include_globs, "
                     "exclude_globs, default_branch, cached_tree, access_token "
                     "FROM engine_codebase WHERE is_active = true ORDER BY name"
                 )
@@ -83,6 +84,7 @@ def load_codebases() -> list[CodebaseConfig]:
             CodebaseConfig(
                 name=row.name,
                 repo_url=row.repo_url or "",
+                provider=row.provider or "github",
                 branch=row.branch or "",
                 subpath=row.subpath or "",
                 include_globs=row.include_globs or [],

@@ -79,7 +79,7 @@ def _parse_docgen_result(result_text: str) -> list[dict[str, object]]:
 
 
 def top_level_folders() -> list[str]:
-    """Top-level folder names inside the documentations/ directory."""
+    """Top-level folder names inside the sources/docs/ directory."""
     docs_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR)
     folders: list[str] = []
     if docs_dir.exists() and docs_dir.is_dir():
@@ -90,7 +90,7 @@ def top_level_folders() -> list[str]:
 
 
 def nested_folders() -> list[str]:
-    """All (nested) folder paths under documentations/, for the destination picker."""
+    """All (nested) folder paths under sources/docs/, for the destination picker."""
     docs_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR)
     dest_folders: list[str] = []
     if docs_dir.exists() and docs_dir.is_dir():
@@ -306,7 +306,7 @@ def _run_docgen_library_background(
     get(DocSourceService).sync_from_filesystem()
 
     # Apply the chosen documentation type to the newly registered source.
-    # A library maps to its top-level folder under documentations/.
+    # A library maps to its top-level folder under sources/docs/.
     top_folder = library_root.split("/")[0]
     DocumentationSource.objects.filter(folder_name=top_folder).update(doc_type=source_doc_type)
 

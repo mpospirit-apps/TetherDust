@@ -68,7 +68,8 @@ export function CodebasesPage() {
 				<div>
 					<h1>Codebases</h1>
 					<p>
-						Source repositories the agent reads on demand (GitHub, no clone)
+						Source repositories the agent reads on demand (GitHub or GitLab, no
+						clone)
 					</p>
 				</div>
 				<Link to="/admin/codebases/new" className="btn btn-primary">
@@ -88,7 +89,7 @@ export function CodebasesPage() {
 						</div>
 						<h3>No Codebases</h3>
 						<p className="text-sec">
-							Add a GitHub repository for the agent to browse.
+							Add a GitHub or GitLab repository for the agent to browse.
 						</p>
 						<Link to="/admin/codebases/new" className="btn btn-primary mt-md">
 							+ Add Codebase

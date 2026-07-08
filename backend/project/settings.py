@@ -339,5 +339,5 @@ TETHERDUST_REPORT_RESULTS_DIR = os.getenv(
 # Documentation sources folder — admins place doc folders here.
 TETHERDUST_DOCUMENTATIONS_DIR = os.getenv(
     "TETHERDUST_DOCUMENTATIONS_DIR",
-    str(BASE_DIR.parent / "documentations"),
+    str(BASE_DIR.parent / "sources" / "docs"),
 )

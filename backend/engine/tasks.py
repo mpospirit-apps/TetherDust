@@ -224,7 +224,9 @@ def sync_codebase(codebase_id: str) -> None:
     filters, and stores the result so ``get_codebase_tree`` is fast and rate-limit
     friendly. File contents are still fetched live by the MCP tools.
     """
-    from .integrations.github_client import GitHubClient, filter_tree
+    from .integrations.github_client import GitHubClient
+    from .integrations.gitlab_client import GitLabClient
+    from .integrations.tree_filter import filter_tree
     from .models import Codebase
 
     try:
@@ -238,11 +240,19 @@ def sync_codebase(codebase_id: str) -> None:
     cb.save(update_fields=["sync_status", "sync_error", "updated_at"])
 
     try:
-        owner, repo = get(CodebaseService).owner_repo(cb)
-        client = GitHubClient(token=cb.access_token or None)
-        default_branch = client.get_repo(owner, repo).get("default_branch") or "main"
-        ref = cb.branch or default_branch
-        raw_tree = client.get_tree(owner, repo, ref)
+        if cb.provider == "gitlab":
+            project = get(CodebaseService).project_path(cb)
+            gl_client = GitLabClient(token=cb.access_token or None)
+            default_branch = gl_client.get_project(project).get("default_branch") or "main"
+            ref = cb.branch or default_branch
+            raw_tree = gl_client.get_tree(project, ref)
+        else:
+            owner, repo = get(CodebaseService).owner_repo(cb)
+            gh_client = GitHubClient(token=cb.access_token or None)
+            default_branch = gh_client.get_repo(owner, repo).get("default_branch") or "main"
+            ref = cb.branch or default_branch
+            raw_tree = gh_client.get_tree(owner, repo, ref)
+
         tree = filter_tree(
             raw_tree, cb.subpath, cb.include_globs, get(CodebaseService).effective_exclude_globs(cb)
         )

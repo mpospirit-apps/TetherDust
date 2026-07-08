@@ -29,7 +29,7 @@ RUN uv sync --locked --no-dev --no-install-project --extra web --extra all-datab
 # Copy project files
 COPY backend/ backend/
 COPY tdmcp/ tdmcp/
-COPY documentations/ documentations/
+COPY sources/docs/ sources/docs/
 
 # Product release version + per-version changelog. Read at runtime by the
 # Version management tab (engine/version.py). These live at the repo root — outside

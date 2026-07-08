@@ -8,6 +8,7 @@ from urllib.parse import quote_plus
 from django.conf import settings
 
 from ..integrations.github_client import parse_owner_repo
+from ..integrations.gitlab_client import parse_gitlab_path
 from ..models.connections import Codebase, DatabaseConnection, DocumentationSource
 
 _SQLALCHEMY_DRIVERS: dict[str, str] = {
@@ -43,8 +44,12 @@ class CodebaseService:
     """Operations on :class:`Codebase`."""
 
     def owner_repo(self, codebase: Codebase) -> tuple[str, str]:
-        """Parse ``repo_url`` into (owner, repo). Raises ValueError if invalid."""
+        """Parse ``repo_url`` into (owner, repo) for GitHub. Raises ValueError if invalid."""
         return parse_owner_repo(codebase.repo_url)
+
+    def project_path(self, codebase: Codebase) -> str:
+        """Parse ``repo_url`` into a GitLab project path. Raises ValueError if invalid."""
+        return parse_gitlab_path(codebase.repo_url)
 
     def ref(self, codebase: Codebase) -> str:
         """Branch the agent should read: explicit branch, else default, else 'main'."""

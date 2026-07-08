@@ -28,7 +28,7 @@ def _get_documentations_dir() -> Path:
     docs_dir = os.environ.get("TETHERDUST_DOCUMENTATIONS_DIR", "").strip()
     if docs_dir:
         return Path(docs_dir)
-    return Path("documentations")
+    return Path("sources/docs")
 
 
 def _introspect_databases(

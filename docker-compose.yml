@@ -24,7 +24,7 @@ services:
       - MCP_TRANSPORT=streamable-http
       - MCP_HOST=0.0.0.0
       - MCP_PORT=8001
-      - TETHERDUST_DOCUMENTATIONS_DIR=/app/documentations
+      - TETHERDUST_DOCUMENTATIONS_DIR=/app/sources/docs
       - ADMIN_DATABASE_URL=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - TETHERDUST_ENCRYPTION_KEY=${TETHERDUST_ENCRYPTION_KEY}
       # Shared secret authenticating filter registration from backend/celery.
@@ -35,7 +35,7 @@ services:
       - INTERNAL_API_SERVICE_TOKEN=${INTERNAL_API_SERVICE_TOKEN}
     volumes:
       - ./tdmcp:/app/tdmcp
-      - ./documentations:/app/documentations
+      - ./sources/docs:/app/sources/docs
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
       interval: 15s
@@ -252,7 +252,7 @@ services:
       # Mount backend source for development (live code changes)
       - ./backend:/app/backend
       - ./tdmcp:/app/tdmcp
-      - ./documentations:/app/documentations:ro
+      - ./sources/docs:/app/sources/docs:ro
       - report-results:/app/report_results
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}

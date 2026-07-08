@@ -74,8 +74,8 @@ htmlcov/
 .ruff_cache/
 
 # Docs except default
-documentations/*
-!documentations/TetherDust\ Documentation
+sources/docs/*
+!sources/docs/TetherDust\ Documentation
 
 # Jupyter
 .ipynb_checkpoints/

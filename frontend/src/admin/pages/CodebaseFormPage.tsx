@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { siGithub, siGitlab } from "simple-icons";
 import { apiErrorDetail } from "../../api/client";
 import {
 	type CodebaseInput,
@@ -22,7 +23,7 @@ const STEPS: WizardStepDef[] = [
 	{
 		key: "configuration",
 		label: "Configuration",
-		description: "Point to the GitHub repository the agent should browse.",
+		description: "Point to the repository the agent should browse.",
 	},
 	{
 		key: "optional",
@@ -34,6 +35,7 @@ const STEPS: WizardStepDef[] = [
 interface FormState {
 	name: string;
 	description: string;
+	provider: string;
 	repo_url: string;
 	branch: string;
 	subpath: string;
@@ -46,6 +48,7 @@ interface FormState {
 const EMPTY: FormState = {
 	name: "",
 	description: "",
+	provider: "github",
 	repo_url: "",
 	branch: "",
 	subpath: "",
@@ -54,6 +57,58 @@ const EMPTY: FormState = {
 	access_token: "",
 	is_active: true,
 };
+
+interface ProviderChoice {
+	value: string;
+	label: string;
+}
+
+const PROVIDER_CHOICES: ProviderChoice[] = [
+	{ value: "github", label: "GitHub" },
+	{ value: "gitlab", label: "GitLab" },
+];
+
+const PROVIDER_META: Record<
+	string,
+	{ icon: { title: string; path: string }; blurb: string }
+> = {
+	github: {
+		icon: { title: siGithub.title, path: siGithub.path },
+		blurb: "Public or private GitHub repository.",
+	},
+	gitlab: {
+		icon: { title: siGitlab.title, path: siGitlab.path },
+		blurb:
+			"Public or private GitLab.com repository (self-managed instances aren't supported).",
+	},
+};
+
+const PROVIDER_URL_PLACEHOLDER: Record<string, string> = {
+	github: "https://github.com/owner/repo",
+	gitlab: "https://gitlab.com/group/project",
+};
+
+const PROVIDER_TOKEN_HELP: Record<string, string> = {
+	github:
+		"Encrypted at rest. Leave blank for public repositories. A read-only (contents: read) fine-grained PAT is sufficient.",
+	gitlab:
+		"Encrypted at rest. Leave blank for public projects. A personal or project access token with the read_repository scope is sufficient.",
+};
+
+function ProviderIconGlyph({
+	icon,
+}: {
+	icon: { title: string; path: string };
+}) {
+	return (
+		<span className="choice-card__icon choice-card__icon--logo">
+			<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+				<title>{icon.title}</title>
+				<path d={icon.path} />
+			</svg>
+		</span>
+	);
+}
 
 function linesToList(value: string): string[] {
 	return value
@@ -71,6 +126,8 @@ export function CodebaseFormPage() {
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
 	const [hasToken, setHasToken] = useState(false);
+	// Create flow, step 1: pick a provider before showing the repository form.
+	const [providerPicked, setProviderPicked] = useState(isEdit);
 
 	const existing = useQuery({
 		queryKey: ["admin", "codebases", id],
@@ -84,6 +141,7 @@ export function CodebaseFormPage() {
 		setForm({
 			name: c.name,
 			description: c.description,
+			provider: c.provider,
 			repo_url: c.repo_url,
 			branch: c.branch,
 			subpath: c.subpath,
@@ -115,7 +173,7 @@ export function CodebaseFormPage() {
 		const payload: CodebaseInput = {
 			name: form.name,
 			description: form.description,
-			provider: "github",
+			provider: form.provider,
 			repo_url: form.repo_url,
 			branch: form.branch,
 			subpath: form.subpath,
@@ -135,12 +193,73 @@ export function CodebaseFormPage() {
 		);
 	}
 
+	// Create flow, step 1: pick a provider.
+	if (!isEdit && !providerPicked) {
+		return (
+			<div>
+				<div className="page-header">
+					<div>
+						<h1>Add Codebase</h1>
+						<p>Choose a repository provider</p>
+					</div>
+					<Link to="/admin/codebases" className="btn btn-ghost">
+						Back
+					</Link>
+				</div>
+				<div className="choice-list choice-list--grid">
+					{PROVIDER_CHOICES.map((c) => {
+						const meta = PROVIDER_META[c.value];
+						return (
+							<button
+								key={c.value}
+								type="button"
+								className="choice-card"
+								onClick={() => {
+									set("provider", c.value);
+									setProviderPicked(true);
+								}}
+							>
+								<ProviderIconGlyph icon={meta.icon} />
+								<div className="choice-card__body">
+									<h4>{c.label}</h4>
+									{meta.blurb && <p>{meta.blurb}</p>}
+								</div>
+								<i className="fa-solid fa-chevron-right choice-card__chevron" />
+							</button>
+						);
+					})}
+				</div>
+			</div>
+		);
+	}
+
+	const providerLabel =
+		PROVIDER_CHOICES.find((c) => c.value === form.provider)?.label ??
+		form.provider;
+	const providerMeta = PROVIDER_META[form.provider] ?? PROVIDER_META.github;
+	const urlPlaceholder =
+		PROVIDER_URL_PLACEHOLDER[form.provider] ?? PROVIDER_URL_PLACEHOLDER.github;
+	const tokenHelp =
+		PROVIDER_TOKEN_HELP[form.provider] ?? PROVIDER_TOKEN_HELP.github;
+
 	return (
 		<div>
 			<div className="page-header">
 				<div>
-					<h1>{isEdit ? `Edit ${form.name}` : "Add Codebase"}</h1>
-					<p>A GitHub repository the agent can browse and read</p>
+					<h1>
+						{isEdit ? (
+							`Edit ${form.name}`
+						) : (
+							<span className="title-icon-tag">
+								<ProviderIconGlyph icon={providerMeta.icon} />
+								{providerLabel}
+							</span>
+						)}
+					</h1>
+					<p>
+						A repository the agent can browse and read (GitHub or GitLab, no
+						clone)
+					</p>
 				</div>
 				<div className="form-actions">
 					<Link to="/admin/codebases" className="btn btn-ghost">
@@ -204,15 +323,25 @@ export function CodebaseFormPage() {
 
 						<div className="card">
 							<h3 style={{ margin: "0 0 var(--md)" }}>Repository</h3>
-							<FormField
-								label="Repository URL"
-								help="e.g. https://github.com/owner/repo"
-							>
+							<FormField label="Provider">
+								<select
+									className="form-control"
+									value={form.provider}
+									onChange={(e) => set("provider", e.target.value)}
+								>
+									{PROVIDER_CHOICES.map((c) => (
+										<option key={c.value} value={c.value}>
+											{c.label}
+										</option>
+									))}
+								</select>
+							</FormField>
+							<FormField label="Repository URL" help={`e.g. ${urlPlaceholder}`}>
 								<input
 									className="form-control"
 									value={form.repo_url}
 									required
-									placeholder="https://github.com/owner/repo"
+									placeholder={urlPlaceholder}
 									onChange={(e) => set("repo_url", e.target.value)}
 								/>
 							</FormField>
@@ -264,7 +393,7 @@ export function CodebaseFormPage() {
 								help={
 									hasToken
 										? "A token is stored. Leave blank to keep it."
-										: "Encrypted at rest. Leave blank for public repositories. A read-only (contents: read) fine-grained PAT is sufficient."
+										: tokenHelp
 								}
 							>
 								<input
@@ -275,7 +404,7 @@ export function CodebaseFormPage() {
 									placeholder={
 										hasToken
 											? "••••••••  (leave blank to keep)"
-											: "Enter GitHub token"
+											: `Enter ${providerLabel} token`
 									}
 									onChange={(e) => set("access_token", e.target.value)}
 								/>
@@ -321,13 +450,13 @@ export function CodebaseFormPage() {
 								<div className="card">
 									<FormField
 										label="Repository URL"
-										help="e.g. https://github.com/owner/repo"
+										help={`e.g. ${urlPlaceholder}`}
 									>
 										<input
 											className="form-control"
 											value={form.repo_url}
 											required
-											placeholder="https://github.com/owner/repo"
+											placeholder={urlPlaceholder}
 											onChange={(e) => set("repo_url", e.target.value)}
 										/>
 									</FormField>
@@ -381,16 +510,13 @@ export function CodebaseFormPage() {
 										placeholder={"node_modules/*\n*.lock"}
 									/>
 								</FormField>
-								<FormField
-									label="Access token"
-									help="Encrypted at rest. Leave blank for public repositories. A read-only (contents: read) fine-grained PAT is sufficient."
-								>
+								<FormField label="Access token" help={tokenHelp}>
 									<input
 										type="password"
 										className="form-control"
 										value={form.access_token}
 										autoComplete="new-password"
-										placeholder="Enter GitHub token"
+										placeholder={`Enter ${providerLabel} token`}
 										onChange={(e) => set("access_token", e.target.value)}
 									/>
 								</FormField>

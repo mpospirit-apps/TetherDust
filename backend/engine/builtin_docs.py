@@ -2,7 +2,7 @@
 
 Documentation sources are normally discovered lazily by
 ``get(DocSourceService).sync_from_filesystem()`` when a staff user opens the
-management docsources list. That means a folder dropped into ``documentations/``
+management docsources list. That means a folder dropped into ``sources/docs/``
 (including the docs that ship with TetherDust) stays invisible — to everyone —
 until someone happens to open that page.
 
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from engine.services import DocSourceService, get
 
-# Folder name (under documentations/) of the docs that ship with the app.
+# Folder name (under sources/docs/) of the docs that ship with the app.
 SHIPPED_DOC_FOLDER = "TetherDust Documentation"
 SHIPPED_DOC_DESCRIPTION = (
     "Official TetherDust product documentation — features, agent integrations, "
