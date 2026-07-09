@@ -37,6 +37,7 @@ export interface Codebase {
 	description: string;
 	provider: string;
 	repo_url: string;
+	local_root: string;
 	branch: string;
 	subpath: string;
 	include_globs: string[];
@@ -56,6 +57,7 @@ export interface CodebaseInput {
 	description?: string;
 	provider?: string;
 	repo_url?: string;
+	local_root?: string;
 	branch?: string;
 	subpath?: string;
 	include_globs?: string[];
@@ -64,7 +66,16 @@ export interface CodebaseInput {
 	is_active?: boolean;
 }
 
+export interface CodebaseFolder {
+	name: string;
+	registered: boolean;
+}
+
 const CB_BASE = "/api/v1/admin/codebases/";
+
+export function codebaseFolders(): Promise<{ folders: CodebaseFolder[] }> {
+	return apiFetch(`${CB_BASE}folders/`);
+}
 
 export function listCodebases(): Promise<Paginated<Codebase>> {
 	return apiFetch(CB_BASE);

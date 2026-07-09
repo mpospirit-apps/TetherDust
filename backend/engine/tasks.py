@@ -113,13 +113,13 @@ def send_report_email_task(execution_id: str, recipient_emails: list[str] | None
 
         sent = send_report_email(execution_id, recipient_emails)
         if sent:
-            logger.info("Report email sent for execution %d.", execution_id)
+            logger.info("Report email sent for execution %s.", execution_id)
         else:
             logger.warning(
-                "Report email not sent for execution %d (service returned False).", execution_id
+                "Report email not sent for execution %s (service returned False).", execution_id
             )
     except Exception:
-        logger.exception("Failed to send report email for execution %d.", execution_id)
+        logger.exception("Failed to send report email for execution %s.", execution_id)
 
 
 @shared_task
@@ -217,13 +217,17 @@ def sync_codex_auth_token() -> None:
 
 @shared_task(soft_time_limit=120, time_limit=150)
 def sync_codebase(codebase_id: str) -> None:
-    """Validate access to a codebase's repo and cache its file tree.
+    """Sync a codebase so the agent can browse/search it.
 
-    On-demand model: we don't clone. Sync resolves the default branch, fetches
-    the recursive git tree, applies the codebase's subpath/include/exclude
-    filters, and stores the result so ``get_codebase_tree`` is fast and rate-limit
-    friendly. File contents are still fetched live by the MCP tools.
+    Remote (GitHub/GitLab): we don't clone. Sync resolves the default branch,
+    fetches the recursive git tree, applies the codebase's subpath/include/exclude
+    filters, and caches the result so ``get_codebase_tree`` is fast and rate-limit
+    friendly; file contents are fetched live by the MCP tools.
+
+    Local: files are read live from disk by the MCP tools (no cached tree needed),
+    so sync only refreshes the ccc semantic index used by ``search_codebase``.
     """
+    from .integrations import ccc_client
     from .integrations.github_client import GitHubClient
     from .integrations.gitlab_client import GitLabClient
     from .integrations.tree_filter import filter_tree
@@ -240,6 +244,21 @@ def sync_codebase(codebase_id: str) -> None:
     cb.save(update_fields=["sync_status", "sync_error", "updated_at"])
 
     try:
+        if cb.provider == "local":
+            if ccc_client.is_configured():
+                result = ccc_client.index(get(CodebaseService).ccc_project(cb))
+                logger.info("Indexed local codebase '%s' via ccc: %s", cb.name, result)
+            else:
+                logger.info(
+                    "ccc not configured; local codebase '%s' is browsable but not searchable.",
+                    cb.name,
+                )
+            cb.last_synced_at = timezone.now()
+            cb.sync_status = Codebase.SYNC_OK
+            cb.sync_error = ""
+            cb.save(update_fields=["last_synced_at", "sync_status", "sync_error", "updated_at"])
+            return
+
         if cb.provider == "gitlab":
             project = get(CodebaseService).project_path(cb)
             gl_client = GitLabClient(token=cb.access_token or None)
@@ -280,6 +299,19 @@ def sync_codebase(codebase_id: str) -> None:
         logger.error("Codebase sync failed for %s: %s", codebase_id, e)
 
 
+@shared_task
+def reindex_local_codebases() -> None:
+    """Periodic: refresh the ccc semantic index for every active local codebase."""
+    from .models import Codebase
+
+    ids = Codebase.objects.filter(provider="local", is_active=True).values_list("pk", flat=True)
+    for cb_id in ids:
+        try:
+            sync_codebase.delay(cb_id)
+        except Exception:
+            sync_codebase(cb_id)
+
+
 @shared_task(soft_time_limit=60, time_limit=90)
 def refresh_single_chart(chart_id: str) -> None:
     """Execute a chart's SQL query and cache the results."""
@@ -307,11 +339,11 @@ def refresh_single_chart(chart_id: str) -> None:
         chart.last_error = ""
         chart.save(update_fields=["cached_data", "last_refreshed_at", "last_error"])
 
-        logger.info("Refreshed chart '%s' (id=%d): %d rows", chart.title, chart.pk, len(rows))
+        logger.info("Refreshed chart '%s' (id=%s): %d rows", chart.title, chart.pk, len(rows))
     except Exception as e:
         chart.last_error = str(e)
         chart.save(update_fields=["last_error"])
-        logger.error("Failed to refresh chart %d: %s", chart_id, e)
+        logger.error("Failed to refresh chart %s: %s", chart_id, e)
 
 
 @shared_task

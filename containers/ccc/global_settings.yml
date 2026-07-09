@@ -1,0 +1,11 @@
+# CocoIndex Code — global settings (baked into the ccc service image).
+# Keeps `ccc init` / `ccc index` non-interactive: the embedding provider is fixed
+# to a local sentence-transformers model, so indexing needs no API key or network.
+# After editing, rebuild the ccc image and run `ccc doctor` inside the container.
+
+embedding:
+  provider: sentence-transformers
+  model: Snowflake/snowflake-arctic-embed-xs
+  indexing_params: {}
+  query_params:
+    prompt_name: query

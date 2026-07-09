@@ -280,6 +280,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "engine.tasks.check_for_updates",
         "schedule": 21600.0,  # every 6 hours
     },
+    "reindex-local-codebases": {
+        "task": "engine.tasks.reindex_local_codebases",
+        "schedule": 21600.0,  # every 6 hours — refresh the ccc semantic index
+    },
 }
 
 
@@ -341,3 +345,13 @@ TETHERDUST_DOCUMENTATIONS_DIR = os.getenv(
     "TETHERDUST_DOCUMENTATIONS_DIR",
     str(BASE_DIR.parent / "sources" / "docs"),
 )
+
+# Local codebases folder — admins place codebase folders here (one per codebase).
+TETHERDUST_CODEBASES_DIR = os.getenv(
+    "TETHERDUST_CODEBASES_DIR",
+    str(BASE_DIR.parent / "sources" / "codebases"),
+)
+
+# ccc (cocoindex-code) semantic-search service — used to index/search local
+# codebases (and, later, other content). Empty disables local code search.
+CCC_SERVICE_URL = os.getenv("CCC_SERVICE_URL", "")
