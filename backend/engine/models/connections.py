@@ -113,9 +113,11 @@ class Codebase(models.Model):
 
     A codebase is a first-class "source" alongside databases and documentation:
     the agent browses and reads its files via the codebase MCP tools, and roles
-    grant access through ``Role.allowed_codebases``. v1 supports GitHub via the
-    REST API (no clone); contents are fetched live and the file tree is cached
-    on sync.
+    grant access through ``Role.allowed_codebases``. Supports GitHub and GitLab
+    (gitlab.com only, no self-managed instances) via their REST APIs (no clone),
+    plus ``local`` codebases served from a folder under ``sources/codebases/``.
+    Remote contents are fetched live and the file tree is cached on sync; local
+    contents are read live from disk and searched via the ccc semantic index.
     """
 
     class Meta:
@@ -126,7 +128,11 @@ class Codebase(models.Model):
             models.UniqueConstraint(fields=["name"], name="uq_%(class)s_name"),
         ]
 
-    PROVIDER_CHOICES: ClassVar[list[tuple[str, str]]] = [("github", "GitHub")]
+    PROVIDER_CHOICES: ClassVar[list[tuple[str, str]]] = [
+        ("github", "GitHub"),
+        ("gitlab", "GitLab"),
+        ("local", "Local"),
+    ]
 
     SYNC_PENDING: ClassVar[str] = "pending"
     SYNC_SYNCING: ClassVar[str] = "syncing"
@@ -195,7 +201,14 @@ class Codebase(models.Model):
     repo_url = models.CharField(
         verbose_name="repo URL",
         max_length=500,
-        help_text="e.g. https://github.com/owner/repo",
+        blank=True,
+        help_text="e.g. https://github.com/owner/repo or https://gitlab.com/group/project",
+    )
+    local_root = models.CharField(
+        verbose_name="local root",
+        max_length=255,
+        blank=True,
+        help_text="For local codebases: the folder name under sources/codebases/.",
     )
     branch = models.CharField(
         max_length=255, blank=True, help_text="Leave blank to use the repository's default branch"

@@ -8,6 +8,7 @@ from urllib.parse import quote_plus
 from django.conf import settings
 
 from ..integrations.github_client import parse_owner_repo
+from ..integrations.gitlab_client import parse_gitlab_path
 from ..models.connections import Codebase, DatabaseConnection, DocumentationSource
 
 _SQLALCHEMY_DRIVERS: dict[str, str] = {
@@ -43,8 +44,12 @@ class CodebaseService:
     """Operations on :class:`Codebase`."""
 
     def owner_repo(self, codebase: Codebase) -> tuple[str, str]:
-        """Parse ``repo_url`` into (owner, repo). Raises ValueError if invalid."""
+        """Parse ``repo_url`` into (owner, repo) for GitHub. Raises ValueError if invalid."""
         return parse_owner_repo(codebase.repo_url)
+
+    def project_path(self, codebase: Codebase) -> str:
+        """Parse ``repo_url`` into a GitLab project path. Raises ValueError if invalid."""
+        return parse_gitlab_path(codebase.repo_url)
 
     def ref(self, codebase: Codebase) -> str:
         """Branch the agent should read: explicit branch, else default, else 'main'."""
@@ -53,6 +58,17 @@ class CodebaseService:
     def effective_exclude_globs(self, codebase: Codebase) -> list[str]:
         """Configured excludes, or the default set when none are configured."""
         return codebase.exclude_globs or Codebase.DEFAULT_EXCLUDE_GLOBS
+
+    def ccc_project(self, codebase: Codebase) -> str:
+        """ccc project path (relative to the ccc ``/app`` mount) for a local codebase.
+
+        Kept in sync with the tdmcp-side ``_codebase_local.ccc_project`` so search
+        hits resolve against the same root the browse tools read from.
+        """
+        project = "sources/codebases/" + codebase.local_root.strip("/")
+        if codebase.subpath:
+            project += "/" + codebase.subpath.strip("/")
+        return project
 
 
 class DocSourceService:

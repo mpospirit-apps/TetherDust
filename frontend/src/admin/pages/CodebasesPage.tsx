@@ -68,7 +68,8 @@ export function CodebasesPage() {
 				<div>
 					<h1>Codebases</h1>
 					<p>
-						Source repositories the agent reads on demand (GitHub, no clone)
+						Source code the agent reads on demand — a GitHub or GitLab
+						repository (no clone) or a local folder under sources/codebases/
 					</p>
 				</div>
 				<Link to="/admin/codebases/new" className="btn btn-primary">
@@ -88,7 +89,7 @@ export function CodebasesPage() {
 						</div>
 						<h3>No Codebases</h3>
 						<p className="text-sec">
-							Add a GitHub repository for the agent to browse.
+							Add a GitHub, GitLab, or local codebase for the agent to browse.
 						</p>
 						<Link to="/admin/codebases/new" className="btn btn-primary mt-md">
 							+ Add Codebase
@@ -117,9 +118,21 @@ export function CodebasesPage() {
 												</div>
 											)}
 										</td>
-										<td className="text-sm">{c.repo_url}</td>
 										<td className="text-sm">
-											{c.branch || c.default_branch || "default"}
+											{c.provider === "local" ? (
+												<span>
+													<i className="fa-solid fa-folder-open" />{" "}
+													{c.local_root || "—"}{" "}
+													<span className="badge badge-muted">LOCAL</span>
+												</span>
+											) : (
+												c.repo_url
+											)}
+										</td>
+										<td className="text-sm">
+											{c.provider === "local"
+												? "—"
+												: c.branch || c.default_branch || "default"}
 										</td>
 										<td>
 											<SyncBadge status={c.sync_status} error={c.sync_error} />

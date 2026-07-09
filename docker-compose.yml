@@ -24,7 +24,8 @@ services:
       - MCP_TRANSPORT=streamable-http
       - MCP_HOST=0.0.0.0
       - MCP_PORT=8001
-      - TETHERDUST_DOCUMENTATIONS_DIR=/app/documentations
+      - TETHERDUST_DOCUMENTATIONS_DIR=/app/sources/docs
+      - TETHERDUST_CODEBASES_DIR=/app/sources/codebases
       - ADMIN_DATABASE_URL=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - TETHERDUST_ENCRYPTION_KEY=${TETHERDUST_ENCRYPTION_KEY}
       # Shared secret authenticating filter registration from backend/celery.
@@ -33,9 +34,14 @@ services:
       # write via the backend internal API instead of raw SQL.
       - BACKEND_INTERNAL_API_URL=http://backend:8000/api/internal
       - INTERNAL_API_SERVICE_TOKEN=${INTERNAL_API_SERVICE_TOKEN}
+      # Semantic search for local codebases (search_codebase → ccc service).
+      - CCC_SERVICE_URL=http://ccc:8004
+      - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
     volumes:
       - ./tdmcp:/app/tdmcp
-      - ./documentations:/app/documentations
+      - ./sources/docs:/app/sources/docs
+      # Local codebases are read live from disk by the codebase MCP tools.
+      - ./sources/codebases:/app/sources/codebases:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
       interval: 15s
@@ -59,6 +65,31 @@ services:
       interval: 15s
       timeout: 5s
       start_period: 30s
+      retries: 3
+
+  # Semantic-search service (cocoindex-code) behind a FastAPI wrapper. Indexes and
+  # searches content under ./sources — local codebases today (sources/codebases),
+  # reusable for docs/other domains later. Owns torch + the embedding model + the
+  # on-disk index; called over HTTP by tdmcp (search) and backend/celery (index).
+  # Deliberately NOT a backend dependency: if it's down, local codebases stay
+  # browsable/readable and only semantic search is unavailable.
+  ccc:
+    build:
+      context: .
+      dockerfile: containers/ccc/Dockerfile
+    environment:
+      - CCC_API_PORT=8004
+      - LOG_LEVEL=INFO
+      # Shared secret authenticating tdmcp/backend → ccc calls.
+      - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
+    volumes:
+      # rw: ccc writes its index into <project>/.cocoindex_code under sources/.
+      - ./sources:/app/sources
+    healthcheck:
+      test: ["CMD", "/opt/ccc-venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/healthz')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 45s
       retries: 3
 
   codex:
@@ -252,7 +283,9 @@ services:
       # Mount backend source for development (live code changes)
       - ./backend:/app/backend
       - ./tdmcp:/app/tdmcp
-      - ./documentations:/app/documentations:ro
+      - ./sources/docs:/app/sources/docs:ro
+      # Read-only: the codebases admin lists/validates local folders here.
+      - ./sources/codebases:/app/sources/codebases:ro
       - report-results:/app/report_results
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
@@ -286,7 +319,9 @@ services:
       - CLAUDE_API_SERVICE_URL=http://claude-api:8002
       - MCP_BASE_URL=http://tdmcp:8001
       - LOCAL_MCP_BASE_URL=http://local-mcp:8003
-      # Shared secrets: filter registration (→ mcp) and gateway calls (→ codex/claude).
+      # ccc semantic-search service (indexing local codebases on sync).
+      - CCC_SERVICE_URL=http://ccc:8004
+      # Shared secrets: filter registration (→ mcp) and gateway calls (→ codex/claude/ccc).
       - MCP_FILTER_SECRET=${MCP_FILTER_SECRET}
       - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
       # Shared secret authenticating the internal service API (tdmcp → backend).
@@ -350,9 +385,11 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - TETHERDUST_REPORT_RESULTS_DIR=/app/report_results
-      # Worker runs agent-driven jobs (reports/charts/docs) + the Codex token sync.
+      # Worker runs agent-driven jobs (reports/charts/docs) + the Codex token sync
+      # + codebase sync (local codebases → ccc index).
       - MCP_FILTER_SECRET=${MCP_FILTER_SECRET}
       - AGENT_GATEWAY_SECRET=${AGENT_GATEWAY_SECRET}
+      - CCC_SERVICE_URL=http://ccc:8004
 
   celery-beat:
     build:
