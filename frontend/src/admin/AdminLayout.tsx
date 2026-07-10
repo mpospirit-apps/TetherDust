@@ -25,6 +25,11 @@ const SIDEBAR: SidebarSection[] = [
 				icon: "fa-gauge-high",
 				end: true,
 			},
+			{
+				to: "/admin/getting-started",
+				label: "Getting Started",
+				icon: "fa-rocket",
+			},
 			{ to: "/admin/version", label: "Version", icon: "fa-code-compare" },
 		],
 	},

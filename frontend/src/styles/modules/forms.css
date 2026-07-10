@@ -348,10 +348,14 @@ input[type="checkbox"]:focus-visible {
 	padding: var(--sm) var(--md);
 	font-size: var(--text-sm);
 	font-weight: 500;
+	font-family: inherit;
 	color: var(--text-sec);
 	text-decoration: none;
+	background: none;
+	border: none;
 	border-bottom: 2px solid transparent;
 	margin-bottom: -1px;
+	cursor: pointer;
 	transition:
 		color 0.15s,
 		border-color 0.15s;
