@@ -26,6 +26,7 @@ import { DocLibraryPage } from "./admin/pages/DocLibraryPage";
 import { DocSourceAddPage } from "./admin/pages/DocSourceAddPage";
 import { DocSourceFormPage } from "./admin/pages/DocSourceFormPage";
 import { DocSourcesPage } from "./admin/pages/DocSourcesPage";
+import { GettingStartedPage } from "./admin/pages/GettingStartedPage";
 import { MCPServerDetailPage } from "./admin/pages/MCPServerDetailPage";
 import { MCPServerFormPage } from "./admin/pages/MCPServerFormPage";
 import { MCPServersPage } from "./admin/pages/MCPServersPage";
@@ -84,6 +85,7 @@ export function App() {
 				}
 			>
 				<Route index element={<AdminHome />} />
+				<Route path="getting-started" element={<GettingStartedPage />} />
 				<Route path="version" element={<VersionPage />} />
 				<Route path="databases" element={<DatabasesPage />} />
 				<Route path="databases/new" element={<DatabaseFormPage />} />

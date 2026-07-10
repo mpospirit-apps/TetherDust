@@ -660,32 +660,6 @@
 	color: var(--text);
 }
 
-/* ── Picked-value control (e.g. engine/connection-kind badge + Change
-   button): a bordered, segmented pair so the "Change" side reads as an
-   actual control, not inert label text next to a badge. ── */
-.picked-control {
-	display: inline-flex;
-	align-items: stretch;
-	border: 1px solid rgba(26, 26, 26, 0.12);
-}
-[data-theme="dark"] .picked-control {
-	border-color: rgba(255, 255, 255, 0.12);
-}
-.picked-control .type-badge {
-	background: transparent;
-}
-.picked-control .btn {
-	border-left: 1px solid rgba(26, 26, 26, 0.12);
-	border-radius: 0;
-}
-[data-theme="dark"] .picked-control .btn {
-	border-left-color: rgba(255, 255, 255, 0.12);
-}
-.picked-control .btn:hover {
-	background: rgba(61, 188, 217, 0.08);
-	color: var(--c-cyan);
-}
-
 /* ── Tables ── */
 .table-wrap {
 	overflow-x: auto;
@@ -819,6 +793,22 @@ tr.clickable-row td {
 	background: rgba(61, 188, 217, 0.08);
 }
 
+/* Passive "done" state — swaps in for a btn-primary CTA once its step is
+   complete, so the button itself communicates status instead of a badge. */
+.btn-completed {
+	background: transparent;
+	border: 2px solid var(--c-lime);
+	color: var(--c-lime);
+	padding: 10px 24px;
+	cursor: default;
+}
+.btn-completed:hover,
+.btn-completed:active {
+	background: transparent;
+	box-shadow: none;
+	transform: none;
+}
+
 .btn-ghost {
 	background: transparent;
 	color: var(--text);
@@ -851,4 +841,30 @@ tr.clickable-row td {
 }
 .btn:active {
 	transform: scale(0.97);
+}
+
+/* ── Picked-value control (e.g. engine/connection-kind badge + Change
+   button): a bordered, segmented pair so the "Change" side reads as an
+   actual control, not inert label text next to a badge. ── */
+.picked-control {
+	display: inline-flex;
+	align-items: stretch;
+	border: 1px solid rgba(26, 26, 26, 0.12);
+}
+[data-theme="dark"] .picked-control {
+	border-color: rgba(255, 255, 255, 0.12);
+}
+.picked-control .type-badge {
+	background: transparent;
+}
+.picked-control .btn {
+	border-left: 1px solid rgba(26, 26, 26, 0.12);
+	border-radius: 0;
+}
+[data-theme="dark"] .picked-control .btn {
+	border-left-color: rgba(255, 255, 255, 0.12);
+}
+.picked-control .btn:hover {
+	background: rgba(61, 188, 217, 0.08);
+	color: var(--c-cyan);
 }
