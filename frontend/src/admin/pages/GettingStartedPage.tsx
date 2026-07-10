@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { type ReactElement, useState } from "react";
+import { type CSSProperties, type ReactElement, useState } from "react";
 import { Link } from "react-router-dom";
 import {
 	listAgents,
@@ -164,6 +164,765 @@ function WelcomeTab({ onGetStarted }: { onGetStarted: () => void }) {
 	);
 }
 
+// Five main sections the agent powers, placed clockwise from the top around
+// a regular pentagon. nx/ny are the precomputed cos/sin of each spoke's
+// angle, used to offset each node from the center by --star-radius in CSS.
+// Colors match each section's own accent in the main nav (see Navbar.tsx).
+const AGENT_STAR_NODES = [
+	{
+		key: "chat",
+		label: "Chat",
+		icon: "fa-comments",
+		angle: -90,
+		nx: 0,
+		ny: -1,
+		color: "var(--c-cyan)",
+	},
+	{
+		key: "docs",
+		label: "Docs",
+		icon: "fa-file-lines",
+		angle: -18,
+		nx: 0.951,
+		ny: -0.309,
+		color: "var(--c-lime)",
+	},
+	{
+		key: "reports",
+		label: "Reports",
+		icon: "fa-table-list",
+		angle: 54,
+		nx: 0.588,
+		ny: 0.809,
+		color: "var(--c-orange)",
+	},
+	{
+		key: "dashboards",
+		label: "Dashboards",
+		icon: "fa-chart-bar",
+		angle: 126,
+		nx: -0.588,
+		ny: 0.809,
+		color: "var(--c-red)",
+	},
+	{
+		key: "tethers",
+		label: "Tethers",
+		icon: "fa-diagram-project",
+		angle: 198,
+		nx: -0.951,
+		ny: -0.309,
+		color: "var(--c-pink)",
+	},
+] as const;
+
+function AgentStarDiagram() {
+	return (
+		<div className="agent-star">
+			{AGENT_STAR_NODES.map((node) => (
+				<div
+					key={node.key}
+					className="agent-star__spoke"
+					style={{ "--angle": `${node.angle}deg` } as CSSProperties}
+				/>
+			))}
+			<div className="agent-star__center">
+				<div className="doc-hiw-icon agent-star__center-icon">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="agent-star__label">Agent</div>
+			</div>
+			{AGENT_STAR_NODES.map((node) => (
+				<div
+					key={node.key}
+					className="agent-star__node"
+					style={
+						{
+							"--nx": node.nx,
+							"--ny": node.ny,
+							"--bubble": node.color,
+						} as CSSProperties
+					}
+				>
+					<div className="doc-hiw-icon agent-star__node-icon">
+						<i className={`fa-solid ${node.icon}`} />
+					</div>
+					<div className="agent-star__label">{node.label}</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+function CodebaseConnectionDiagram() {
+	return (
+		<div className="codebase-flow">
+			<svg viewBox="0 0 400 220" className="codebase-flow__svg">
+				<title>Codebase Connection Flow</title>
+				<path
+					d="M 40,40 C 120,40 120,110 200,110"
+					className="codebase-flow__line"
+				/>
+				<path d="M 40,110 L 200,110" className="codebase-flow__line" />
+				<path
+					d="M 40,180 C 120,180 120,110 200,110"
+					className="codebase-flow__line"
+				/>
+				<path d="M 200,110 L 348,110" className="codebase-flow__line-agent" />
+			</svg>
+
+			<div className="codebase-flow__node codebase-flow__node--github">
+				<div className="doc-hiw-icon codebase-flow__icon codebase-flow__icon--github">
+					<i className="fa-brands fa-github" />
+				</div>
+				<div className="codebase-flow__label">GitHub</div>
+			</div>
+
+			<div className="codebase-flow__node codebase-flow__node--gitlab">
+				<div className="doc-hiw-icon codebase-flow__icon codebase-flow__icon--gitlab">
+					<i className="fa-brands fa-gitlab" />
+				</div>
+				<div className="codebase-flow__label">GitLab</div>
+			</div>
+
+			<div className="codebase-flow__node codebase-flow__node--local">
+				<div className="doc-hiw-icon codebase-flow__icon codebase-flow__icon--local">
+					<i className="fa-solid fa-folder-open" />
+				</div>
+				<div className="codebase-flow__label">Local Folder</div>
+			</div>
+
+			<div className="codebase-flow__node codebase-flow__node--hub">
+				<div className="doc-hiw-icon codebase-flow__icon codebase-flow__icon--hub">
+					<i className="fa-solid fa-code-branch" />
+				</div>
+				<div className="codebase-flow__label">Connection</div>
+			</div>
+
+			<div className="codebase-flow__node codebase-flow__node--agent">
+				<div className="doc-hiw-icon codebase-flow__icon codebase-flow__icon--agent">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="codebase-flow__label">Agent</div>
+			</div>
+		</div>
+	);
+}
+
+function CodebaseDocsDiagram() {
+	return (
+		<div className="docs-flow">
+			<svg viewBox="0 0 400 220" className="docs-flow__svg">
+				<title>Codebase Documentation Flow</title>
+				<path
+					d="M 40,40 C 120,40 120,110 200,110"
+					className="docs-flow__line-left"
+				/>
+				<path d="M 40,110 L 200,110" className="docs-flow__line-left" />
+				<path
+					d="M 40,180 C 120,180 120,110 200,110"
+					className="docs-flow__line-left"
+				/>
+				<path
+					d="M 200,110 C 280,110 280,40 360,40"
+					className="docs-flow__line-right"
+				/>
+				<path d="M 200,110 L 360,110" className="docs-flow__line-right" />
+				<path
+					d="M 200,110 C 280,110 280,180 360,180"
+					className="docs-flow__line-right"
+				/>
+			</svg>
+
+			<div className="docs-flow__node docs-flow__node--code1">
+				<div className="doc-hiw-icon docs-flow__icon docs-flow__icon--code">
+					<i className="fa-solid fa-file-code" />
+				</div>
+				<div className="docs-flow__label">main.py</div>
+			</div>
+
+			<div className="docs-flow__node docs-flow__node--code2">
+				<div className="doc-hiw-icon docs-flow__icon docs-flow__icon--code">
+					<i className="fa-solid fa-file-code" />
+				</div>
+				<div className="docs-flow__label">utils.ts</div>
+			</div>
+
+			<div className="docs-flow__node docs-flow__node--code3">
+				<div className="doc-hiw-icon docs-flow__icon docs-flow__icon--code">
+					<i className="fa-solid fa-file-code" />
+				</div>
+				<div className="docs-flow__label">api.go</div>
+			</div>
+
+			<div className="docs-flow__node docs-flow__node--agent">
+				<div className="doc-hiw-icon docs-flow__icon docs-flow__icon--agent">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="docs-flow__label">Agent</div>
+			</div>
+
+			<div className="docs-flow__node docs-flow__node--doc1">
+				<div className="doc-hiw-icon docs-flow__icon docs-flow__icon--doc">
+					<i className="fa-solid fa-file-lines" />
+				</div>
+				<div className="docs-flow__label">overview.md</div>
+			</div>
+
+			<div className="docs-flow__node docs-flow__node--doc2">
+				<div className="doc-hiw-icon docs-flow__icon docs-flow__icon--doc">
+					<i className="fa-solid fa-file-lines" />
+				</div>
+				<div className="docs-flow__label">modules.md</div>
+			</div>
+
+			<div className="docs-flow__node docs-flow__node--doc3">
+				<div className="doc-hiw-icon docs-flow__icon docs-flow__icon--doc">
+					<i className="fa-solid fa-file-lines" />
+				</div>
+				<div className="docs-flow__label">api.md</div>
+			</div>
+		</div>
+	);
+}
+
+function DatabaseConnectionDiagram() {
+	return (
+		<div className="database-flow">
+			<svg viewBox="0 0 400 220" className="database-flow__svg">
+				<title>Database Connection Flow</title>
+				<path
+					d="M 40,40 C 120,40 120,110 200,110"
+					className="database-flow__line"
+				/>
+				<path d="M 40,110 L 200,110" className="database-flow__line" />
+				<path
+					d="M 40,180 C 120,180 120,110 200,110"
+					className="database-flow__line"
+				/>
+				<path d="M 200,110 L 348,110" className="database-flow__line-agent" />
+			</svg>
+
+			<div className="database-flow__node database-flow__node--postgres">
+				<div className="doc-hiw-icon database-flow__icon database-flow__icon--postgres">
+					<i className="fa-solid fa-database" />
+				</div>
+				<div className="database-flow__label">PostgreSQL</div>
+			</div>
+
+			<div className="database-flow__node database-flow__node--mysql">
+				<div className="doc-hiw-icon database-flow__icon database-flow__icon--mysql">
+					<i className="fa-solid fa-database" />
+				</div>
+				<div className="database-flow__label">MySQL</div>
+			</div>
+
+			<div className="database-flow__node database-flow__node--snowflake">
+				<div className="doc-hiw-icon database-flow__icon database-flow__icon--snowflake">
+					<i className="fa-solid fa-snowflake" />
+				</div>
+				<div className="database-flow__label">Snowflake</div>
+			</div>
+
+			<div className="database-flow__node database-flow__node--hub">
+				<div className="doc-hiw-icon database-flow__icon database-flow__icon--hub">
+					<i className="fa-solid fa-plug" />
+				</div>
+				<div className="database-flow__label">Connection</div>
+			</div>
+
+			<div className="database-flow__node database-flow__node--agent">
+				<div className="doc-hiw-icon database-flow__icon database-flow__icon--agent">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="database-flow__label">Agent</div>
+			</div>
+		</div>
+	);
+}
+
+function DatabaseDocsDiagram() {
+	return (
+		<div className="db-docs-flow">
+			<svg viewBox="0 0 400 220" className="db-docs-flow__svg">
+				<title>Database Documentation Flow</title>
+				<path
+					d="M 40,40 C 120,40 120,110 200,110"
+					className="db-docs-flow__line-left"
+				/>
+				<path d="M 40,110 L 200,110" className="db-docs-flow__line-left" />
+				<path
+					d="M 40,180 C 120,180 120,110 200,110"
+					className="db-docs-flow__line-left"
+				/>
+				<path
+					d="M 200,110 C 280,110 280,40 360,40"
+					className="db-docs-flow__line-right"
+				/>
+				<path d="M 200,110 L 360,110" className="db-docs-flow__line-right" />
+				<path
+					d="M 200,110 C 280,110 280,180 360,180"
+					className="db-docs-flow__line-right"
+				/>
+			</svg>
+
+			<div className="db-docs-flow__node db-docs-flow__node--db">
+				<div className="doc-hiw-icon db-docs-flow__icon db-docs-flow__icon--db">
+					<i className="fa-solid fa-database" />
+				</div>
+				<div className="db-docs-flow__label">Database</div>
+			</div>
+
+			<div className="db-docs-flow__node db-docs-flow__node--codebase">
+				<div className="doc-hiw-icon db-docs-flow__icon db-docs-flow__icon--codebase">
+					<i className="fa-solid fa-code-branch" />
+				</div>
+				<div className="db-docs-flow__label">Codebase</div>
+			</div>
+
+			<div className="db-docs-flow__node db-docs-flow__node--codedocs">
+				<div className="doc-hiw-icon db-docs-flow__icon db-docs-flow__icon--codedocs">
+					<i className="fa-solid fa-book-open" />
+				</div>
+				<div className="db-docs-flow__label">Codebase Docs</div>
+			</div>
+
+			<div className="db-docs-flow__node db-docs-flow__node--agent">
+				<div className="doc-hiw-icon db-docs-flow__icon db-docs-flow__icon--agent">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="db-docs-flow__label">Agent</div>
+			</div>
+
+			<div className="db-docs-flow__node db-docs-flow__node--doc1">
+				<div className="doc-hiw-icon db-docs-flow__icon db-docs-flow__icon--doc">
+					<i className="fa-solid fa-file-lines" />
+				</div>
+				<div className="db-docs-flow__label">users.md</div>
+			</div>
+
+			<div className="db-docs-flow__node db-docs-flow__node--doc2">
+				<div className="doc-hiw-icon db-docs-flow__icon db-docs-flow__icon--doc">
+					<i className="fa-solid fa-file-lines" />
+				</div>
+				<div className="db-docs-flow__label">orders.md</div>
+			</div>
+
+			<div className="db-docs-flow__node db-docs-flow__node--doc3">
+				<div className="doc-hiw-icon db-docs-flow__icon db-docs-flow__icon--doc">
+					<i className="fa-solid fa-file-lines" />
+				</div>
+				<div className="db-docs-flow__label">products.md</div>
+			</div>
+		</div>
+	);
+}
+
+function TetherConnectionDiagram() {
+	return (
+		<div className="tether-flow">
+			<svg viewBox="0 0 400 220" className="tether-flow__svg">
+				<title>Tether Connection Flow</title>
+				<path d="M 60,60 L 200,60" className="tether-flow__line-bridge" />
+				<path d="M 340,60 L 200,60" className="tether-flow__line-bridge" />
+				<path d="M 200,158 L 200,60" className="tether-flow__line-agent" />
+			</svg>
+
+			<div className="tether-flow__node tether-flow__node--codebase">
+				<div className="doc-hiw-icon tether-flow__icon tether-flow__icon--codebase">
+					<i className="fa-solid fa-code-branch" />
+				</div>
+				<div className="tether-flow__label">Codebase</div>
+			</div>
+
+			<div className="tether-flow__node tether-flow__node--database">
+				<div className="doc-hiw-icon tether-flow__icon tether-flow__icon--database">
+					<i className="fa-solid fa-database" />
+				</div>
+				<div className="tether-flow__label">Database</div>
+			</div>
+
+			<div className="tether-flow__node tether-flow__node--tether">
+				<div className="doc-hiw-icon tether-flow__icon tether-flow__icon--tether">
+					<i className="fa-solid fa-diagram-project" />
+				</div>
+				<div className="tether-flow__label">Tether</div>
+			</div>
+
+			<div className="tether-flow__node tether-flow__node--agent">
+				<div className="doc-hiw-icon tether-flow__icon tether-flow__icon--agent">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="tether-flow__label">Agent</div>
+			</div>
+		</div>
+	);
+}
+
+function ReportDiagram() {
+	return (
+		<div className="report-flow">
+			<svg viewBox="0 0 400 220" className="report-flow__svg">
+				<title>Report Flow Diagram</title>
+				<path
+					d="M 60,60 C 130,60 130,110 200,110"
+					className="report-flow__line-left"
+				/>
+				<path
+					d="M 60,140 C 130,140 130,110 200,110"
+					className="report-flow__line-left"
+				/>
+				<path
+					d="M 200,110 C 270,110 270,60 340,60"
+					className="report-flow__line-right"
+				/>
+				<path
+					d="M 200,110 C 270,110 270,140 340,140"
+					className="report-flow__line-right"
+				/>
+			</svg>
+
+			<div className="report-flow__node report-flow__node--sql">
+				<div className="doc-hiw-icon report-flow__icon report-flow__icon--sql">
+					<i className="fa-solid fa-scroll" />
+				</div>
+				<div className="report-flow__label">Saved SQL</div>
+			</div>
+
+			<div className="report-flow__node report-flow__node--schedule">
+				<div className="doc-hiw-icon report-flow__icon report-flow__icon--schedule">
+					<i className="fa-solid fa-clock" />
+				</div>
+				<div className="report-flow__label">Schedule</div>
+			</div>
+
+			<div className="report-flow__node report-flow__node--worker">
+				<div className="doc-hiw-icon report-flow__icon report-flow__icon--worker">
+					<i className="fa-solid fa-gears" />
+				</div>
+				<div className="report-flow__label">Celery Worker</div>
+			</div>
+
+			<div className="report-flow__node report-flow__node--inapp">
+				<div className="doc-hiw-icon report-flow__icon report-flow__icon--inapp">
+					<i className="fa-solid fa-bell" />
+				</div>
+				<div className="report-flow__label">In-App</div>
+			</div>
+
+			<div className="report-flow__node report-flow__node--email">
+				<div className="doc-hiw-icon report-flow__icon report-flow__icon--email">
+					<i className="fa-solid fa-envelope" />
+				</div>
+				<div className="report-flow__label">Email</div>
+			</div>
+		</div>
+	);
+}
+
+function DashboardDiagram() {
+	return (
+		<div className="dashboard-flow">
+			<svg viewBox="0 0 460 220" className="dashboard-flow__svg">
+				<title>Dashboard Flow Diagram</title>
+				<path
+					d="M 40,40 C 102.5,40 102.5,110 165,110"
+					className="dashboard-flow__line-left"
+				/>
+				<path d="M 40,110 L 165,110" className="dashboard-flow__line-left" />
+				<path
+					d="M 40,180 C 102.5,180 102.5,110 165,110"
+					className="dashboard-flow__line-left"
+				/>
+				<path
+					d="M 165,110 C 225,110 225,40 285,40"
+					className="dashboard-flow__line-right"
+				/>
+				<path d="M 165,110 L 285,110" className="dashboard-flow__line-right" />
+				<path
+					d="M 165,110 C 225,110 225,180 285,180"
+					className="dashboard-flow__line-right"
+				/>
+				<path
+					d="M 285,40 C 348.5,40 348.5,110 412,110"
+					className="dashboard-flow__line-right"
+				/>
+				<path d="M 285,110 L 412,110" className="dashboard-flow__line-right" />
+				<path
+					d="M 285,180 C 348.5,180 348.5,110 412,110"
+					className="dashboard-flow__line-right"
+				/>
+			</svg>
+
+			{/* Column 1: Sources */}
+			<div className="dashboard-flow__node dashboard-flow__node--db">
+				<div className="doc-hiw-icon dashboard-flow__icon dashboard-flow__icon--db">
+					<i className="fa-solid fa-database" />
+				</div>
+				<div className="dashboard-flow__label">Database</div>
+			</div>
+
+			<div className="dashboard-flow__node dashboard-flow__node--codebase">
+				<div className="doc-hiw-icon dashboard-flow__icon dashboard-flow__icon--codebase">
+					<i className="fa-solid fa-code-branch" />
+				</div>
+				<div className="dashboard-flow__label">Codebase</div>
+			</div>
+
+			<div className="dashboard-flow__node dashboard-flow__node--docs">
+				<div className="doc-hiw-icon dashboard-flow__icon dashboard-flow__icon--docs">
+					<i className="fa-solid fa-book-open" />
+				</div>
+				<div className="dashboard-flow__label">Docs</div>
+			</div>
+
+			{/* Column 2: Agent */}
+			<div className="dashboard-flow__node dashboard-flow__node--agent">
+				<div className="doc-hiw-icon dashboard-flow__icon dashboard-flow__icon--agent">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="dashboard-flow__label">Agent</div>
+			</div>
+
+			{/* Column 3: Visual Charts */}
+			<div className="dashboard-flow__node dashboard-flow__node--chart1">
+				<div className="doc-hiw-icon dashboard-flow__icon dashboard-flow__icon--chart1">
+					<i className="fa-solid fa-chart-column" />
+				</div>
+				<div className="dashboard-flow__label">Bar Chart</div>
+			</div>
+
+			<div className="dashboard-flow__node dashboard-flow__node--chart2">
+				<div className="doc-hiw-icon dashboard-flow__icon dashboard-flow__icon--chart2">
+					<i className="fa-solid fa-chart-pie" />
+				</div>
+				<div className="dashboard-flow__label">Pie Chart</div>
+			</div>
+
+			<div className="dashboard-flow__node dashboard-flow__node--chart3">
+				<div className="doc-hiw-icon dashboard-flow__icon dashboard-flow__icon--chart3">
+					<i className="fa-solid fa-chart-line" />
+				</div>
+				<div className="dashboard-flow__label">Line Chart</div>
+			</div>
+
+			<div className="dashboard-flow__node dashboard-flow__node--dashboard">
+				<div className="doc-hiw-icon dashboard-flow__icon dashboard-flow__icon--dashboard">
+					<i className="fa-solid fa-table-cells-large" />
+				</div>
+				<div className="dashboard-flow__label">Dashboard</div>
+			</div>
+		</div>
+	);
+}
+
+function CreateRoleDiagram() {
+	return (
+		<div className="role-star">
+			<svg viewBox="0 0 400 220" className="role-star__svg">
+				<title>Role Permissions Diagram</title>
+				<line x1="200" y1="110" x2="80" y2="50" className="role-star__line" />
+				<line x1="200" y1="110" x2="320" y2="50" className="role-star__line" />
+				<line x1="200" y1="110" x2="80" y2="170" className="role-star__line" />
+				<line x1="200" y1="110" x2="320" y2="170" className="role-star__line" />
+				<foreignObject x="130" y="70" width="20" height="20">
+					<div className="role-star__lock-badge">
+						<i className="fa-solid fa-lock" />
+					</div>
+				</foreignObject>
+				<foreignObject x="250" y="70" width="20" height="20">
+					<div className="role-star__lock-badge">
+						<i className="fa-solid fa-lock" />
+					</div>
+				</foreignObject>
+				<foreignObject x="130" y="130" width="20" height="20">
+					<div className="role-star__lock-badge">
+						<i className="fa-solid fa-lock" />
+					</div>
+				</foreignObject>
+				<foreignObject x="250" y="130" width="20" height="20">
+					<div className="role-star__lock-badge">
+						<i className="fa-solid fa-lock" />
+					</div>
+				</foreignObject>
+			</svg>
+
+			{/* Center: Role Key */}
+			<div className="role-star__node role-star__node--center">
+				<div className="doc-hiw-icon role-star__icon role-star__icon--center">
+					<i className="fa-solid fa-key" />
+				</div>
+				<div className="role-star__label">Role</div>
+			</div>
+
+			{/* Spokes */}
+			<div className="role-star__node role-star__node--spoke1">
+				<div className="doc-hiw-icon role-star__icon role-star__icon--spoke">
+					<i className="fa-solid fa-code-branch" />
+				</div>
+				<div className="role-star__label">Codebases</div>
+			</div>
+
+			<div className="role-star__node role-star__node--spoke2">
+				<div className="doc-hiw-icon role-star__icon role-star__icon--spoke">
+					<i className="fa-solid fa-database" />
+				</div>
+				<div className="role-star__label">Databases</div>
+			</div>
+
+			<div className="role-star__node role-star__node--spoke3">
+				<div className="doc-hiw-icon role-star__icon role-star__icon--spoke">
+					<i className="fa-solid fa-table-cells-large" />
+				</div>
+				<div className="role-star__label">Dashboards</div>
+			</div>
+
+			<div className="role-star__node role-star__node--spoke4">
+				<div className="doc-hiw-icon role-star__icon role-star__icon--spoke">
+					<i className="fa-solid fa-gears" />
+				</div>
+				<div className="role-star__label">MCP Tools</div>
+			</div>
+		</div>
+	);
+}
+
+function AssignRoleDiagram() {
+	return (
+		<div className="user-role-flow">
+			<svg viewBox="0 0 400 220" className="user-role-flow__svg">
+				<title>User Role Assignment Diagram</title>
+				<line
+					x1="60"
+					y1="110"
+					x2="200"
+					y2="110"
+					className="user-role-flow__line-left"
+				/>
+				<path
+					d="M 200,110 C 270,110 270,40 340,40"
+					className="user-role-flow__line-right"
+				/>
+				<path d="M 200,110 L 340,110" className="user-role-flow__line-right" />
+				<path
+					d="M 200,110 C 270,110 270,180 340,180"
+					className="user-role-flow__line-right"
+				/>
+			</svg>
+
+			{/* Left Column: User */}
+			<div className="user-role-flow__node user-role-flow__node--user">
+				<div className="doc-hiw-icon user-role-flow__icon user-role-flow__icon--user">
+					<i className="fa-solid fa-user" />
+				</div>
+				<div className="user-role-flow__label">User</div>
+			</div>
+
+			{/* Center: Access Lock */}
+			<div className="user-role-flow__node user-role-flow__node--role">
+				<div className="doc-hiw-icon user-role-flow__icon user-role-flow__icon--role">
+					<i className="fa-solid fa-lock" />
+				</div>
+				<div className="user-role-flow__label">Access</div>
+			</div>
+
+			{/* Right Column: Allowed features */}
+			<div className="user-role-flow__node user-role-flow__node--feat1">
+				<div className="doc-hiw-icon user-role-flow__icon user-role-flow__icon--feat">
+					<i className="fa-solid fa-table-cells-large" />
+				</div>
+				<div className="user-role-flow__label">Dashboards</div>
+			</div>
+
+			<div className="user-role-flow__node user-role-flow__node--feat2">
+				<div className="doc-hiw-icon user-role-flow__icon user-role-flow__icon--feat">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="user-role-flow__label">Agent Chat</div>
+			</div>
+
+			<div className="user-role-flow__node user-role-flow__node--feat3">
+				<div className="doc-hiw-icon user-role-flow__icon user-role-flow__icon--feat">
+					<i className="fa-solid fa-database" />
+				</div>
+				<div className="user-role-flow__label">Databases</div>
+			</div>
+		</div>
+	);
+}
+
+function McpDiagram() {
+	return (
+		<div className="mcp-flow">
+			<svg viewBox="0 0 400 220" className="mcp-flow__svg">
+				<title>MCP Server Diagram</title>
+				<path
+					d="M 60,60 C 130,60 130,110 200,110"
+					className="mcp-flow__line-left"
+				/>
+				<path
+					d="M 60,140 C 130,140 130,110 200,110"
+					className="mcp-flow__line-left"
+				/>
+				<path
+					d="M 200,110 C 270,110 270,40 340,40"
+					className="mcp-flow__line-right"
+				/>
+				<path d="M 200,110 L 340,110" className="mcp-flow__line-right" />
+				<path
+					d="M 200,110 C 270,110 270,180 340,180"
+					className="mcp-flow__line-right"
+				/>
+			</svg>
+
+			{/* Column 1: MCP Servers */}
+			<div className="mcp-flow__node mcp-flow__node--local">
+				<div className="doc-hiw-icon mcp-flow__icon mcp-flow__icon--local">
+					<i className="fa-solid fa-terminal" />
+				</div>
+				<div className="mcp-flow__label">Local Process</div>
+			</div>
+
+			<div className="mcp-flow__node mcp-flow__node--remote">
+				<div className="doc-hiw-icon mcp-flow__icon mcp-flow__icon--remote">
+					<i className="fa-solid fa-globe" />
+				</div>
+				<div className="mcp-flow__label">Remote HTTP</div>
+			</div>
+
+			{/* Column 2: MCP Client / Host */}
+			<div className="mcp-flow__node mcp-flow__node--client">
+				<div className="doc-hiw-icon mcp-flow__icon mcp-flow__icon--client">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="mcp-flow__label">TetherDust Client</div>
+			</div>
+
+			{/* Column 3: Exposed Primitives */}
+			<div className="mcp-flow__node mcp-flow__node--tools">
+				<div className="doc-hiw-icon mcp-flow__icon mcp-flow__icon--tools">
+					<i className="fa-solid fa-gears" />
+				</div>
+				<div className="mcp-flow__label">Tools</div>
+			</div>
+
+			<div className="mcp-flow__node mcp-flow__node--resources">
+				<div className="doc-hiw-icon mcp-flow__icon mcp-flow__icon--resources">
+					<i className="fa-solid fa-database" />
+				</div>
+				<div className="mcp-flow__label">Resources</div>
+			</div>
+
+			<div className="mcp-flow__node mcp-flow__node--prompts">
+				<div className="doc-hiw-icon mcp-flow__icon mcp-flow__icon--prompts">
+					<i className="fa-solid fa-scroll" />
+				</div>
+				<div className="mcp-flow__label">Prompts</div>
+			</div>
+		</div>
+	);
+}
+
 function FoundationsTab() {
 	const { data: agents } = useQuery({
 		queryKey: ["admin", "agents"],
@@ -216,6 +975,7 @@ function FoundationsTab() {
 					/>
 				</div>
 				<div className="card">
+					<AgentStarDiagram />
 					<p>
 						An <strong>agent</strong> is the AI (Codex CLI or Claude Code CLI)
 						that answers chat questions and drives documentation, report, and
@@ -239,6 +999,7 @@ function FoundationsTab() {
 					/>
 				</div>
 				<div className="card">
+					<CodebaseConnectionDiagram />
 					<p>
 						A <strong>codebase connection</strong> tells TetherDust where your
 						source code lives — a GitHub or GitLab repository (read directly, no
@@ -264,6 +1025,7 @@ function FoundationsTab() {
 					/>
 				</div>
 				<div className="card">
+					<CodebaseDocsDiagram />
 					<p>
 						Once a codebase is connected, have the agent read through it and
 						write a <strong>documentation library</strong> — a cross-linked tree
@@ -288,6 +1050,7 @@ function FoundationsTab() {
 					/>
 				</div>
 				<div className="card">
+					<DatabaseConnectionDiagram />
 					<p>
 						A <strong>database connection</strong> gives the agent read access
 						to a target database — PostgreSQL, MySQL, SQL Server, ClickHouse,
@@ -312,6 +1075,7 @@ function FoundationsTab() {
 					/>
 				</div>
 				<div className="card">
+					<DatabaseDocsDiagram />
 					<p>
 						Once a database is connected, have the agent read through its schema
 						and write a <strong>documentation library</strong> — table-by-table
@@ -336,6 +1100,7 @@ function FoundationsTab() {
 					/>
 				</div>
 				<div className="card">
+					<TetherConnectionDiagram />
 					<p>
 						A <strong>Tether</strong> links one codebase to one database and
 						stores an AI-generated, versioned graph mapping code to the data it
@@ -378,6 +1143,7 @@ function RoleManagementTab() {
 					/>
 				</div>
 				<div className="card">
+					<CreateRoleDiagram />
 					<p>
 						A <strong>role</strong> controls what its users can access: which
 						tools, databases, documentation sources, codebases, prompts, and MCP
@@ -403,6 +1169,7 @@ function RoleManagementTab() {
 					/>
 				</div>
 				<div className="card">
+					<AssignRoleDiagram />
 					<p>
 						Every non-staff <strong>user</strong> needs a role to access
 						anything beyond logging in. Create or edit a user and assign one of
@@ -443,6 +1210,7 @@ function AnalyticsTab() {
 					/>
 				</div>
 				<div className="card">
+					<ReportDiagram />
 					<p>
 						A <strong>report</strong> is a saved SQL query that runs manually or
 						on a schedule (interval, daily, weekly, monthly) and delivers its
@@ -466,6 +1234,7 @@ function AnalyticsTab() {
 					/>
 				</div>
 				<div className="card">
+					<DashboardDiagram />
 					<p>
 						A <strong>dashboard</strong> is a collection of charts — build one
 						manually chart-by-chart, or let the agent explore your data and
@@ -501,6 +1270,7 @@ function AdvancedTab() {
 				/>
 			</div>
 			<div className="card">
+				<McpDiagram />
 				<p>
 					An <strong>MCP server</strong> plugs extra tools into the agent beyond
 					the built-in ones — either a remote server reachable over HTTP, or a

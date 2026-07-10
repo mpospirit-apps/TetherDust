@@ -480,6 +480,1244 @@ details.card[open] > summary .details-chevron {
 	line-height: 1.7;
 }
 
+/* ── Agent Star Diagram (Getting Started → Configure an Agent) ── */
+/* Radial layout: the agent icon in the center, the five sections it powers
+   around it in a star. Nodes sit on a regular pentagon (72° apart, starting
+   at the top); each node's --nx/--ny (precomputed cos/sin of its angle) is
+   scaled by --star-radius so the whole diagram resizes with one variable. */
+.agent-star {
+	position: relative;
+	width: 320px;
+	height: 320px;
+	margin: 0 auto var(--lg);
+	--star-radius: 108px;
+}
+/* Center and node boxes are sized to match their icon exactly (not the
+   icon+label stack), so translate(-50%, -50%) centers the icon itself on
+   the hub / spoke endpoint. The label is positioned absolutely below so its
+   height doesn't pull that centering point down. */
+.agent-star__center {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 56px;
+	height: 56px;
+	transform: translate(-50%, -50%);
+	z-index: 1;
+}
+.agent-star .agent-star__center-icon {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	background:
+		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+		url("/images/tetherdust.png") no-repeat center / cover;
+	border: none;
+	color: #fff;
+	margin-bottom: 0;
+}
+.agent-star__spoke {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: var(--star-radius);
+	height: 1.5px;
+	background: rgba(61, 188, 217, 0.25);
+	transform-origin: left center;
+	transform: rotate(var(--angle));
+}
+.agent-star__node {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 40px;
+	height: 40px;
+	transform: translate(
+		calc(-50% + var(--nx) * var(--star-radius)),
+		calc(-50% + var(--ny) * var(--star-radius))
+	);
+	z-index: 1;
+}
+.agent-star .agent-star__node-icon {
+	background: var(--surface);
+	border: 1.5px solid var(--bubble);
+	color: var(--bubble);
+	margin-bottom: 0;
+}
+.agent-star__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--sm);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.agent-star {
+		width: 260px;
+		height: 260px;
+		--star-radius: 82px;
+	}
+}
+
+/* ── Codebase Flow Diagram (Getting Started → Create a Codebase Connection) ── */
+.codebase-flow {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.codebase-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.codebase-flow__line {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.25);
+	stroke-width: 1.5px;
+}
+.codebase-flow__line-agent {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: codebase-dash 15s linear infinite;
+}
+@keyframes codebase-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.codebase-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.codebase-flow__node--github {
+	left: 20px;
+	top: 20px;
+	width: 40px;
+}
+.codebase-flow__node--gitlab {
+	left: 20px;
+	top: 90px;
+	width: 40px;
+}
+.codebase-flow__node--local {
+	left: 20px;
+	top: 160px;
+	width: 40px;
+}
+.codebase-flow__node--hub {
+	left: 180px;
+	top: 90px;
+	width: 40px;
+}
+.codebase-flow__node--agent {
+	left: 320px;
+	top: 82px;
+	width: 56px;
+}
+.codebase-flow .codebase-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.codebase-flow .codebase-flow__icon--github {
+	--color: var(--c-cyan);
+}
+.codebase-flow .codebase-flow__icon--gitlab {
+	--color: var(--c-orange);
+}
+.codebase-flow .codebase-flow__icon--local {
+	--color: var(--c-pink);
+}
+.codebase-flow .codebase-flow__icon--hub {
+	--color: var(--c-lime);
+}
+.codebase-flow .codebase-flow__icon--agent {
+	--color: var(--c-cyan);
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	background:
+		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+		url("/images/tetherdust.png") no-repeat center / cover;
+	border: none;
+	color: #fff;
+}
+.codebase-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.codebase-flow {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
+/* ── Codebase Docs Diagram (Getting Started → Document the Codebase) ── */
+.docs-flow {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.docs-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.docs-flow__line-left {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.25);
+	stroke-width: 1.5px;
+}
+.docs-flow__line-right {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: docs-dash 15s linear infinite;
+}
+@keyframes docs-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.docs-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.docs-flow__node--code1 {
+	left: 20px;
+	top: 20px;
+	width: 40px;
+}
+.docs-flow__node--code2 {
+	left: 20px;
+	top: 90px;
+	width: 40px;
+}
+.docs-flow__node--code3 {
+	left: 20px;
+	top: 160px;
+	width: 40px;
+}
+.docs-flow__node--agent {
+	left: 172px;
+	top: 82px;
+	width: 56px;
+}
+.docs-flow__node--doc1 {
+	left: 340px;
+	top: 20px;
+	width: 40px;
+}
+.docs-flow__node--doc2 {
+	left: 340px;
+	top: 90px;
+	width: 40px;
+}
+.docs-flow__node--doc3 {
+	left: 340px;
+	top: 160px;
+	width: 40px;
+}
+.docs-flow .docs-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.docs-flow .docs-flow__icon--code {
+	--color: var(--c-cyan);
+}
+.docs-flow .docs-flow__icon--doc {
+	--color: var(--c-lime);
+}
+.docs-flow .docs-flow__icon--agent {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	background:
+		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+		url("/images/tetherdust.png") no-repeat center / cover;
+	border: none;
+	color: #fff;
+}
+.docs-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.docs-flow {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
+/* ── Database Flow Diagram (Getting Started → Create a Database Connection) ── */
+.database-flow {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.database-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.database-flow__line {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.25);
+	stroke-width: 1.5px;
+}
+.database-flow__line-agent {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: database-dash 15s linear infinite;
+}
+@keyframes database-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.database-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.database-flow__node--postgres {
+	left: 20px;
+	top: 20px;
+	width: 40px;
+}
+.database-flow__node--mysql {
+	left: 20px;
+	top: 90px;
+	width: 40px;
+}
+.database-flow__node--snowflake {
+	left: 20px;
+	top: 160px;
+	width: 40px;
+}
+.database-flow__node--hub {
+	left: 180px;
+	top: 90px;
+	width: 40px;
+}
+.database-flow__node--agent {
+	left: 320px;
+	top: 82px;
+	width: 56px;
+}
+.database-flow .database-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.database-flow .database-flow__icon--postgres {
+	--color: var(--c-cyan);
+}
+.database-flow .database-flow__icon--mysql {
+	--color: var(--c-orange);
+}
+.database-flow .database-flow__icon--snowflake {
+	--color: var(--c-pink);
+}
+.database-flow .database-flow__icon--hub {
+	--color: var(--c-lime);
+}
+.database-flow .database-flow__icon--agent {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	background:
+		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+		url("/images/tetherdust.png") no-repeat center / cover;
+	border: none;
+	color: #fff;
+}
+.database-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.database-flow {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
+/* ── Database Docs Diagram (Getting Started → Document the Database) ── */
+.db-docs-flow {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.db-docs-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.db-docs-flow__line-left {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.25);
+	stroke-width: 1.5px;
+}
+.db-docs-flow__line-right {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: db-docs-dash 15s linear infinite;
+}
+@keyframes db-docs-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.db-docs-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.db-docs-flow__node--db {
+	left: 20px;
+	top: 20px;
+	width: 40px;
+}
+.db-docs-flow__node--codebase {
+	left: 20px;
+	top: 90px;
+	width: 40px;
+}
+.db-docs-flow__node--codedocs {
+	left: 20px;
+	top: 160px;
+	width: 40px;
+}
+.db-docs-flow__node--agent {
+	left: 172px;
+	top: 82px;
+	width: 56px;
+}
+.db-docs-flow__node--doc1 {
+	left: 340px;
+	top: 20px;
+	width: 40px;
+}
+.db-docs-flow__node--doc2 {
+	left: 340px;
+	top: 90px;
+	width: 40px;
+}
+.db-docs-flow__node--doc3 {
+	left: 340px;
+	top: 160px;
+	width: 40px;
+}
+.db-docs-flow .db-docs-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.db-docs-flow .db-docs-flow__icon--db {
+	--color: var(--c-cyan);
+}
+.db-docs-flow .db-docs-flow__icon--codebase {
+	--color: var(--c-orange);
+}
+.db-docs-flow .db-docs-flow__icon--codedocs {
+	--color: var(--c-lime);
+}
+.db-docs-flow .db-docs-flow__icon--doc {
+	--color: var(--c-lime);
+}
+.db-docs-flow .db-docs-flow__icon--agent {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	background:
+		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+		url("/images/tetherdust.png") no-repeat center / cover;
+	border: none;
+	color: #fff;
+}
+.db-docs-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.db-docs-flow {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
+/* ── Tether Flow Diagram (Getting Started → Create a Tether) ── */
+.tether-flow {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.tether-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.tether-flow__line-bridge {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.35);
+	stroke-width: 2px;
+}
+.tether-flow__line-agent {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: tether-dash 15s linear infinite;
+}
+@keyframes tether-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.tether-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.tether-flow__node--codebase {
+	left: 40px;
+	top: 40px;
+	width: 40px;
+}
+.tether-flow__node--database {
+	left: 320px;
+	top: 40px;
+	width: 40px;
+}
+.tether-flow__node--tether {
+	left: 172px;
+	top: 32px;
+	width: 56px;
+}
+.tether-flow__node--agent {
+	left: 172px;
+	top: 130px;
+	width: 56px;
+}
+.tether-flow .tether-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.tether-flow .tether-flow__icon--codebase {
+	--color: var(--c-orange);
+}
+.tether-flow .tether-flow__icon--database {
+	--color: var(--c-cyan);
+}
+.tether-flow .tether-flow__icon--tether {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	--color: var(--c-lime);
+}
+.tether-flow .tether-flow__icon--agent {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	background:
+		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+		url("/images/tetherdust.png") no-repeat center / cover;
+	border: none;
+	color: #fff;
+}
+.tether-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.tether-flow {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
+/* ── Report Flow Diagram (Getting Started → Create a Report) ── */
+.report-flow {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.report-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.report-flow__line-left {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.25);
+	stroke-width: 1.5px;
+}
+.report-flow__line-right {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: report-dash 15s linear infinite;
+}
+@keyframes report-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.report-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.report-flow__node--sql {
+	left: 40px;
+	top: 40px;
+	width: 40px;
+}
+.report-flow__node--schedule {
+	left: 40px;
+	top: 120px;
+	width: 40px;
+}
+.report-flow__node--worker {
+	left: 172px;
+	top: 82px;
+	width: 56px;
+}
+.report-flow__node--inapp {
+	left: 320px;
+	top: 40px;
+	width: 40px;
+}
+.report-flow__node--email {
+	left: 320px;
+	top: 120px;
+	width: 40px;
+}
+.report-flow .report-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.report-flow .report-flow__icon--sql {
+	--color: var(--c-orange);
+}
+.report-flow .report-flow__icon--schedule {
+	--color: var(--c-cyan);
+}
+.report-flow .report-flow__icon--worker {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	--color: var(--c-lime);
+}
+.report-flow .report-flow__icon--inapp {
+	--color: var(--c-cyan);
+}
+.report-flow .report-flow__icon--email {
+	--color: var(--c-pink);
+}
+.report-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.report-flow {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
+/* ── Dashboard Flow Diagram (Getting Started → Create a Dashboard) ── */
+.dashboard-flow {
+	position: relative;
+	width: 460px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.dashboard-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.dashboard-flow__line-left {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.25);
+	stroke-width: 1.5px;
+}
+.dashboard-flow__line-right {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: dashboard-dash 15s linear infinite;
+}
+@keyframes dashboard-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.dashboard-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.dashboard-flow__node--db {
+	left: 20px;
+	top: 20px;
+	width: 40px;
+}
+.dashboard-flow__node--codebase {
+	left: 20px;
+	top: 90px;
+	width: 40px;
+}
+.dashboard-flow__node--docs {
+	left: 20px;
+	top: 160px;
+	width: 40px;
+}
+.dashboard-flow__node--agent {
+	left: 137px;
+	top: 82px;
+	width: 56px;
+}
+.dashboard-flow__node--chart1 {
+	left: 265px;
+	top: 20px;
+	width: 40px;
+}
+.dashboard-flow__node--chart2 {
+	left: 265px;
+	top: 90px;
+	width: 40px;
+}
+.dashboard-flow__node--chart3 {
+	left: 265px;
+	top: 160px;
+	width: 40px;
+}
+.dashboard-flow__node--dashboard {
+	left: 384px;
+	top: 82px;
+	width: 56px;
+}
+.dashboard-flow .dashboard-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.dashboard-flow .dashboard-flow__icon--db {
+	--color: var(--c-cyan);
+}
+.dashboard-flow .dashboard-flow__icon--codebase {
+	--color: var(--c-orange);
+}
+.dashboard-flow .dashboard-flow__icon--docs {
+	--color: var(--c-lime);
+}
+.dashboard-flow .dashboard-flow__icon--agent {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	background:
+		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+		url("/images/tetherdust.png") no-repeat center / cover;
+	border: none;
+	color: #fff;
+}
+.dashboard-flow .dashboard-flow__icon--chart1 {
+	--color: var(--c-orange);
+}
+.dashboard-flow .dashboard-flow__icon--chart2 {
+	--color: var(--c-lime);
+}
+.dashboard-flow .dashboard-flow__icon--chart3 {
+	--color: var(--c-pink);
+}
+.dashboard-flow .dashboard-flow__icon--dashboard {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	--color: var(--c-cyan);
+}
+.dashboard-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.dashboard-flow {
+		transform: scale(0.68);
+		transform-origin: center top;
+		margin-bottom: -70px;
+	}
+}
+
+/* ── Role Star Diagram (Getting Started → Create a Role) ── */
+.role-star {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.role-star__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.role-star__line {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+}
+.role-star__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.role-star__node--center {
+	left: 172px;
+	top: 82px;
+	width: 56px;
+}
+.role-star__node--spoke1 {
+	left: 60px;
+	top: 30px;
+	width: 40px;
+}
+.role-star__node--spoke2 {
+	left: 300px;
+	top: 30px;
+	width: 40px;
+}
+.role-star__node--spoke3 {
+	left: 60px;
+	top: 150px;
+	width: 40px;
+}
+.role-star__node--spoke4 {
+	left: 300px;
+	top: 150px;
+	width: 40px;
+}
+.role-star .role-star__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.role-star .role-star__icon--center {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	--color: var(--c-lime);
+}
+.role-star .role-star__icon--spoke {
+	--color: var(--c-cyan);
+}
+.role-star .role-star__node--spoke2 .role-star__icon {
+	--color: var(--c-orange);
+}
+.role-star .role-star__node--spoke3 .role-star__icon {
+	--color: var(--c-pink);
+}
+.role-star .role-star__node--spoke4 .role-star__icon {
+	--color: var(--c-red);
+}
+.role-star__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.role-star {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
+/* ── User Role Flow Diagram (Getting Started → Assign a Role) ── */
+.user-role-flow {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.user-role-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.user-role-flow__line-left {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.25);
+	stroke-width: 1.5px;
+}
+.user-role-flow__line-right {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: user-role-dash 15s linear infinite;
+}
+@keyframes user-role-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.user-role-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.user-role-flow__node--user {
+	left: 40px;
+	top: 90px;
+	width: 40px;
+}
+.user-role-flow__node--role {
+	left: 172px;
+	top: 82px;
+	width: 56px;
+}
+.user-role-flow__node--feat1 {
+	left: 320px;
+	top: 20px;
+	width: 40px;
+}
+.user-role-flow__node--feat2 {
+	left: 320px;
+	top: 90px;
+	width: 40px;
+}
+.user-role-flow__node--feat3 {
+	left: 320px;
+	top: 160px;
+	width: 40px;
+}
+.user-role-flow .user-role-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.user-role-flow .user-role-flow__icon--user {
+	--color: var(--c-cyan);
+}
+.user-role-flow .user-role-flow__icon--role {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	--color: var(--c-lime);
+}
+.user-role-flow .user-role-flow__icon--feat {
+	--color: var(--c-pink);
+}
+.user-role-flow .user-role-flow__node--feat2 .user-role-flow__icon {
+	--color: var(--c-cyan);
+}
+.user-role-flow .user-role-flow__node--feat3 .user-role-flow__icon {
+	--color: var(--c-orange);
+}
+.user-role-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.user-role-flow {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
+.role-star__lock-badge {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: var(--surface);
+	border: 1px solid var(--c-lime);
+	color: var(--c-lime);
+	font-size: 8px;
+	box-shadow: 0 0 4px rgba(211, 217, 59, 0.2);
+}
+
+/* ── MCP Flow Diagram (Getting Started → Register an MCP Server) ── */
+.mcp-flow {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.mcp-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.mcp-flow__line-left {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.25);
+	stroke-width: 1.5px;
+}
+.mcp-flow__line-right {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: mcp-dash 15s linear infinite;
+}
+@keyframes mcp-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.mcp-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.mcp-flow__node--local {
+	left: 40px;
+	top: 40px;
+	width: 40px;
+}
+.mcp-flow__node--remote {
+	left: 40px;
+	top: 120px;
+	width: 40px;
+}
+.mcp-flow__node--client {
+	left: 172px;
+	top: 82px;
+	width: 56px;
+}
+.mcp-flow__node--tools {
+	left: 320px;
+	top: 20px;
+	width: 40px;
+}
+.mcp-flow__node--resources {
+	left: 320px;
+	top: 90px;
+	width: 40px;
+}
+.mcp-flow__node--prompts {
+	left: 320px;
+	top: 160px;
+	width: 40px;
+}
+.mcp-flow .mcp-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.mcp-flow .mcp-flow__icon--local {
+	--color: var(--c-orange);
+}
+.mcp-flow .mcp-flow__icon--remote {
+	--color: var(--c-cyan);
+}
+.mcp-flow .mcp-flow__icon--client {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	background:
+		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+		url("/images/tetherdust.png") no-repeat center / cover;
+	border: none;
+	color: #fff;
+}
+.mcp-flow .mcp-flow__icon--tools {
+	--color: var(--c-lime);
+}
+.mcp-flow .mcp-flow__icon--resources {
+	--color: var(--c-pink);
+}
+.mcp-flow .mcp-flow__icon--prompts {
+	--color: var(--c-orange);
+}
+.mcp-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.mcp-flow {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
 .confirm-modal__actions {
 	display: flex;
 	justify-content: flex-end;
