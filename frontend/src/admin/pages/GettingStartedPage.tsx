@@ -9,7 +9,7 @@ import {
 } from "../../api/admin";
 import { listDashboards } from "../../api/dashboards";
 import { listDocSources } from "../../api/docs";
-import { listMCPServers } from "../../api/mcp";
+import { listMCPPrompts, listMCPServers } from "../../api/mcp";
 import { listReports } from "../../api/reports";
 import { listCodebases, listTethers } from "../../api/tethers";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
@@ -83,6 +83,12 @@ const ANALYTICS_STEPS: WizardStepDef[] = [
 ];
 
 const ADVANCED_STEPS: WizardStepDef[] = [
+	{
+		key: "mcp-prompt",
+		label: "Create a Prompt",
+		description:
+			"Add a reusable prompt template to the built-in MCP server to give the agent extra guidance on demand.",
+	},
 	{
 		key: "mcp-server",
 		label: "Register an MCP Server",
@@ -851,6 +857,39 @@ function AssignRoleDiagram() {
 	);
 }
 
+function PromptDiagram() {
+	return (
+		<div className="prompt-flow">
+			<svg viewBox="0 0 400 220" className="prompt-flow__svg">
+				<title>Prompt Creation Diagram</title>
+				<path d="M 60,110 L 200,110" className="prompt-flow__line" />
+				<path d="M 200,110 L 340,110" className="prompt-flow__line-agent" />
+			</svg>
+
+			<div className="prompt-flow__node prompt-flow__node--user">
+				<div className="doc-hiw-icon prompt-flow__icon prompt-flow__icon--user">
+					<i className="fa-solid fa-user" />
+				</div>
+				<div className="prompt-flow__label">User</div>
+			</div>
+
+			<div className="prompt-flow__node prompt-flow__node--template">
+				<div className="doc-hiw-icon prompt-flow__icon prompt-flow__icon--template">
+					<i className="fa-solid fa-scroll" />
+				</div>
+				<div className="prompt-flow__label">Prompt</div>
+			</div>
+
+			<div className="prompt-flow__node prompt-flow__node--agent">
+				<div className="doc-hiw-icon prompt-flow__icon prompt-flow__icon--agent">
+					<i className="fa-solid fa-robot" />
+				</div>
+				<div className="prompt-flow__label">Agent</div>
+			</div>
+		</div>
+	);
+}
+
 function McpDiagram() {
 	return (
 		<div className="mcp-flow">
@@ -893,9 +932,9 @@ function McpDiagram() {
 			{/* Column 2: MCP Client / Host */}
 			<div className="mcp-flow__node mcp-flow__node--client">
 				<div className="doc-hiw-icon mcp-flow__icon mcp-flow__icon--client">
-					<i className="fa-solid fa-robot" />
+					<i className="fa-solid fa-circle-nodes" />
 				</div>
-				<div className="mcp-flow__label">TetherDust Client</div>
+				<div className="mcp-flow__label">Client</div>
 			</div>
 
 			{/* Column 3: Exposed Primitives */}
@@ -1255,31 +1294,69 @@ function AdvancedTab() {
 		(s) => !s.is_builtin,
 	);
 
+	const builtinServer = (mcpServers?.results ?? []).find((s) => s.is_builtin);
+	const { data: builtinPrompts } = useQuery({
+		queryKey: ["admin", "mcp-prompts", builtinServer?.id],
+		queryFn: () => listMCPPrompts(builtinServer?.id ?? ""),
+		enabled: !!builtinServer,
+	});
+	const hasPrompt = (builtinPrompts?.results ?? []).length > 0;
+
 	return (
-		<div className="wizard-section" style={{ marginBottom: "var(--xl)" }}>
-			<div
-				className="flex-gap"
-				style={{ justifyContent: "space-between", alignItems: "flex-start" }}
-			>
-				<WizardSectionHeading step={ADVANCED_STEPS[0]} index={0} />
-				<StepAction
-					complete={hasCustomServer}
-					to="/admin/mcp-servers/new"
-					icon="fa-server"
-					label="Add Server"
-				/>
+		<>
+			<div className="wizard-section" style={{ marginBottom: "var(--xl)" }}>
+				<div
+					className="flex-gap"
+					style={{ justifyContent: "space-between", alignItems: "flex-start" }}
+				>
+					<WizardSectionHeading step={ADVANCED_STEPS[0]} index={0} />
+					<StepAction
+						complete={hasPrompt}
+						to={
+							builtinServer
+								? `/admin/mcp-servers/${builtinServer.id}`
+								: "/admin/mcp-servers"
+						}
+						icon="fa-scroll"
+						label="Add Prompt"
+					/>
+				</div>
+				<div className="card">
+					<PromptDiagram />
+					<p>
+						A <strong>prompt</strong> is a reusable instruction template stored
+						on an MCP server — its content is prepended to a user's message as
+						extra context for the agent. Add one to the built-in server to give
+						every user quick access to guidance you'd otherwise repeat by hand.
+					</p>
+				</div>
 			</div>
-			<div className="card">
-				<McpDiagram />
-				<p>
-					An <strong>MCP server</strong> plugs extra tools into the agent beyond
-					the built-in ones — either a remote server reachable over HTTP, or a
-					local subprocess TetherDust spawns and manages for you. Roles can
-					grant access to specific MCP servers, so custom tools stay scoped to
-					the users who need them.
-				</p>
+
+			<div className="wizard-section" style={{ marginBottom: "var(--xl)" }}>
+				<div
+					className="flex-gap"
+					style={{ justifyContent: "space-between", alignItems: "flex-start" }}
+				>
+					<WizardSectionHeading step={ADVANCED_STEPS[1]} index={1} />
+					<StepAction
+						complete={hasCustomServer}
+						to="/admin/mcp-servers/new"
+						icon="fa-server"
+						label="Add Server"
+					/>
+				</div>
+				<div className="card">
+					<McpDiagram />
+					<p>
+						An <strong>MCP server</strong> plugs extra tools into the agent
+						beyond the built-in ones — either a remote server reachable over
+						HTTP, or a local subprocess TetherDust spawns and manages for you.
+						Roles can grant access to specific MCP servers, so custom tools stay
+						scoped to the users who need them.
+					</p>
+				</div>
 			</div>
-		</div>
+		</>
 	);
 }
 

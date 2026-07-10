@@ -1684,11 +1684,7 @@ details.card[open] > summary .details-chevron {
 	width: 56px;
 	height: 56px;
 	font-size: 1.3rem;
-	background:
-		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
-		url("/images/tetherdust.png") no-repeat center / cover;
-	border: none;
-	color: #fff;
+	--color: var(--c-cyan);
 }
 .mcp-flow .mcp-flow__icon--tools {
 	--color: var(--c-lime);
@@ -1712,6 +1708,105 @@ details.card[open] > summary .details-chevron {
 }
 @media (max-width: 600px) {
 	.mcp-flow {
+		transform: scale(0.75);
+		transform-origin: center top;
+		margin-bottom: -50px;
+	}
+}
+
+/* ── Prompt Creation Diagram (Getting Started → Advanced → Create a Prompt) ── */
+.prompt-flow {
+	position: relative;
+	width: 400px;
+	height: 220px;
+	margin: 0 auto var(--lg);
+}
+.prompt-flow__svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+.prompt-flow__line {
+	fill: none;
+	stroke: rgba(61, 188, 217, 0.25);
+	stroke-width: 1.5px;
+}
+.prompt-flow__line-agent {
+	fill: none;
+	stroke: rgba(211, 217, 59, 0.4);
+	stroke-width: 2px;
+	stroke-dasharray: 4 4;
+	animation: prompt-dash 15s linear infinite;
+}
+@keyframes prompt-dash {
+	to {
+		stroke-dashoffset: -40;
+	}
+}
+.prompt-flow__node {
+	position: absolute;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.prompt-flow__node--user {
+	left: 40px;
+	top: 90px;
+	width: 40px;
+}
+.prompt-flow__node--template {
+	left: 172px;
+	top: 82px;
+	width: 56px;
+}
+.prompt-flow__node--agent {
+	left: 312px;
+	top: 82px;
+	width: 56px;
+}
+.prompt-flow .prompt-flow__icon {
+	background: var(--surface);
+	border: 1.5px solid var(--color);
+	color: var(--color);
+	margin-bottom: 0;
+}
+.prompt-flow .prompt-flow__icon--user {
+	--color: var(--c-cyan);
+}
+.prompt-flow .prompt-flow__icon--template {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	--color: var(--c-lime);
+}
+.prompt-flow .prompt-flow__icon--agent {
+	width: 56px;
+	height: 56px;
+	font-size: 1.3rem;
+	background:
+		linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+		url("/images/tetherdust.png") no-repeat center / cover;
+	border: none;
+	color: #fff;
+}
+.prompt-flow__label {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: var(--xs);
+	white-space: nowrap;
+	font-size: var(--text-xs);
+	font-weight: 700;
+	color: var(--text);
+}
+@media (max-width: 600px) {
+	.prompt-flow {
 		transform: scale(0.75);
 		transform-origin: center top;
 		margin-bottom: -50px;
