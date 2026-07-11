@@ -12,7 +12,7 @@
 	border-top: 4px solid var(--c-red);
 	padding: var(--lg);
 	text-align: center;
-	box-shadow: var(--shadow), var(--rim-light);
+	box-shadow: var(--rim-light);
 	transition: var(--transition);
 	position: relative;
 	overflow: hidden;
@@ -84,7 +84,7 @@
 }
 
 .metric-card:hover {
-	box-shadow: var(--shadow-lg), var(--rim-light-strong);
+	box-shadow: var(--rim-light-strong);
 	transform: translateY(-2px);
 }
 
@@ -474,7 +474,6 @@
 	color: var(--text);
 	text-decoration: none;
 	transition: var(--transition);
-	box-shadow: var(--shadow-sm);
 }
 .mc-action:hover {
 	border-color: var(--c-dust);
@@ -552,7 +551,7 @@
 	padding: var(--xl) var(--lg);
 	background: var(--surface);
 	border: 1px solid rgba(26, 26, 26, 0.08);
-	box-shadow: var(--shadow-sm), var(--rim-light);
+	box-shadow: var(--rim-light);
 	text-decoration: none;
 	color: var(--text);
 	transition: var(--transition);
@@ -583,7 +582,7 @@
 
 .picker-card:hover {
 	border-color: var(--c-cyan);
-	box-shadow: var(--shadow-lg), var(--rim-light-strong);
+	box-shadow: var(--rim-light-strong);
 	transform: translateY(-3px);
 }
 
@@ -636,7 +635,7 @@
 	margin-bottom: var(--lg);
 	background: var(--surface);
 	border-left: 4px solid var(--c-cyan);
-	box-shadow: var(--shadow-sm), var(--rim-light);
+	box-shadow: var(--rim-light);
 }
 
 .selection-banner-name {
@@ -768,13 +767,11 @@ tr.clickable-row td {
 .btn-primary {
 	background: linear-gradient(135deg, var(--c-red), var(--c-pink));
 	color: #fff;
-	box-shadow: var(--shadow-sm), var(--rim-light);
+	box-shadow: var(--rim-light);
 }
 
 .btn-primary:hover {
-	box-shadow:
-		var(--shadow),
-		0 0 16px rgba(242, 56, 71, 0.2);
+	box-shadow: 0 0 16px rgba(242, 56, 71, 0.2);
 	transform: translateY(-1px);
 }
 
@@ -829,9 +826,7 @@ tr.clickable-row td {
 }
 .btn-danger:hover {
 	background: #d9303e;
-	box-shadow:
-		var(--shadow),
-		0 0 12px rgba(242, 56, 71, 0.2);
+	box-shadow: 0 0 12px rgba(242, 56, 71, 0.2);
 }
 
 .btn-sm {

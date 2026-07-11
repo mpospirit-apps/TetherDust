@@ -152,7 +152,6 @@
 		transparent
 	);
 	border-radius: 999px;
-	filter: drop-shadow(0 0 6px var(--star-color, var(--c-cyan)));
 	animation:
 		shooting-tail var(--total-time) ease-in-out infinite,
 		shooting-move var(--total-time) ease-in-out infinite;

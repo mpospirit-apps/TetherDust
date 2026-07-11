@@ -281,7 +281,7 @@ details.card[open] > summary .details-chevron {
 .help-modal__panel {
 	background: var(--surface);
 	border: 1px solid rgba(26, 26, 26, 0.1);
-	box-shadow: var(--shadow-xl), var(--rim-light-strong);
+	box-shadow: var(--rim-light-strong);
 	width: 500px;
 	max-width: 100%;
 	max-height: 100%;
@@ -424,7 +424,7 @@ details.card[open] > summary .details-chevron {
 .confirm-modal__panel {
 	background: var(--surface);
 	border: 1px solid rgba(26, 26, 26, 0.1);
-	box-shadow: var(--shadow-xl), var(--rim-light-strong);
+	box-shadow: var(--rim-light-strong);
 	width: 420px;
 	max-width: 100%;
 	transform: scale(0.96);

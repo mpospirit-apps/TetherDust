@@ -169,7 +169,6 @@
 
 .tether-canvas .node.is-selected rect {
 	stroke-width: 2.5;
-	filter: drop-shadow(0 0 6px currentColor);
 }
 .tether-canvas .node-badge {
 	fill: var(--text-sec);
@@ -186,7 +185,6 @@
 	width: min(420px, 95%);
 	background: var(--bg-card);
 	border-left: 1px solid var(--border);
-	box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
 	transform: translateX(100%);
 	transition: transform 0.22s ease;
 	overflow-y: auto;
@@ -650,7 +648,6 @@
 	max-width: 320px;
 	background: var(--bg-card);
 	border: 1px solid var(--border);
-	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
 	padding: 10px 14px 12px;
 	font-size: 0.82rem;
 	line-height: 1.4;
@@ -697,7 +694,6 @@
 	background: var(--bg-card);
 	border: 1px solid var(--border);
 	border-radius: 10px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 	overflow: hidden;
 	transition:
 		opacity 0.18s,
@@ -709,14 +705,10 @@
 	opacity: 0.18;
 }
 .tcard.is-selected {
-	box-shadow:
-		0 4px 18px rgba(0, 0, 0, 0.12),
-		0 0 0 2px var(--c-cyan);
+	box-shadow: 0 0 0 2px var(--c-cyan);
 }
 .tcard--db-table.is-selected {
-	box-shadow:
-		0 4px 18px rgba(0, 0, 0, 0.12),
-		0 0 0 2px var(--c-pink);
+	box-shadow: 0 0 0 2px var(--c-pink);
 }
 
 .tcard__header {
@@ -851,9 +843,6 @@
 .tether-edge {
 	transition: opacity 0.18s;
 }
-.tether-edge.is-selected {
-	filter: drop-shadow(0 0 6px currentColor);
-}
 /* Canvas-scoped override, kept after the base `.tether-edge.is-selected` so
    source order is ascending in specificity. */
 .tether-canvas .tether-edge.is-selected {
@@ -862,7 +851,6 @@
 .tether-pulse {
 	pointer-events: none;
 	transition: opacity 0.2s;
-	filter: drop-shadow(0 0 4px currentColor);
 }
 
 /* Tooltip */
@@ -873,7 +861,6 @@
 	background: var(--bg-card);
 	border: 1px solid var(--border);
 	border-radius: 8px;
-	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
 	padding: 8px 12px;
 	font-size: 0.82rem;
 	line-height: 1.4;
