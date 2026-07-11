@@ -112,7 +112,6 @@ select.form-control {
 	background: var(--surface);
 	z-index: 100;
 	border: 1px solid rgba(26, 26, 26, 0.12);
-	box-shadow: var(--shadow-lg);
 	max-height: 240px;
 	overflow-y: auto;
 	opacity: 0;
@@ -232,7 +231,6 @@ input[type="checkbox"]:checked {
 		center / 11px 9px no-repeat,
 		linear-gradient(135deg, var(--c-red), var(--c-pink));
 	border-color: transparent;
-	box-shadow: 2px 2px 8px rgba(26, 26, 26, 0.06);
 }
 
 input[type="checkbox"]:focus-visible {
@@ -284,7 +282,6 @@ input[type="checkbox"]:focus-visible {
 	width: 18px;
 	height: 18px;
 	background: #fff;
-	box-shadow: var(--shadow-sm);
 	transition: var(--transition);
 }
 .toggle-control input[type="checkbox"]:checked + .toggle__track {

@@ -187,7 +187,6 @@
 	justify-content: center;
 	transition: var(--transition);
 	z-index: 11;
-	box-shadow: var(--shadow-sm);
 	opacity: 0;
 	pointer-events: none;
 }
@@ -218,7 +217,6 @@
 	backdrop-filter: blur(12px);
 	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid rgba(26, 26, 26, 0.1);
-	box-shadow: var(--shadow-md);
 	min-width: 150px;
 	padding: 4px;
 	animation: fadeIn 0.12s ease;
@@ -367,7 +365,7 @@
 /* ── Send button confirm pulse ── */
 @keyframes send-pulse {
 	0% {
-		box-shadow: var(--shadow-sm);
+		box-shadow: none;
 		transform: scale(1);
 	}
 	40% {
@@ -375,7 +373,7 @@
 		transform: scale(1.1);
 	}
 	100% {
-		box-shadow: var(--shadow-sm);
+		box-shadow: none;
 		transform: scale(1);
 	}
 }
@@ -436,7 +434,7 @@
 	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid rgba(26, 26, 26, 0.06);
 	color: var(--text);
-	box-shadow: var(--shadow-sm), var(--rim-light);
+	box-shadow: var(--rim-light);
 	max-width: 65%;
 }
 
@@ -451,7 +449,7 @@
 	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid rgba(26, 26, 26, 0.06);
 	color: var(--text);
-	box-shadow: var(--shadow-sm), var(--rim-light);
+	box-shadow: var(--rim-light);
 }
 
 [data-theme="dark"] .message.agent .message-content {
@@ -499,7 +497,6 @@
 	justify-content: center;
 	font-size: 20px;
 	flex-shrink: 0;
-	box-shadow: var(--shadow-sm);
 }
 
 .message.user .message-avatar {
@@ -552,7 +549,7 @@
 	cursor: pointer;
 	transition: var(--transition);
 	text-align: left;
-	box-shadow: var(--shadow-sm), var(--rim-light);
+	box-shadow: var(--rim-light);
 }
 
 .example-query:hover {
@@ -844,13 +841,10 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	box-shadow: var(--shadow-sm);
 }
 
 .send-button:hover {
-	box-shadow:
-		var(--shadow),
-		0 0 12px rgba(242, 56, 71, 0.2);
+	box-shadow: 0 0 12px rgba(242, 56, 71, 0.2);
 }
 
 .send-button:active {
@@ -869,9 +863,7 @@
 	font-size: 16px;
 }
 .send-button.is-stop:hover {
-	box-shadow:
-		var(--shadow),
-		0 0 12px rgba(0, 0, 0, 0.15);
+	box-shadow: 0 0 12px rgba(0, 0, 0, 0.15);
 }
 
 /* ── Chat Composer ── */
@@ -947,14 +939,11 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	box-shadow: var(--shadow-sm);
 	transition: var(--transition);
 }
 
 .chat-send-btn:hover {
-	box-shadow:
-		var(--shadow),
-		0 0 12px rgba(242, 56, 71, 0.2);
+	box-shadow: 0 0 12px rgba(242, 56, 71, 0.2);
 }
 
 .chat-send-btn:active {
@@ -1076,7 +1065,6 @@ pre {
 	padding: 20px;
 	overflow-x: auto;
 	margin: var(--md) 0;
-	box-shadow: var(--shadow);
 }
 
 pre code {
@@ -1307,7 +1295,6 @@ pre code {
 		top: 0;
 		bottom: 0;
 		z-index: 20;
-		box-shadow: var(--shadow-lg);
 	}
 	.chat-history-panel.collapsed {
 		width: 0;

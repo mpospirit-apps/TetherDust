@@ -104,16 +104,13 @@
 	letter-spacing: 1.5px;
 	cursor: pointer;
 	transition: var(--transition);
-	box-shadow: var(--shadow-sm);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 }
 
 .login-card .btn:hover {
-	box-shadow:
-		var(--shadow),
-		0 0 20px rgba(242, 56, 71, 0.15);
+	box-shadow: 0 0 20px rgba(242, 56, 71, 0.15);
 	transform: translateY(-1px);
 }
 
@@ -182,7 +179,7 @@
 	background: var(--surface);
 	border: 1px solid rgba(26, 26, 26, 0.06);
 	padding: var(--lg);
-	box-shadow: var(--shadow), var(--rim-light);
+	box-shadow: var(--rim-light);
 	transition: var(--transition);
 	position: relative;
 	overflow: hidden;
@@ -208,7 +205,7 @@
 }
 
 .feature-card:hover {
-	box-shadow: var(--shadow-lg), var(--rim-light-strong);
+	box-shadow: var(--rim-light-strong);
 	transform: translateY(-3px);
 }
 

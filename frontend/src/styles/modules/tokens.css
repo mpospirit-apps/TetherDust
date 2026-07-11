@@ -58,12 +58,6 @@
 	--text-3xl: 36px;
 	--text-4xl: 48px;
 
-	/* Shadows — soft, layered depth */
-	--shadow-sm: 2px 2px 8px rgba(26, 26, 26, 0.06);
-	--shadow: 4px 4px 16px rgba(26, 26, 26, 0.08);
-	--shadow-lg: 6px 6px 24px rgba(26, 26, 26, 0.1);
-	--shadow-xl: 8px 8px 32px rgba(26, 26, 26, 0.12);
-
 	/* Rim lighting */
 	--rim-light:
 		inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
@@ -91,10 +85,6 @@
 	--text-sec: #a0a0a0;
 	--text-muted: #686868;
 	--text-on-dark: #f0ede8;
-	--shadow-sm: 2px 2px 8px rgba(0, 0, 0, 0.3);
-	--shadow: 4px 4px 16px rgba(0, 0, 0, 0.4);
-	--shadow-lg: 6px 6px 24px rgba(0, 0, 0, 0.5);
-	--shadow-xl: 8px 8px 32px rgba(0, 0, 0, 0.6);
 	--rim-light:
 		inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 	--rim-light-strong:

@@ -172,7 +172,6 @@
 	backdrop-filter: blur(12px);
 	-webkit-backdrop-filter: blur(12px);
 	border: 1px solid rgba(26, 26, 26, 0.12);
-	box-shadow: var(--shadow);
 	z-index: 200;
 	flex-direction: column;
 	overflow: hidden;

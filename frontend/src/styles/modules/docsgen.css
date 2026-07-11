@@ -7,7 +7,7 @@
 .doc-modal__panel {
 	background: var(--surface);
 	border: 1px solid rgba(26, 26, 26, 0.1);
-	box-shadow: var(--shadow-xl), var(--rim-light-strong);
+	box-shadow: var(--rim-light-strong);
 	width: 960px;
 	max-width: 100%;
 	max-height: calc(100vh - 2 * var(--xl));
@@ -285,7 +285,6 @@
 	z-index: 100;
 	border: 1px solid rgba(26, 26, 26, 0.12);
 	border-radius: var(--radius);
-	box-shadow: var(--shadow-lg);
 	max-height: 200px;
 	overflow-y: auto;
 	opacity: 0;
