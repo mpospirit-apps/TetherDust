@@ -187,6 +187,22 @@ form .card {
 	margin: var(--xs) 0 0;
 }
 
+/* Mini "how to" steps nested inside a field (e.g. the SQLite file picker) —
+   reuses the wizard-section-heading look, in blue, to read as a nested aside
+   rather than a top-level wizard step. */
+.sqlite-hint-steps {
+	display: flex;
+	flex-direction: column;
+	gap: var(--md);
+	margin-top: var(--md);
+}
+.sqlite-hint-steps .wizard-section-heading {
+	margin-bottom: 0;
+}
+.sqlite-hint-steps .wizard-section-heading__num {
+	color: var(--c-cyan);
+}
+
 .card::before {
 	content: "";
 	position: absolute;
@@ -842,7 +858,7 @@ details.card[open] > summary .details-chevron {
 	top: 90px;
 	width: 40px;
 }
-.database-flow__node--snowflake {
+.database-flow__node--clickhouse {
 	left: 20px;
 	top: 160px;
 	width: 40px;
@@ -869,7 +885,7 @@ details.card[open] > summary .details-chevron {
 .database-flow .database-flow__icon--mysql {
 	--color: var(--c-orange);
 }
-.database-flow .database-flow__icon--snowflake {
+.database-flow .database-flow__icon--clickhouse {
 	--color: var(--c-pink);
 }
 .database-flow .database-flow__icon--hub {

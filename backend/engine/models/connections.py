@@ -37,11 +37,8 @@ class DatabaseConnection(models.Model):
         ("postgresql", "PostgreSQL"),
         ("mysql", "MySQL"),
         ("mssql", "Microsoft SQL Server"),
-        ("oracle", "Oracle"),
         ("sqlite", "SQLite"),
         ("mariadb", "MariaDB"),
-        ("snowflake", "Snowflake"),
-        ("bigquery", "Google BigQuery"),
         ("clickhouse", "ClickHouse"),
     ]
 
@@ -49,7 +46,6 @@ class DatabaseConnection(models.Model):
         "postgresql": 5432,
         "mysql": 3306,
         "mssql": 1433,
-        "oracle": 1521,
         "mariadb": 3306,
         "clickhouse": 8123,
     }
@@ -97,10 +93,9 @@ class DatabaseConnection(models.Model):
         default=True,
         help_text=(
             "Strongly recommended. Runs every query in a read-only database session on "
-            "PostgreSQL, MySQL/MariaDB, SQLite, Oracle, and ClickHouse. SQL Server, "
-            "BigQuery, and Snowflake cannot enforce this at the session level — use a "
-            "read-only database user / IAM role there. All engines are additionally "
-            "checked by the SQL validator."
+            "PostgreSQL, MySQL/MariaDB, SQLite, and ClickHouse. SQL Server cannot "
+            "enforce this at the session level — use a read-only database user there. "
+            "All engines are additionally checked by the SQL validator."
         ),
     )
 

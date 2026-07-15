@@ -62,7 +62,7 @@ def test_validator_parity_with_tdmcp(sql: str, allowed: bool) -> None:
 
 def test_validate_sql_dialect_specific_select() -> None:
     # A dialect hint is accepted and a plain SELECT stays valid across dialects.
-    for engine in ("postgresql", "mysql", "mssql", "clickhouse", "bigquery"):
+    for engine in ("postgresql", "mysql", "mssql", "clickhouse", "mariadb"):
         assert validate_sql("SELECT 1", engine=engine) is None
 
 

@@ -43,10 +43,8 @@ def test_no_port_no_auth() -> None:
 
 
 def test_unknown_engine_falls_back_to_engine_name() -> None:
-    conn = DatabaseConnection(
-        engine="snowflake", host="h", database="d", username="u", password="p"
-    )
-    assert get(ConnectionService).get_connection_url(conn).startswith("snowflake://u:p@h/d")
+    conn = DatabaseConnection(engine="unlisted", host="h", database="d", username="u", password="p")
+    assert get(ConnectionService).get_connection_url(conn).startswith("unlisted://u:p@h/d")
 
 
 # --- CodebaseService --------------------------------------------------------

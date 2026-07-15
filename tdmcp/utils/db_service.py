@@ -32,20 +32,16 @@ _SQLGLOT_DIALECTS = {
     "mysql": "mysql",
     "mariadb": "mysql",
     "mssql": "tsql",
-    "oracle": "oracle",
     "sqlite": "sqlite",
     "clickhouse": "clickhouse",
-    "snowflake": "snowflake",
-    "bigquery": "bigquery",
 }
 
 # Session-scoped statement that puts a connection into read-only mode, by engine.
 # Issued once per pooled connection via a connect-time event (see _get_engine), so
 # it applies to every transaction on that connection. These statements are
-# non-transactional and persist for the connection's life. Oracle has no
-# session-level form (handled per-transaction in execute_query). SQL Server,
-# BigQuery, and Snowflake have no session read-only at all — they rely on a
-# read-only database user / IAM role plus the SQL validator.
+# non-transactional and persist for the connection's life. SQL Server has no
+# session read-only at all — it relies on a read-only database user plus the
+# SQL validator.
 _READONLY_SESSION_SQL = {
     "postgresql": "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
     "mysql": "SET SESSION TRANSACTION READ ONLY",
@@ -160,7 +156,7 @@ class DatabaseConfig:
 
     name: str
     description: str = ""
-    engine: str = "sqlite"  # postgresql, mysql, mssql, oracle, sqlite, mariadb, clickhouse
+    engine: str = "sqlite"  # postgresql, mysql, mssql, sqlite, mariadb, clickhouse
     host: str = ""
     port: int | None = None
     database: str = ""
@@ -179,7 +175,6 @@ class DatabaseConfig:
             "postgresql": "postgresql+psycopg2",
             "mysql": "mysql+pymysql",
             "mssql": "mssql+pymssql",
-            "oracle": "oracle+cx_oracle",
             "sqlite": "sqlite",
             "mariadb": "mariadb+pymysql",
             "clickhouse": "clickhouse+connect",
@@ -351,8 +346,7 @@ class DatabaseService:
             # pooled connection — at connect time, before any transaction begins,
             # which avoids the per-statement transaction-timing pitfalls. The
             # session statements (SET SESSION …, PRAGMA) are non-transactional, so
-            # they persist for the life of the connection. Oracle has no session
-            # form and is handled per-query in execute_query.
+            # they persist for the life of the connection.
             ro_stmt = _READONLY_SESSION_SQL.get(config.engine) if config.read_only else None
             if ro_stmt is not None:
                 _ro_stmt: str = ro_stmt
@@ -468,8 +462,6 @@ class DatabaseService:
                     count=1,
                     flags=re.IGNORECASE,
                 )
-            elif config.engine == "oracle":
-                sql = f"{sql} FETCH FIRST {effective_limit} ROWS ONLY"
             else:
                 sql = f"{sql} LIMIT {effective_limit}"
 
@@ -489,11 +481,6 @@ class DatabaseService:
             engine = self._get_engine(database)
             with engine.connect() as conn:
                 conn = conn.execution_options(timeout=self._query_timeout)
-                # PG/MySQL/MariaDB/SQLite read-only is set at connect time (see
-                # _get_engine). Oracle has no session form, so mark the current
-                # transaction read-only as its first statement.
-                if config.read_only and config.engine == "oracle":
-                    conn.execute(text("SET TRANSACTION READ ONLY"))
                 result = conn.execute(text(sql))
                 rows = [{str(k): v for k, v in row._mapping.items()} for row in result.fetchall()]
 

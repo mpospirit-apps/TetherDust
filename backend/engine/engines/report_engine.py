@@ -64,11 +64,8 @@ _SQLGLOT_DIALECTS = {
     "mysql": "mysql",
     "mariadb": "mysql",
     "mssql": "tsql",
-    "oracle": "oracle",
     "sqlite": "sqlite",
     "clickhouse": "clickhouse",
-    "snowflake": "snowflake",
-    "bigquery": "bigquery",
 }
 
 

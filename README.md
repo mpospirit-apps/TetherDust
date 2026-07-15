@@ -72,7 +72,7 @@ Use CLI tools, API calls, or Ollama to connect any agent that speaks MCP. Curren
 
 ### Multi-database support
 Connect any database with a Python SQLAlchemy dialect and a read-only user. Currently supported databases:
-PostgreSQL, MySQL/MariaDB, SQL Server, SQLite, ClickHouse, Oracle, Snowflake, BigQuery.
+PostgreSQL, MySQL/MariaDB, SQL Server, SQLite, ClickHouse.
 
 > **Many more agents and databases to come**
 > The architecture is designed to be agent-agnostic, with a simple interface for adding new ones.
@@ -295,8 +295,8 @@ TetherDust runs every agent query through three layers of read-only protection:
    blocked.
 2. **Read-only session** — connections marked **Read-only** (default ON) run in a
    read-only database session where the engine supports it (PostgreSQL, MySQL/MariaDB,
-   SQLite, Oracle, ClickHouse). SQL Server, BigQuery, and Snowflake have no session-level
-   read-only — there, rely on a read-only user/role (below).
+   SQLite, ClickHouse). SQL Server has no session-level read-only — there, rely on a
+   read-only user/role (below).
 3. **Read-only database user** — the real trust boundary. **Always connect with an
    account that only has read access.** The two layers above are defense-in-depth; a
    read-only credential is what actually guarantees the agent can't write.
@@ -316,9 +316,7 @@ CREATE USER 'tetherdust_ro'@'%' IDENTIFIED BY '...';
 GRANT SELECT ON mydb.* TO 'tetherdust_ro'@'%';
 ```
 
-For **BigQuery** grant `roles/bigquery.dataViewer` + `roles/bigquery.jobUser` (not
-`dataEditor`); for **Snowflake** grant a role with `USAGE`/`SELECT` only; for **SQL
-Server** add the login to the `db_datareader` role.
+For **SQL Server** add the login to the `db_datareader` role.
 
 ### Other notes
 
