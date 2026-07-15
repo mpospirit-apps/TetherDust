@@ -15,7 +15,6 @@ _SQLALCHEMY_DRIVERS: dict[str, str] = {
     "postgresql": "postgresql+psycopg2",
     "mysql": "mysql+pymysql",
     "mssql": "mssql+pymssql",
-    "oracle": "oracle+cx_oracle",
     "sqlite": "sqlite",
     "mariadb": "mariadb+pymysql",
     "clickhouse": "clickhouse+connect",
@@ -38,6 +37,18 @@ class ConnectionService:
         password = quote_plus(conn.password) if conn.password else ""
         auth = f"{conn.username}:{password}@" if conn.username else ""
         return f"{driver}://{auth}{conn.host}{port_str}/{conn.database}"
+
+    def list_sqlite_files(self) -> list[dict[str, str]]:
+        """Files under the SQLite directory, for the file-path picker."""
+        base = Path(settings.TETHERDUST_DATABASES_DIR)
+        files: list[dict[str, str]] = []
+        if base.exists() and base.is_dir():
+            for entry in sorted(base.rglob("*")):
+                if entry.is_file() and not any(
+                    part.startswith(".") for part in entry.relative_to(base).parts
+                ):
+                    files.append({"name": str(entry.relative_to(base)), "path": str(entry)})
+        return files
 
 
 class CodebaseService:

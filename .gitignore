@@ -81,6 +81,10 @@ sources/docs/*
 # (including ccc's nested .cocoindex_code index).
 sources/codebases/*
 
+# SQLite connection files: admins drop database files here; keep the dir,
+# ignore its contents.
+sources/databases/*
+
 # Jupyter
 .ipynb_checkpoints/
 # CocoIndex Code (ccc)

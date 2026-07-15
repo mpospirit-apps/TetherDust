@@ -659,6 +659,21 @@
 	color: var(--text);
 }
 
+/* Engine icon + name (Databases list) */
+.db-name-cell {
+	display: flex;
+	align-items: center;
+	gap: var(--sm);
+}
+.db-name-cell__icon {
+	font-size: 1rem;
+	width: 20px;
+}
+.db-name-cell__icon.choice-card__icon--logo svg {
+	width: 1rem;
+	height: 1rem;
+}
+
 /* ── Tables ── */
 .table-wrap {
 	overflow-x: auto;
@@ -710,6 +725,14 @@ tbody tr:last-child td {
 tr.clickable-row,
 tr.clickable-row td {
 	cursor: pointer;
+}
+
+/* Test-result row rendered under a Databases table row */
+.db-test-result-cell {
+	padding: 0 20px 14px;
+}
+.db-test-result-cell .flash {
+	margin: 0;
 }
 
 /* ── Badges ── */

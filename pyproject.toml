@@ -30,7 +30,6 @@ dependencies = [
 postgresql = ["psycopg2-binary>=2.9.0"]
 mysql = ["pymysql>=1.1.0"]
 mssql = ["pymssql>=2.2.0"]
-oracle = ["cx_oracle>=8.3.0"]
 clickhouse = ["clickhouse-connect>=0.7.0"]
 all-databases = [
     "psycopg2-binary>=2.9.0",

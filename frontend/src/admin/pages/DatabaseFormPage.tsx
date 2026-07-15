@@ -2,21 +2,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-	siClickhouse,
-	siGooglebigquery,
-	siMariadb,
-	siMysql,
-	siPostgresql,
-	siSnowflake,
-	siSqlite,
-} from "simple-icons";
-import {
 	createDatabase,
 	type DatabaseInput,
+	type EngineChoice,
 	getDatabase,
 	getEngines,
+	getSqliteFiles,
+	type TestResult,
+	testDraftDatabase,
 	updateDatabase,
 } from "../../api/admin";
+import {
+	DEFAULT_ENGINE_META,
+	ENGINE_META,
+	EngineIconGlyph,
+} from "../components/engineIcons";
 import { FormField, ToggleField } from "../components/forms";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
@@ -50,59 +50,43 @@ const EMPTY: FormState = {
 	is_active: true,
 };
 
-type EngineIcon =
-	| { kind: "logo"; title: string; path: string }
-	| { kind: "fa"; family: "solid" | "brands"; icon: string };
+// Deep-links straight to the repo's "Database support request" issue
+// template (.github/ISSUE_TEMPLATE/database_support.md) instead of the
+// generic issues list.
+const GITHUB_DATABASE_REQUEST_URL =
+	"https://github.com/mpospirit-apps/TetherDust/issues/new?template=database_support.md";
 
-const ENGINE_META: Record<string, { icon: EngineIcon; blurb: string }> = {
-	postgresql: {
-		icon: { kind: "logo", title: siPostgresql.title, path: siPostgresql.path },
-		blurb: "Open-source relational database. Default port 5432.",
+// Groups the step-1 engine picker into labeled sections (row-based SQL
+// engines vs. columnar/analytical ones). Any engine the backend returns that
+// isn't listed here still shows up, under "Other", so new engines never
+// silently disappear from the picker.
+const ENGINE_GROUPS: { title: string; values: string[] }[] = [
+	{
+		title: "Relational",
+		values: ["postgresql", "mysql", "mariadb", "mssql", "sqlite"],
 	},
-	mysql: {
-		icon: { kind: "logo", title: siMysql.title, path: siMysql.path },
-		blurb: "Popular open-source RDBMS. Default port 3306.",
-	},
-	mariadb: {
-		icon: { kind: "logo", title: siMariadb.title, path: siMariadb.path },
-		blurb: "MySQL-compatible fork. Default port 3306.",
-	},
-	mssql: {
-		icon: { kind: "fa", family: "brands", icon: "fa-microsoft" },
-		blurb: "Microsoft SQL Server. Default port 1433.",
-	},
-	oracle: {
-		icon: { kind: "fa", family: "solid", icon: "fa-database" },
-		blurb: "Oracle Database. Default port 1521.",
-	},
-	sqlite: {
-		icon: { kind: "logo", title: siSqlite.title, path: siSqlite.path },
-		blurb: "Local file-based database — no host required.",
-	},
-	clickhouse: {
-		icon: { kind: "logo", title: siClickhouse.title, path: siClickhouse.path },
-		blurb: "Columnar OLAP database. Default port 8123.",
-	},
-	snowflake: {
-		icon: { kind: "logo", title: siSnowflake.title, path: siSnowflake.path },
-		blurb: "Cloud data warehouse — configure via connection string.",
-	},
-	bigquery: {
-		icon: {
-			kind: "logo",
-			title: siGooglebigquery.title,
-			path: siGooglebigquery.path,
-		},
-		blurb: "Google BigQuery — serverless cloud warehouse.",
-	},
-};
-const DEFAULT_ENGINE_META: { icon: EngineIcon; blurb: string } = {
-	icon: { kind: "fa", family: "solid", icon: "fa-database" },
-	blurb: "",
-};
+	{ title: "Analytical", values: ["clickhouse"] },
+];
 
-// Create flow, steps 2+: fields split across a wizard after the engine is
-// picked (step 1's card grid, handled separately below).
+function groupEngineChoices(
+	choices: EngineChoice[],
+): { title: string; choices: EngineChoice[] }[] {
+	const byValue = new Map(choices.map((c) => [c.value, c]));
+	const grouped = ENGINE_GROUPS.map((g) => ({
+		title: g.title,
+		choices: g.values
+			.map((v) => byValue.get(v))
+			.filter((c): c is EngineChoice => c != null),
+	})).filter((g) => g.choices.length > 0);
+
+	const groupedValues = new Set(ENGINE_GROUPS.flatMap((g) => g.values));
+	const other = choices.filter((c) => !groupedValues.has(c.value));
+	if (other.length > 0) grouped.push({ title: "Other", choices: other });
+	return grouped;
+}
+
+// Steps 2+ of the form, shared by both the create and edit layouts (step 1's
+// card grid only appears in the create flow, handled separately below).
 const STEPS: WizardStepDef[] = [
 	{
 		key: "identity",
@@ -124,19 +108,21 @@ const STEPS: WizardStepDef[] = [
 	},
 ];
 
-function EngineIconGlyph({ icon }: { icon: EngineIcon }) {
-	if (icon.kind === "logo") {
-		return (
-			<span className="choice-card__icon choice-card__icon--logo">
-				<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-					<title>{icon.title}</title>
-					<path d={icon.path} />
-				</svg>
-			</span>
-		);
-	}
-	return <i className={`fa-${icon.family} ${icon.icon} choice-card__icon`} />;
-}
+// Mini "how to" steps shown under the SQLite file picker, styled like the
+// wizard section headings above but in blue to read as a nested aside.
+const SQLITE_HINT_STEPS: WizardStepDef[] = [
+	{
+		key: "place",
+		label: "Place the file",
+		description:
+			"Drop your .db/.sqlite file into sources/databases/ at the project root.",
+	},
+	{
+		key: "select",
+		label: "Select it",
+		description: "Pick it from the dropdown above.",
+	},
+];
 
 export function DatabaseFormPage() {
 	const { id } = useParams();
@@ -146,11 +132,16 @@ export function DatabaseFormPage() {
 
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
+	const [testResult, setTestResult] = useState<TestResult | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 	// Create flow, step 1: pick an engine before showing the connection form.
 	const [enginePicked, setEnginePicked] = useState(isEdit);
 	// Tracks whether the admin has typed a port themselves, so switching
 	// engines keeps updating the auto-filled default until they do.
 	const [portTouched, setPortTouched] = useState(false);
+	// SQLite is a local file, not a network service — it has no host, port,
+	// or credentials, only a file path (stored in the `database` field).
+	const isSqlite = form.engine === "sqlite";
 
 	const engines = useQuery({
 		queryKey: ["admin", "db-engines"],
@@ -160,6 +151,11 @@ export function DatabaseFormPage() {
 		queryKey: ["admin", "databases", id],
 		queryFn: () => getDatabase(id as string),
 		enabled: isEdit,
+	});
+	const sqliteFiles = useQuery({
+		queryKey: ["admin", "db-sqlite-files"],
+		queryFn: getSqliteFiles,
+		enabled: isSqlite,
 	});
 
 	// Populate the form when editing an existing connection.
@@ -202,6 +198,18 @@ export function DatabaseFormPage() {
 
 	function onEngineChange(value: string) {
 		setForm((f) => {
+			// SQLite hides host/port/username/password — clear them so a prior
+			// engine's values aren't silently kept and submitted alongside it.
+			if (value === "sqlite") {
+				return {
+					...f,
+					engine: value,
+					host: "",
+					port: "",
+					username: "",
+					password: "",
+				};
+			}
 			const dp = engines.data?.default_ports[value];
 			const nextPort =
 				!isEdit && !portTouched ? (dp == null ? "" : String(dp)) : f.port;
@@ -220,17 +228,22 @@ export function DatabaseFormPage() {
 			setError(err instanceof Error ? err.message : "Save failed"),
 	});
 
-	function onSubmit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		setError(null);
+	const test = useMutation({
+		mutationFn: (payload: DatabaseInput & { id?: string }) =>
+			testDraftDatabase(payload),
+		onSuccess: setTestResult,
+		onError: () => setTestResult({ ok: false, detail: "Request failed" }),
+	});
 
+	// Shared by Save and Test — returns null (and sets `error`) on bad JSON.
+	function buildPayload(): DatabaseInput | null {
 		let extra: Record<string, unknown> = {};
 		if (form.extra_options.trim()) {
 			try {
 				extra = JSON.parse(form.extra_options);
 			} catch {
 				setError("Extra options must be valid JSON.");
-				return;
+				return null;
 			}
 		}
 
@@ -250,7 +263,23 @@ export function DatabaseFormPage() {
 		if (form.password) {
 			payload.password = form.password;
 		}
-		save.mutate(payload);
+		return payload;
+	}
+
+	function onSubmit(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		setError(null);
+		setTestResult(null);
+		const payload = buildPayload();
+		if (payload) save.mutate(payload);
+	}
+
+	function onTest() {
+		setError(null);
+		setTestResult(null);
+		const payload = buildPayload();
+		if (payload)
+			test.mutate(isEdit ? { ...payload, id: id as string } : payload);
 	}
 
 	if (isEdit && existing.isLoading) {
@@ -281,30 +310,58 @@ export function DatabaseFormPage() {
 				{engines.isLoading ? (
 					<p className="text-sec">Loading…</p>
 				) : (
-					<div className="choice-list choice-list--grid">
-						{engineChoices.map((c) => {
-							const meta = ENGINE_META[c.value] ?? DEFAULT_ENGINE_META;
-							return (
-								<button
-									key={c.value}
-									type="button"
-									className="choice-card"
-									onClick={() => {
-										onEngineChange(c.value);
-										setEnginePicked(true);
-									}}
-								>
-									<EngineIconGlyph icon={meta.icon} />
-									<div className="choice-card__body">
-										<h4>{c.label}</h4>
-										{meta.blurb && <p>{meta.blurb}</p>}
-									</div>
-									<i className="fa-solid fa-chevron-right choice-card__chevron" />
-								</button>
-							);
-						})}
-					</div>
+					groupEngineChoices(engineChoices).map((group) => (
+						<div className="choice-section" key={group.title}>
+							<h3 className="choice-section__title">{group.title}</h3>
+							<div className="choice-list choice-list--grid">
+								{group.choices.map((c) => {
+									const meta = ENGINE_META[c.value] ?? DEFAULT_ENGINE_META;
+									return (
+										<button
+											key={c.value}
+											type="button"
+											className="choice-card"
+											onClick={() => {
+												onEngineChange(c.value);
+												setEnginePicked(true);
+											}}
+										>
+											<EngineIconGlyph icon={meta.icon} />
+											<div className="choice-card__body">
+												<h4>{c.label}</h4>
+												{meta.blurb && <p>{meta.blurb}</p>}
+											</div>
+											<i className="fa-solid fa-chevron-right choice-card__chevron" />
+										</button>
+									);
+								})}
+							</div>
+						</div>
+					))
 				)}
+				<div className="choice-section">
+					<h3 className="choice-section__title">
+						Not finding what you're looking for?
+					</h3>
+					<div className="choice-list choice-list--grid">
+						<a
+							href={GITHUB_DATABASE_REQUEST_URL}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="choice-card"
+						>
+							<i className="fa-brands fa-github choice-card__icon" />
+							<div className="choice-card__body">
+								<h4>Request a database engine</h4>
+								<p>
+									Open a feature request on GitHub if your database isn't
+									listed.
+								</p>
+							</div>
+							<i className="fa-solid fa-arrow-up-right-from-square choice-card__chevron" />
+						</a>
+					</div>
+				</div>
 			</div>
 		);
 	}
@@ -312,20 +369,30 @@ export function DatabaseFormPage() {
 	const engineLabel =
 		engineChoices.find((c) => c.value === form.engine)?.label ?? form.engine;
 	const engineMeta = ENGINE_META[form.engine] ?? DEFAULT_ENGINE_META;
+	const hostStep = isSqlite
+		? { ...STEPS[1], description: "Enter the path to the SQLite file." }
+		: STEPS[1];
+	const sqliteFileList = sqliteFiles.data?.files ?? [];
+	// If the stored path isn't among the discovered files (deleted, or set
+	// before this picker existed), keep it selectable instead of silently
+	// blanking the field.
+	const sqliteOptions =
+		form.database && !sqliteFileList.some((f) => f.path === form.database)
+			? [
+					{ name: form.database, path: form.database, used_by: null },
+					...sqliteFileList,
+				]
+			: sqliteFileList;
 
 	return (
 		<div>
 			<div className="page-header">
 				<div>
 					<h1>
-						{isEdit ? (
-							`Edit ${form.name}`
-						) : (
-							<span className="title-icon-tag">
-								<EngineIconGlyph icon={engineMeta.icon} />
-								{engineLabel}
-							</span>
-						)}
+						<span className="title-icon-tag">
+							<EngineIconGlyph icon={engineMeta.icon} />
+							{isEdit ? `Edit ${form.name}` : engineLabel}
+						</span>
 					</h1>
 					<p>Configure a database connection for MCP tools</p>
 				</div>
@@ -333,6 +400,20 @@ export function DatabaseFormPage() {
 					<Link to="/admin/databases" className="btn btn-ghost">
 						Cancel
 					</Link>
+					<button
+						type="button"
+						className="btn btn-secondary"
+						disabled={test.isPending}
+						onClick={onTest}
+					>
+						{test.isPending ? (
+							<i className="fa-solid fa-spinner fa-spin" />
+						) : (
+							<>
+								<i className="fa-solid fa-plug-circle-check" /> Test
+							</>
+						)}
+					</button>
 					<button
 						type="submit"
 						form="database-form"
@@ -357,170 +438,148 @@ export function DatabaseFormPage() {
 				</div>
 			)}
 
-			<form id="database-form" onSubmit={onSubmit}>
-				{isEdit ? (
-					<div className="form-split">
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
-							<FormField label="Name">
-								<input
-									className="form-control"
-									value={form.name}
-									required
-									onChange={(e) => set("name", e.target.value)}
-								/>
-							</FormField>
-							<FormField label="Description">
-								<textarea
-									className="form-control"
-									rows={3}
-									value={form.description}
-									onChange={(e) => set("description", e.target.value)}
-								/>
-							</FormField>
-							<ToggleField
-								label="Is active"
-								description="Requests can use this connection while it's active."
-								checked={form.is_active}
-								onChange={(v) => set("is_active", v)}
-							/>
-							<ToggleField
-								label="Read only"
-								description="Blocks write queries — only SELECT statements are allowed."
-								checked={form.read_only}
-								onChange={(v) => set("read_only", v)}
-							/>
-						</div>
+			{testResult && (
+				<div
+					className={
+						testResult.ok ? "flash flash-success" : "flash flash-error"
+					}
+					style={{ marginBottom: "var(--md)" }}
+				>
+					{testResult.ok ? "Connected ✓" : `Failed: ${testResult.detail}`}
+				</div>
+			)}
 
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Connection</h3>
-							<FormField label="Engine">
-								<select
-									className="form-control"
-									value={form.engine}
-									onChange={(e) => onEngineChange(e.target.value)}
-								>
-									{engineChoices.map((c) => (
-										<option key={c.value} value={c.value}>
-											{c.label}
-										</option>
-									))}
-								</select>
-							</FormField>
-							<div className="form-grid">
-								<FormField label="Host">
-									<input
-										className="form-control"
-										value={form.host}
-										onChange={(e) => set("host", e.target.value)}
-									/>
-								</FormField>
-								<FormField label="Port">
-									<input
-										className="form-control"
-										type="number"
-										value={form.port}
-										onChange={(e) => {
-											setPortTouched(true);
-											set("port", e.target.value);
-										}}
-									/>
-								</FormField>
-							</div>
-							<FormField label="Database">
-								<input
-									className="form-control"
-									value={form.database}
-									onChange={(e) => set("database", e.target.value)}
-								/>
-							</FormField>
-							<div className="form-grid">
-								<FormField label="Username">
-									<input
-										className="form-control"
-										value={form.username}
-										autoComplete="off"
-										onChange={(e) => set("username", e.target.value)}
-									/>
-								</FormField>
-								<FormField
-									label="Password"
-									help="Leave blank to keep existing."
-								>
-									<input
-										className="form-control"
-										type="password"
-										autoComplete="new-password"
-										placeholder="••••••••  (leave blank to keep)"
-										value={form.password}
-										onChange={(e) => set("password", e.target.value)}
-									/>
-								</FormField>
-							</div>
-							<FormField
-								label="Connection string"
-								help="Optional: full SQLAlchemy URL (overrides the fields above)."
-							>
-								<textarea
-									className="form-control"
-									rows={2}
-									value={form.connection_string}
-									onChange={(e) => set("connection_string", e.target.value)}
-								/>
-							</FormField>
-							<FormField
-								label="Extra options (JSON)"
-								help='e.g. {"sslmode": "require"}'
-							>
-								<textarea
-									className="form-control"
-									rows={3}
-									value={form.extra_options}
-									onChange={(e) => set("extra_options", e.target.value)}
-								/>
-							</FormField>
-						</div>
-					</div>
-				) : (
-					<div className="form-split-col">
-						<div className="form-split">
-							<div className="wizard-section">
-								<WizardSectionHeading step={STEPS[0]} index={0} />
-								<div className="card">
-									<FormField label="Name">
-										<input
-											className="form-control"
-											value={form.name}
-											required
-											onChange={(e) => set("name", e.target.value)}
-										/>
-									</FormField>
-									<FormField label="Description">
-										<textarea
-											className="form-control"
-											rows={3}
-											value={form.description}
-											onChange={(e) => set("description", e.target.value)}
-										/>
-									</FormField>
-									<ToggleField
-										label="Is active"
-										description="Requests can use this connection while it's active."
-										checked={form.is_active}
-										onChange={(v) => set("is_active", v)}
-									/>
-									<ToggleField
-										label="Read only"
-										description="Blocks write queries — only SELECT statements are allowed."
-										checked={form.read_only}
-										onChange={(v) => set("read_only", v)}
-									/>
+			<form id="database-form" onSubmit={onSubmit}>
+				{!isEdit && (
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
+							/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-database" />
+										</div>
+										<div className="doc-hiw-label">Connect</div>
+										<div className="doc-hiw-desc">
+											Point at PostgreSQL, MySQL, MariaDB, SQL Server, SQLite,
+											or ClickHouse
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-plug-circle-check" />
+										</div>
+										<div className="doc-hiw-label">Test it</div>
+										<div className="doc-hiw-desc">
+											Probe connectivity with the current form values before
+											saving
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-shield-halved" />
+										</div>
+										<div className="doc-hiw-label">Read-only enforced</div>
+										<div className="doc-hiw-desc">
+											Every query is SQL-validated and run in a read-only
+											session
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-magnifying-glass-chart" />
+										</div>
+										<div className="doc-hiw-label">Agent queries it</div>
+										<div className="doc-hiw-desc">
+											Roles grant access so the agent can list tables and run
+											SELECT queries via MCP
+										</div>
+									</div>
 								</div>
 							</div>
+						</div>
+					</div>
+				)}
 
-							<div className="wizard-section">
-								<WizardSectionHeading step={STEPS[1]} index={1} />
-								<div className="card">
+				<div className="form-split-col">
+					<div className="form-split">
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[0]} index={0} />
+							<div className="card">
+								<FormField label="Name">
+									<input
+										className="form-control"
+										value={form.name}
+										required
+										onChange={(e) => set("name", e.target.value)}
+									/>
+								</FormField>
+								<FormField label="Description">
+									<textarea
+										className="form-control"
+										rows={3}
+										value={form.description}
+										onChange={(e) => set("description", e.target.value)}
+									/>
+								</FormField>
+								<ToggleField
+									label="Is active"
+									description="Requests can use this connection while it's active."
+									checked={form.is_active}
+									onChange={(v) => set("is_active", v)}
+								/>
+								<ToggleField
+									label="Read only"
+									description="Blocks write queries — only SELECT statements are allowed."
+									checked={form.read_only}
+									onChange={(v) => set("read_only", v)}
+								/>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={hostStep} index={1} />
+							<div className="card">
+								{isEdit && (
+									<FormField label="Engine">
+										<select
+											className="form-control"
+											value={form.engine}
+											onChange={(e) => onEngineChange(e.target.value)}
+										>
+											{engineChoices.map((c) => (
+												<option key={c.value} value={c.value}>
+													{c.label}
+												</option>
+											))}
+										</select>
+									</FormField>
+								)}
+								{!isSqlite && (
 									<div className="form-grid">
 										<FormField label="Host">
 											<input
@@ -541,13 +600,56 @@ export function DatabaseFormPage() {
 											/>
 										</FormField>
 									</div>
-									<FormField label="Database">
+								)}
+								<FormField label={isSqlite ? "File path" : "Database"}>
+									{isSqlite ? (
+										<select
+											className="form-control"
+											value={form.database}
+											required
+											onChange={(e) => set("database", e.target.value)}
+										>
+											<option value="">— Select a file —</option>
+											{sqliteOptions.map((f) => (
+												<option key={f.path} value={f.path}>
+													{f.name}
+													{f.used_by && f.path !== form.database
+														? ` (used by ${f.used_by})`
+														: ""}
+												</option>
+											))}
+										</select>
+									) : (
 										<input
 											className="form-control"
 											value={form.database}
 											onChange={(e) => set("database", e.target.value)}
 										/>
-									</FormField>
+									)}
+									{isSqlite &&
+										sqliteFileList.length === 0 &&
+										!sqliteFiles.isLoading && (
+											<div
+												className="flash flash-error"
+												style={{ marginTop: "var(--sm)" }}
+											>
+												No files found in sources/databases/. Drop a .db/.sqlite
+												file there first.
+											</div>
+										)}
+									{isSqlite && (
+										<div className="sqlite-hint-steps">
+											{SQLITE_HINT_STEPS.map((step, i) => (
+												<WizardSectionHeading
+													key={step.key}
+													step={step}
+													index={i}
+												/>
+											))}
+										</div>
+									)}
+								</FormField>
+								{!isSqlite && (
 									<div className="form-grid">
 										<FormField label="Username">
 											<input
@@ -557,52 +659,63 @@ export function DatabaseFormPage() {
 												onChange={(e) => set("username", e.target.value)}
 											/>
 										</FormField>
-										<FormField label="Password" help="Encrypted at rest.">
+										<FormField
+											label="Password"
+											help={
+												isEdit
+													? "Leave blank to keep existing."
+													: "Encrypted at rest."
+											}
+										>
 											<input
 												className="form-control"
 												type="password"
 												autoComplete="new-password"
-												placeholder="Enter password"
+												placeholder={
+													isEdit
+														? "••••••••  (leave blank to keep)"
+														: "Enter password"
+												}
 												value={form.password}
 												onChange={(e) => set("password", e.target.value)}
 											/>
 										</FormField>
 									</div>
-								</div>
-							</div>
-						</div>
-
-						<div className="wizard-section">
-							<WizardSectionHeading step={STEPS[2]} index={2} />
-							<div className="card">
-								<div className="field-pair">
-									<FormField
-										label="Connection string"
-										help="e.g. postgresql://user:pass@host:5432/dbname"
-									>
-										<textarea
-											className="form-control"
-											rows={3}
-											value={form.connection_string}
-											onChange={(e) => set("connection_string", e.target.value)}
-										/>
-									</FormField>
-									<FormField
-										label="Extra options (JSON)"
-										help='e.g. {"sslmode": "require"}'
-									>
-										<textarea
-											className="form-control"
-											rows={3}
-											value={form.extra_options}
-											onChange={(e) => set("extra_options", e.target.value)}
-										/>
-									</FormField>
-								</div>
+								)}
 							</div>
 						</div>
 					</div>
-				)}
+
+					<div className="wizard-section">
+						<WizardSectionHeading step={STEPS[2]} index={2} />
+						<div className="card">
+							<div className="field-pair">
+								<FormField
+									label="Connection string"
+									help="Optional — overrides the fields above, e.g. postgresql://user:pass@host:5432/dbname"
+								>
+									<textarea
+										className="form-control"
+										rows={3}
+										value={form.connection_string}
+										onChange={(e) => set("connection_string", e.target.value)}
+									/>
+								</FormField>
+								<FormField
+									label="Extra options (JSON)"
+									help='e.g. {"sslmode": "require"}'
+								>
+									<textarea
+										className="form-control"
+										rows={3}
+										value={form.extra_options}
+										onChange={(e) => set("extra_options", e.target.value)}
+									/>
+								</FormField>
+							</div>
+						</div>
+					</div>
+				</div>
 			</form>
 		</div>
 	);

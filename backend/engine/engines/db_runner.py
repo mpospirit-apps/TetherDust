@@ -48,7 +48,6 @@ def ping(db: Any, *, timeout: int = 10) -> None:
         "mysql": "connect_timeout",
         "mariadb": "connect_timeout",
         "mssql": "login_timeout",
-        "snowflake": "login_timeout",
     }.get(db.engine)
 
     connect_args = dict(db.extra_options or {})

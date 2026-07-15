@@ -661,12 +661,6 @@ wheels = [
 ]
 
 [[package]]
-name = "cx-oracle"
-version = "8.3.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e8/16/13c265afc984796fe38ee928733569b599cfd657245ddd1afad238b66656/cx_Oracle-8.3.0.tar.gz", hash = "sha256:3b2d215af4441463c97ea469b9cc307460739f89fdfa8ea222ea3518f1a424d9", size = 363886, upload-time = "2021-11-04T22:08:34.141Z" }
-
-[[package]]
 name = "daphne"
 version = "4.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2268,9 +2262,6 @@ mssql = [
 mysql = [
     { name = "pymysql" },
 ]
-oracle = [
-    { name = "cx-oracle" },
-]
 postgresql = [
     { name = "psycopg2-binary" },
 ]
@@ -2326,7 +2317,6 @@ requires-dist = [
     { name = "clickhouse-connect", marker = "extra == 'clickhouse'", specifier = ">=0.7.0" },
     { name = "cryptography", marker = "extra == 'all-databases'", specifier = ">=42.0.0" },
     { name = "cryptography", marker = "extra == 'web'", specifier = ">=42.0.0" },
-    { name = "cx-oracle", marker = "extra == 'oracle'", specifier = ">=8.3.0" },
     { name = "daphne", marker = "extra == 'web'", specifier = ">=4.0.0" },
     { name = "django", marker = "extra == 'web'", specifier = ">=5.0.0" },
     { name = "djangorestframework", marker = "extra == 'web'", specifier = ">=3.15.0" },
@@ -2347,7 +2337,7 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'sse'", specifier = ">=0.27.0" },
     { name = "whitenoise", marker = "extra == 'web'", specifier = ">=6.6.0" },
 ]
-provides-extras = ["postgresql", "mysql", "mssql", "oracle", "clickhouse", "all-databases", "sse", "web"]
+provides-extras = ["postgresql", "mysql", "mssql", "clickhouse", "all-databases", "sse", "web"]
 
 [package.metadata.requires-dev]
 dev = [

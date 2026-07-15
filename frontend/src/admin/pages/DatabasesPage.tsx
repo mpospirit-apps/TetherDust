@@ -8,38 +8,101 @@ import {
 	type TestResult,
 	testDatabase,
 } from "../../api/admin";
+import {
+	DEFAULT_ENGINE_META,
+	ENGINE_META,
+	EngineIconGlyph,
+} from "../components/engineIcons";
 
-function TestButton({ id }: { id: string }) {
+const TABLE_COLUMNS = 5;
+
+function DatabaseRow({
+	conn,
+	onDelete,
+}: {
+	conn: DatabaseConnection;
+	onDelete: (conn: DatabaseConnection) => void;
+}) {
 	const [result, setResult] = useState<TestResult | null>(null);
-	const mutation = useMutation({
-		mutationFn: () => testDatabase(id),
+	const test = useMutation({
+		mutationFn: () => testDatabase(conn.id),
 		onSuccess: setResult,
 		onError: () => setResult({ ok: false, detail: "Request failed" }),
 	});
+
+	const engineMeta = ENGINE_META[conn.engine] ?? DEFAULT_ENGINE_META;
+
 	return (
-		<div className="db-test">
-			<button
-				type="button"
-				className="btn btn-ghost btn-sm"
-				disabled={mutation.isPending}
-				onClick={() => mutation.mutate()}
-			>
-				{mutation.isPending ? (
-					<i className="fa-solid fa-spinner fa-spin" />
-				) : (
-					<>
-						<i className="fa-solid fa-vial" /> Test
-					</>
-				)}
-			</button>
+		<>
+			<tr>
+				<td>
+					<div className="db-name-cell">
+						<EngineIconGlyph
+							icon={engineMeta.icon}
+							className="db-name-cell__icon"
+						/>
+						<strong>{conn.name}</strong>
+					</div>
+				</td>
+				<td className="text-mono">{conn.host || "—"}</td>
+				<td className="text-mono truncate">{conn.database}</td>
+				<td>
+					{conn.is_active ? (
+						<span className="badge badge-success">ACTIVE</span>
+					) : (
+						<span className="badge badge-muted">INACTIVE</span>
+					)}
+				</td>
+				<td>
+					<div className="flex-gap">
+						<button
+							type="button"
+							className="btn btn-ghost btn-sm"
+							disabled={test.isPending}
+							onClick={() => {
+								setResult(null);
+								test.mutate();
+							}}
+						>
+							{test.isPending ? (
+								<i className="fa-solid fa-spinner fa-spin" />
+							) : (
+								<>
+									<i className="fa-solid fa-plug-circle-check" /> Test
+								</>
+							)}
+						</button>
+						<Link
+							to={`/admin/databases/${conn.id}`}
+							className="btn btn-ghost btn-sm"
+						>
+							<i className="fa-solid fa-pen" /> Edit
+						</Link>
+						<button
+							type="button"
+							className="btn btn-ghost btn-sm"
+							style={{ color: "var(--danger)" }}
+							onClick={() => onDelete(conn)}
+						>
+							<i className="fa-solid fa-trash" /> Delete
+						</button>
+					</div>
+				</td>
+			</tr>
 			{result && (
-				<span
-					className={result.ok ? "badge badge-success" : "badge badge-error"}
-				>
-					{result.ok ? "Connected ✓" : `Failed: ${result.detail}`}
-				</span>
+				<tr>
+					<td colSpan={TABLE_COLUMNS} className="db-test-result-cell">
+						<div
+							className={
+								result.ok ? "flash flash-success" : "flash flash-error"
+							}
+						>
+							{result.ok ? "Connected ✓" : `Failed: ${result.detail}`}
+						</div>
+					</td>
+				</tr>
 			)}
-		</div>
+		</>
 	);
 }
 
@@ -101,7 +164,6 @@ export function DatabasesPage() {
 							<thead>
 								<tr>
 									<th>Name</th>
-									<th>Engine</th>
 									<th>Host</th>
 									<th>Database</th>
 									<th>Status</th>
@@ -110,42 +172,7 @@ export function DatabasesPage() {
 							</thead>
 							<tbody>
 								{connections.map((conn) => (
-									<tr key={conn.id}>
-										<td>
-											<strong>{conn.name}</strong>
-										</td>
-										<td>
-											<span className="type-badge">{conn.engine}</span>
-										</td>
-										<td className="text-mono">{conn.host || "—"}</td>
-										<td className="text-mono truncate">{conn.database}</td>
-										<td>
-											{conn.is_active ? (
-												<span className="badge badge-success">ACTIVE</span>
-											) : (
-												<span className="badge badge-muted">INACTIVE</span>
-											)}
-										</td>
-										<td>
-											<div className="flex-gap">
-												<TestButton id={conn.id} />
-												<Link
-													to={`/admin/databases/${conn.id}`}
-													className="btn btn-ghost btn-sm"
-												>
-													<i className="fa-solid fa-pen" /> Edit
-												</Link>
-												<button
-													type="button"
-													className="btn btn-ghost btn-sm"
-													style={{ color: "var(--danger)" }}
-													onClick={() => onDelete(conn)}
-												>
-													<i className="fa-solid fa-trash" /> Delete
-												</button>
-											</div>
-										</td>
-									</tr>
+									<DatabaseRow key={conn.id} conn={conn} onDelete={onDelete} />
 								))}
 							</tbody>
 						</table>

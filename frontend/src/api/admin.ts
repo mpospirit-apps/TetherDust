@@ -44,6 +44,12 @@ export interface TestResult {
 	detail: string;
 }
 
+export interface SqliteFile {
+	name: string;
+	path: string;
+	used_by: string | null;
+}
+
 const DB_BASE = "/api/v1/admin/databases/";
 
 export function listDatabases(): Promise<Paginated<DatabaseConnection>> {
@@ -76,6 +82,19 @@ export function deleteDatabase(id: string): Promise<void> {
 
 export function testDatabase(id: string): Promise<TestResult> {
 	return apiFetch(`${DB_BASE}${id}/test/`, { method: "POST" });
+}
+
+export function testDraftDatabase(
+	data: DatabaseInput & { id?: string },
+): Promise<TestResult> {
+	return apiFetch(`${DB_BASE}test/`, {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+}
+
+export function getSqliteFiles(): Promise<{ files: SqliteFile[] }> {
+	return apiFetch(`${DB_BASE}sqlite-files/`);
 }
 
 export function getEngines(): Promise<EnginesResponse> {

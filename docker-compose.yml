@@ -42,6 +42,8 @@ services:
       - ./sources/docs:/app/sources/docs
       # Local codebases are read live from disk by the codebase MCP tools.
       - ./sources/codebases:/app/sources/codebases:ro
+      # SQLite connection files. Read-only: TetherDust only ever queries them.
+      - ./sources/databases:/app/sources/databases:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
       interval: 15s
@@ -286,6 +288,8 @@ services:
       - ./sources/docs:/app/sources/docs:ro
       # Read-only: the codebases admin lists/validates local folders here.
       - ./sources/codebases:/app/sources/codebases:ro
+      # SQLite connection files, for the admin "Test" button and reports.
+      - ./sources/databases:/app/sources/databases:ro
       - report-results:/app/report_results
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
@@ -372,6 +376,8 @@ services:
     volumes:
       - ./backend:/app/backend
       - ./tdmcp:/app/tdmcp
+      # SQLite connection files, for report execution against sqlite sources.
+      - ./sources/databases:/app/sources/databases:ro
       - report-results:/app/report_results
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}

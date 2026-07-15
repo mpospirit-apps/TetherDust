@@ -352,6 +352,12 @@ TETHERDUST_CODEBASES_DIR = os.getenv(
     str(BASE_DIR.parent / "sources" / "codebases"),
 )
 
+# SQLite connection files — admins place .db/.sqlite files here.
+TETHERDUST_DATABASES_DIR = os.getenv(
+    "TETHERDUST_DATABASES_DIR",
+    str(BASE_DIR.parent / "sources" / "databases"),
+)
+
 # ccc (cocoindex-code) semantic-search service — used to index/search local
 # codebases (and, later, other content). Empty disables local code search.
 CCC_SERVICE_URL = os.getenv("CCC_SERVICE_URL", "")

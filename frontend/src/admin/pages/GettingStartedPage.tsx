@@ -423,11 +423,11 @@ function DatabaseConnectionDiagram() {
 				<div className="database-flow__label">MySQL</div>
 			</div>
 
-			<div className="database-flow__node database-flow__node--snowflake">
-				<div className="doc-hiw-icon database-flow__icon database-flow__icon--snowflake">
-					<i className="fa-solid fa-snowflake" />
+			<div className="database-flow__node database-flow__node--clickhouse">
+				<div className="doc-hiw-icon database-flow__icon database-flow__icon--clickhouse">
+					<i className="fa-solid fa-database" />
 				</div>
-				<div className="database-flow__label">Snowflake</div>
+				<div className="database-flow__label">ClickHouse</div>
 			</div>
 
 			<div className="database-flow__node database-flow__node--hub">
@@ -1092,10 +1092,10 @@ function FoundationsTab() {
 					<DatabaseConnectionDiagram />
 					<p>
 						A <strong>database connection</strong> gives the agent read access
-						to a target database — PostgreSQL, MySQL, SQL Server, ClickHouse,
-						Oracle, Snowflake, BigQuery, and more. Once connected, the agent can
-						list tables, inspect schemas, and run queries to answer
-						natural-language questions about your data.
+						to a target database — PostgreSQL, MySQL, MariaDB, SQL Server, or
+						ClickHouse. Once connected, the agent can list tables, inspect
+						schemas, and run queries to answer natural-language questions about
+						your data.
 					</p>
 				</div>
 			</div>
