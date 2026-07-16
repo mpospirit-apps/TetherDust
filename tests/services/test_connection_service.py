@@ -50,21 +50,8 @@ def test_unknown_engine_falls_back_to_engine_name() -> None:
 # --- CodebaseService --------------------------------------------------------
 
 
-def test_ref_precedence() -> None:
-    svc = get(CodebaseService)
-    assert svc.ref(Codebase(branch="dev", default_branch="main")) == "dev"
-    assert svc.ref(Codebase(branch="", default_branch="release")) == "release"
-    assert svc.ref(Codebase(branch="", default_branch="")) == "main"
-
-
 def test_owner_repo() -> None:
     assert get(CodebaseService).owner_repo(Codebase(repo_url="https://github.com/o/r")) == (
         "o",
         "r",
     )
-
-
-def test_effective_exclude_globs_uses_default_when_empty() -> None:
-    svc = get(CodebaseService)
-    assert svc.effective_exclude_globs(Codebase(exclude_globs=[])) == Codebase.DEFAULT_EXCLUDE_GLOBS
-    assert svc.effective_exclude_globs(Codebase(exclude_globs=["*.lock"])) == ["*.lock"]

@@ -25,18 +25,14 @@ class CodebaseConfig:
     name: str
     repo_url: str
     provider: str = "github"
-    branch: str = ""
-    subpath: str = ""
     local_root: str = ""
-    include_globs: list[str] = field(default_factory=list)
-    exclude_globs: list[str] = field(default_factory=list)
     default_branch: str = ""
     cached_tree: list[dict[str, Any]] = field(default_factory=list)
     access_token: str = ""
 
     @property
     def ref(self) -> str:
-        return self.branch or self.default_branch or "main"
+        return self.default_branch or "main"
 
 
 def _decrypt(value: str) -> str:
@@ -69,8 +65,8 @@ def load_codebases() -> list[CodebaseConfig]:
         with engine.connect() as conn:
             rows = conn.execute(
                 text(
-                    "SELECT name, repo_url, provider, branch, subpath, local_root, "
-                    "include_globs, exclude_globs, default_branch, cached_tree, access_token "
+                    "SELECT name, repo_url, provider, local_root, "
+                    "default_branch, cached_tree, access_token "
                     "FROM engine_codebase WHERE is_active = true ORDER BY name"
                 )
             ).fetchall()
@@ -86,11 +82,7 @@ def load_codebases() -> list[CodebaseConfig]:
                 name=row.name,
                 repo_url=row.repo_url or "",
                 provider=row.provider or "github",
-                branch=row.branch or "",
-                subpath=row.subpath or "",
                 local_root=row.local_root or "",
-                include_globs=row.include_globs or [],
-                exclude_globs=row.exclude_globs or [],
                 default_branch=row.default_branch or "",
                 cached_tree=row.cached_tree or [],
                 access_token=_decrypt(row.access_token or ""),

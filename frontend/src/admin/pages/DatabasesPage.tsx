@@ -8,6 +8,7 @@ import {
 	type TestResult,
 	testDatabase,
 } from "../../api/admin";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
 	DEFAULT_ENGINE_META,
 	ENGINE_META,
@@ -108,6 +109,9 @@ function DatabaseRow({
 
 export function DatabasesPage() {
 	const queryClient = useQueryClient();
+	const [pendingDelete, setPendingDelete] = useState<DatabaseConnection | null>(
+		null,
+	);
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ["admin", "databases"],
 		queryFn: listDatabases,
@@ -119,9 +123,7 @@ export function DatabasesPage() {
 	});
 
 	function onDelete(conn: DatabaseConnection) {
-		if (window.confirm(`Delete connection "${conn.name}"?`)) {
-			remove.mutate(conn.id);
-		}
+		setPendingDelete(conn);
 	}
 
 	const connections = data?.results ?? [];
@@ -179,6 +181,22 @@ export function DatabasesPage() {
 					</div>
 				)}
 			</div>
+			{pendingDelete && (
+				<ConfirmDialog
+					title="Delete Database Connection"
+					message={
+						<>
+							Delete connection <strong>{pendingDelete.name}</strong>? This
+							cannot be undone.
+						</>
+					}
+					onConfirm={() => {
+						remove.mutate(pendingDelete.id);
+						setPendingDelete(null);
+					}}
+					onCancel={() => setPendingDelete(null)}
+				/>
+			)}
 		</div>
 	);
 }

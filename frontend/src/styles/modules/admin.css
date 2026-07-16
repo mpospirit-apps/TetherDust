@@ -674,6 +674,43 @@
 	height: 1rem;
 }
 
+/* Hover tooltip for icon-only / ambiguous row actions (e.g. Sync). Portaled
+   to <body> (see ActionTooltip.tsx) and positioned via inline top/left, so
+   `position: fixed` here anchors to the viewport coordinates it's given
+   rather than any scrolling ancestor (which would otherwise clip it — the
+   admin tables wrap in an `overflow-x: auto` container). */
+.action-tooltip {
+	position: fixed;
+	transform: translate(-50%, -100%);
+	background: var(--bg-card);
+	border: 1px solid var(--c-cyan);
+	padding: 6px 10px;
+	font-size: var(--text-xs);
+	font-weight: 400;
+	line-height: 1.4;
+	color: var(--c-cyan);
+	text-align: left;
+	white-space: normal;
+	width: max-content;
+	max-width: 220px;
+	pointer-events: none;
+	z-index: 2000;
+}
+.action-tooltip::after {
+	content: "";
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	border: 5px solid transparent;
+	border-top-color: var(--c-cyan);
+}
+.action-tooltip-wrap:hover .action-tooltip {
+	opacity: 1;
+	visibility: visible;
+	transform: translateX(-50%) translateY(0);
+}
+
 /* ── Tables ── */
 .table-wrap {
 	overflow-x: auto;

@@ -13,7 +13,6 @@ from typing import Any, cast
 import httpx
 
 from .tree_filter import filter_tree as filter_tree
-from .tree_filter import matches_any as matches_any
 
 GITHUB_API = "https://api.github.com"
 # GitHub's contents API returns base64 up to ~1MB; refuse larger to keep

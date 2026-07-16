@@ -23,8 +23,6 @@ read_codebase_file, and search_codebase."""
         lines.append(f"**Provider:** {cb.provider}")
         lines.append(f"**Repository:** {cb.repo_url}")
         lines.append(f"**Branch:** {cb.ref}")
-        if cb.subpath:
-            lines.append(f"**Subpath:** {cb.subpath}")
         if cb.cached_tree:
             lines.append(f"**Files:** {len(cb.cached_tree)} (cached)")
         lines.append("")

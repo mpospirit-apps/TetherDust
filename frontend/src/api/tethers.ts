@@ -38,10 +38,6 @@ export interface Codebase {
 	provider: string;
 	repo_url: string;
 	local_root: string;
-	branch: string;
-	subpath: string;
-	include_globs: string[];
-	exclude_globs: string[];
 	has_token: boolean;
 	is_active: boolean;
 	sync_status: SyncStatus;
@@ -58,10 +54,6 @@ export interface CodebaseInput {
 	provider?: string;
 	repo_url?: string;
 	local_root?: string;
-	branch?: string;
-	subpath?: string;
-	include_globs?: string[];
-	exclude_globs?: string[];
 	access_token?: string;
 	is_active?: boolean;
 }

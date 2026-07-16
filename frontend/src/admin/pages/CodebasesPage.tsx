@@ -1,37 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiErrorDetail } from "../../api/client";
 import {
 	type Codebase,
 	deleteCodebase,
 	listCodebases,
-	type SyncStatus,
 	syncCodebase,
 } from "../../api/tethers";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { ActionTooltip } from "../components/ActionTooltip";
+import {
+	DEFAULT_PROVIDER_META,
+	PROVIDER_META,
+	ProviderGlyph,
+} from "../components/providerIcons";
 
-function SyncBadge({ status, error }: { status: SyncStatus; error: string }) {
-	switch (status) {
-		case "ok":
-			return <span className="badge badge-success">SYNCED</span>;
-		case "syncing":
-			return (
-				<span className="badge badge-muted">
-					<i className="fa-solid fa-spinner fa-spin" /> SYNCING
-				</span>
-			);
-		case "error":
-			return (
-				<span className="badge badge-error" title={error}>
-					ERROR
-				</span>
-			);
-		default:
-			return <span className="badge badge-muted">PENDING</span>;
-	}
-}
+const SYNC_TOOLTIP: Record<string, string> = {
+	github:
+		"Fetches the latest file tree from GitHub and refreshes the cached listing used for browsing.",
+	gitlab:
+		"Fetches the latest file tree from GitLab and refreshes the cached listing used for browsing.",
+	local: "Rescans the local folder and rebuilds the search index.",
+};
+const DEFAULT_SYNC_TOOLTIP = "Refreshes this codebase for the agent.";
+
+const TABLE_COLUMNS = 5;
 
 export function CodebasesPage() {
 	const queryClient = useQueryClient();
+	const [pendingDelete, setPendingDelete] = useState<Codebase | null>(null);
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ["admin", "codebases"],
 		queryFn: listCodebases,
@@ -57,7 +55,7 @@ export function CodebasesPage() {
 	});
 
 	function onDelete(c: Codebase) {
-		if (window.confirm(`Delete codebase "${c.name}"?`)) remove.mutate(c.id);
+		setPendingDelete(c);
 	}
 
 	const codebases = data?.results ?? [];
@@ -101,75 +99,128 @@ export function CodebasesPage() {
 							<thead>
 								<tr>
 									<th>Name</th>
-									<th>Repository</th>
 									<th>Branch</th>
-									<th>Sync</th>
+									<th>Last Synced</th>
+									<th>Activity</th>
 									<th>Actions</th>
 								</tr>
 							</thead>
 							<tbody>
 								{codebases.map((c) => (
-									<tr key={c.id}>
-										<td>
-											<strong>{c.name}</strong>
-											{c.description && (
-												<div className="text-sm text-sec truncate">
-													{c.description}
+									<Fragment key={c.id}>
+										<tr>
+											<td>
+												<div className="db-name-cell">
+													<ProviderGlyph
+														meta={
+															PROVIDER_META[c.provider] ?? DEFAULT_PROVIDER_META
+														}
+														className="db-name-cell__icon"
+													/>
+													<div>
+														<strong>{c.name}</strong>
+														{c.description && (
+															<div className="text-sm text-sec truncate">
+																{c.description}
+															</div>
+														)}
+													</div>
 												</div>
-											)}
-										</td>
-										<td className="text-sm">
-											{c.provider === "local" ? (
-												<span>
-													<i className="fa-solid fa-folder-open" />{" "}
-													{c.local_root || "—"}{" "}
-													<span className="badge badge-muted">LOCAL</span>
-												</span>
-											) : (
-												c.repo_url
-											)}
-										</td>
-										<td className="text-sm">
-											{c.provider === "local"
-												? "—"
-												: c.branch || c.default_branch || "default"}
-										</td>
-										<td>
-											<SyncBadge status={c.sync_status} error={c.sync_error} />
-										</td>
-										<td>
-											<div className="flex-gap">
-												<button
-													type="button"
-													className="btn btn-ghost btn-sm"
-													onClick={() => sync.mutate(c.id)}
-													disabled={c.sync_status === "syncing"}
+											</td>
+											<td className="text-sm">
+												{c.provider === "local"
+													? "—"
+													: c.default_branch || "default"}
+											</td>
+											<td className="text-sm">
+												{c.last_synced_at
+													? new Date(c.last_synced_at).toLocaleString()
+													: "Never"}
+											</td>
+											<td>
+												{c.is_active ? (
+													<span className="badge badge-success">ACTIVE</span>
+												) : (
+													<span className="badge badge-muted">INACTIVE</span>
+												)}
+											</td>
+											<td>
+												<div className="flex-gap">
+													<ActionTooltip
+														content={
+															SYNC_TOOLTIP[c.provider] ?? DEFAULT_SYNC_TOOLTIP
+														}
+													>
+														<button
+															type="button"
+															className="btn btn-ghost btn-sm"
+															onClick={() => sync.mutate(c.id)}
+															disabled={c.sync_status === "syncing"}
+														>
+															{c.sync_status === "syncing" ? (
+																<>
+																	<i className="fa-solid fa-spinner fa-spin" />{" "}
+																	Syncing…
+																</>
+															) : (
+																<>
+																	<i className="fa-solid fa-rotate" /> Sync
+																</>
+															)}
+														</button>
+													</ActionTooltip>
+													<Link
+														to={`/admin/codebases/${c.id}`}
+														className="btn btn-ghost btn-sm"
+													>
+														<i className="fa-solid fa-pen" /> Edit
+													</Link>
+													<button
+														type="button"
+														className="btn btn-ghost btn-sm"
+														style={{ color: "var(--danger)" }}
+														onClick={() => onDelete(c)}
+													>
+														<i className="fa-solid fa-trash" /> Delete
+													</button>
+												</div>
+											</td>
+										</tr>
+										{c.sync_status === "error" && (
+											<tr>
+												<td
+													colSpan={TABLE_COLUMNS}
+													className="db-test-result-cell"
 												>
-													<i className="fa-solid fa-rotate" /> Sync
-												</button>
-												<Link
-													to={`/admin/codebases/${c.id}`}
-													className="btn btn-ghost btn-sm"
-												>
-													<i className="fa-solid fa-pen" /> Edit
-												</Link>
-												<button
-													type="button"
-													className="btn btn-ghost btn-sm"
-													style={{ color: "var(--danger)" }}
-													onClick={() => onDelete(c)}
-												>
-													<i className="fa-solid fa-trash" /> Delete
-												</button>
-											</div>
-										</td>
-									</tr>
+													<div className="flash flash-error">
+														Sync failed: {c.sync_error || "Unknown error"}
+													</div>
+												</td>
+											</tr>
+										)}
+									</Fragment>
 								))}
 							</tbody>
 						</table>
 					</div>
 				)}
 			</div>
+			{pendingDelete && (
+				<ConfirmDialog
+					title="Delete Codebase"
+					message={
+						<>
+							Delete codebase <strong>{pendingDelete.name}</strong>? This cannot
+							be undone.
+						</>
+					}
+					onConfirm={() => {
+						remove.mutate(pendingDelete.id);
+						setPendingDelete(null);
+					}}
+					onCancel={() => setPendingDelete(null)}
+				/>
+			)}
 		</div>
 	);
 }

@@ -220,9 +220,9 @@ def sync_codebase(codebase_id: str) -> None:
     """Sync a codebase so the agent can browse/search it.
 
     Remote (GitHub/GitLab): we don't clone. Sync resolves the default branch,
-    fetches the recursive git tree, applies the codebase's subpath/include/exclude
-    filters, and caches the result so ``get_codebase_tree`` is fast and rate-limit
-    friendly; file contents are fetched live by the MCP tools.
+    fetches the recursive git tree, and caches the result so
+    ``get_codebase_tree`` is fast and rate-limit friendly; file contents are
+    fetched live by the MCP tools.
 
     Local: files are read live from disk by the MCP tools (no cached tree needed),
     so sync only refreshes the ccc semantic index used by ``search_codebase``.
@@ -263,18 +263,14 @@ def sync_codebase(codebase_id: str) -> None:
             project = get(CodebaseService).project_path(cb)
             gl_client = GitLabClient(token=cb.access_token or None)
             default_branch = gl_client.get_project(project).get("default_branch") or "main"
-            ref = cb.branch or default_branch
-            raw_tree = gl_client.get_tree(project, ref)
+            raw_tree = gl_client.get_tree(project, default_branch)
         else:
             owner, repo = get(CodebaseService).owner_repo(cb)
             gh_client = GitHubClient(token=cb.access_token or None)
             default_branch = gh_client.get_repo(owner, repo).get("default_branch") or "main"
-            ref = cb.branch or default_branch
-            raw_tree = gh_client.get_tree(owner, repo, ref)
+            raw_tree = gh_client.get_tree(owner, repo, default_branch)
 
-        tree = filter_tree(
-            raw_tree, cb.subpath, cb.include_globs, get(CodebaseService).effective_exclude_globs(cb)
-        )
+        tree = filter_tree(raw_tree)
 
         cb.default_branch = default_branch
         cb.cached_tree = tree
@@ -300,11 +296,16 @@ def sync_codebase(codebase_id: str) -> None:
 
 
 @shared_task
-def reindex_local_codebases() -> None:
-    """Periodic: refresh the ccc semantic index for every active local codebase."""
+def resync_codebases() -> None:
+    """Periodic: re-sync every active codebase.
+
+    Local codebases get their ccc semantic index refreshed; remote
+    (GitHub/GitLab) codebases get their cached file tree refreshed, so
+    the agent sees new commits without an admin clicking Sync.
+    """
     from .models import Codebase
 
-    ids = Codebase.objects.filter(provider="local", is_active=True).values_list("pk", flat=True)
+    ids = Codebase.objects.filter(is_active=True).values_list("pk", flat=True)
     for cb_id in ids:
         try:
             sync_codebase.delay(cb_id)

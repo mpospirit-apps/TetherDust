@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { siGithub, siGitlab } from "simple-icons";
 import { apiErrorDetail } from "../../api/client";
 import {
 	type CodebaseInput,
@@ -11,10 +10,10 @@ import {
 	updateCodebase,
 } from "../../api/tethers";
 import { FormField, ToggleField } from "../components/forms";
+import { PROVIDER_META, ProviderGlyph } from "../components/providerIcons";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
-// Identity first, the required repository config next, optional/advanced
-// fields last.
+// Identity first, the required repository config next.
 const STEPS: WizardStepDef[] = [
 	{
 		key: "identity",
@@ -24,12 +23,25 @@ const STEPS: WizardStepDef[] = [
 	{
 		key: "configuration",
 		label: "Configuration",
-		description: "Point to the repository the agent should browse.",
+		description:
+			"Point to the repository the agent should browse, with an access token if it's private.",
+	},
+];
+
+// Mini "how to" steps shown under the local folder picker, styled like the
+// wizard section headings above but in blue to read as a nested aside —
+// matches the SQLite file picker's hint steps on Add Database Connection.
+const LOCAL_FOLDER_HINT_STEPS: WizardStepDef[] = [
+	{
+		key: "place",
+		label: "Place the folder",
+		description:
+			"Drop your codebase folder into sources/codebases/ at the project root.",
 	},
 	{
-		key: "optional",
-		label: "Optional Configurations",
-		description: "Optional — branch, path filters, and access token.",
+		key: "select",
+		label: "Select it",
+		description: "Pick it from the dropdown above.",
 	},
 ];
 
@@ -39,10 +51,6 @@ interface FormState {
 	provider: string;
 	repo_url: string;
 	local_root: string;
-	branch: string;
-	subpath: string;
-	include_globs: string;
-	exclude_globs: string;
 	access_token: string;
 	is_active: boolean;
 }
@@ -53,10 +61,6 @@ const EMPTY: FormState = {
 	provider: "github",
 	repo_url: "",
 	local_root: "",
-	branch: "",
-	subpath: "",
-	include_globs: "",
-	exclude_globs: "",
 	access_token: "",
 	is_active: true,
 };
@@ -72,28 +76,30 @@ const PROVIDER_CHOICES: ProviderChoice[] = [
 	{ value: "local", label: "Local" },
 ];
 
-interface ProviderMeta {
-	icon?: { title: string; path: string };
-	faIcon?: string;
-	blurb: string;
-}
+// Groups the step-1 provider picker into labeled sections (hosted Git repos
+// vs. a folder on disk), matching the engine picker on Add Database
+// Connection.
+const PROVIDER_GROUPS: { title: string; values: string[] }[] = [
+	{ title: "Remote", values: ["github", "gitlab"] },
+	{ title: "Local", values: ["local"] },
+];
 
-const PROVIDER_META: Record<string, ProviderMeta> = {
-	github: {
-		icon: { title: siGithub.title, path: siGithub.path },
-		blurb: "Public or private GitHub repository.",
-	},
-	gitlab: {
-		icon: { title: siGitlab.title, path: siGitlab.path },
-		blurb:
-			"Public or private GitLab.com repository (self-managed instances aren't supported).",
-	},
-	local: {
-		faIcon: "fa-folder-open",
-		blurb:
-			"A folder placed under sources/codebases/ on the server. Read live from disk and searched semantically — no clone, no token.",
-	},
-};
+function groupProviderChoices(
+	choices: ProviderChoice[],
+): { title: string; choices: ProviderChoice[] }[] {
+	const byValue = new Map(choices.map((c) => [c.value, c]));
+	const grouped = PROVIDER_GROUPS.map((g) => ({
+		title: g.title,
+		choices: g.values
+			.map((v) => byValue.get(v))
+			.filter((c): c is ProviderChoice => c != null),
+	})).filter((g) => g.choices.length > 0);
+
+	const groupedValues = new Set(PROVIDER_GROUPS.flatMap((g) => g.values));
+	const other = choices.filter((c) => !groupedValues.has(c.value));
+	if (other.length > 0) grouped.push({ title: "Other", choices: other });
+	return grouped;
+}
 
 const PROVIDER_URL_PLACEHOLDER: Record<string, string> = {
 	github: "https://github.com/owner/repo",
@@ -107,40 +113,6 @@ const PROVIDER_TOKEN_HELP: Record<string, string> = {
 		"Encrypted at rest. Leave blank for public projects. A personal or project access token with the read_repository scope is sufficient.",
 };
 
-function ProviderIconGlyph({
-	icon,
-}: {
-	icon: { title: string; path: string };
-}) {
-	return (
-		<span className="choice-card__icon choice-card__icon--logo">
-			<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-				<title>{icon.title}</title>
-				<path d={icon.path} />
-			</svg>
-		</span>
-	);
-}
-
-function ProviderGlyph({ meta }: { meta: ProviderMeta }) {
-	if (meta.faIcon) {
-		return (
-			<span className="choice-card__icon">
-				<i className={`fa-solid ${meta.faIcon}`} />
-			</span>
-		);
-	}
-	if (meta.icon) return <ProviderIconGlyph icon={meta.icon} />;
-	return null;
-}
-
-function linesToList(value: string): string[] {
-	return value
-		.split("\n")
-		.map((s) => s.trim())
-		.filter(Boolean);
-}
-
 export function CodebaseFormPage() {
 	const { id } = useParams();
 	const isEdit = Boolean(id);
@@ -150,6 +122,7 @@ export function CodebaseFormPage() {
 	const [form, setForm] = useState<FormState>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
 	const [hasToken, setHasToken] = useState(false);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 	// Create flow, step 1: pick a provider before showing the repository form.
 	const [providerPicked, setProviderPicked] = useState(isEdit);
 
@@ -173,10 +146,6 @@ export function CodebaseFormPage() {
 			provider: c.provider,
 			repo_url: c.repo_url,
 			local_root: c.local_root,
-			branch: c.branch,
-			subpath: c.subpath,
-			include_globs: c.include_globs.join("\n"),
-			exclude_globs: c.exclude_globs.join("\n"),
 			access_token: "",
 			is_active: c.is_active,
 		});
@@ -204,16 +173,12 @@ export function CodebaseFormPage() {
 			name: form.name,
 			description: form.description,
 			provider: form.provider,
-			subpath: form.subpath,
-			include_globs: linesToList(form.include_globs),
-			exclude_globs: linesToList(form.exclude_globs),
 			is_active: form.is_active,
 		};
 		if (form.provider === "local") {
 			payload.local_root = form.local_root;
 		} else {
 			payload.repo_url = form.repo_url;
-			payload.branch = form.branch;
 			if (form.access_token) payload.access_token = form.access_token;
 		}
 		save.mutate(payload);
@@ -240,29 +205,34 @@ export function CodebaseFormPage() {
 						Back
 					</Link>
 				</div>
-				<div className="choice-list choice-list--grid">
-					{PROVIDER_CHOICES.map((c) => {
-						const meta = PROVIDER_META[c.value];
-						return (
-							<button
-								key={c.value}
-								type="button"
-								className="choice-card"
-								onClick={() => {
-									set("provider", c.value);
-									setProviderPicked(true);
-								}}
-							>
-								<ProviderGlyph meta={meta} />
-								<div className="choice-card__body">
-									<h4>{c.label}</h4>
-									{meta.blurb && <p>{meta.blurb}</p>}
-								</div>
-								<i className="fa-solid fa-chevron-right choice-card__chevron" />
-							</button>
-						);
-					})}
-				</div>
+				{groupProviderChoices(PROVIDER_CHOICES).map((group) => (
+					<div className="choice-section" key={group.title}>
+						<h3 className="choice-section__title">{group.title}</h3>
+						<div className="choice-list choice-list--grid">
+							{group.choices.map((c) => {
+								const meta = PROVIDER_META[c.value];
+								return (
+									<button
+										key={c.value}
+										type="button"
+										className="choice-card"
+										onClick={() => {
+											set("provider", c.value);
+											setProviderPicked(true);
+										}}
+									>
+										<ProviderGlyph meta={meta} />
+										<div className="choice-card__body">
+											<h4>{c.label}</h4>
+											{meta.blurb && <p>{meta.blurb}</p>}
+										</div>
+										<i className="fa-solid fa-chevron-right choice-card__chevron" />
+									</button>
+								);
+							})}
+						</div>
+					</div>
+				))}
 			</div>
 		);
 	}
@@ -285,14 +255,10 @@ export function CodebaseFormPage() {
 			<div className="page-header">
 				<div>
 					<h1>
-						{isEdit ? (
-							`Edit ${form.name}`
-						) : (
-							<span className="title-icon-tag">
-								<ProviderGlyph meta={providerMeta} />
-								{providerLabel}
-							</span>
-						)}
+						<span className="title-icon-tag">
+							<ProviderGlyph meta={providerMeta} />
+							{isEdit ? `Edit ${form.name}` : providerLabel}
+						</span>
 					</h1>
 					<p>
 						A repository the agent can browse and read (GitHub or GitLab, no
@@ -328,10 +294,72 @@ export function CodebaseFormPage() {
 			)}
 
 			<form id="codebase-form" onSubmit={onSubmit}>
-				{isEdit ? (
-					<div className="form-split">
+				{!isEdit && (
+					<div className="card doc-hiw-card">
+						<button
+							type="button"
+							className="doc-hiw-toggle"
+							aria-expanded={howItWorksOpen}
+							onClick={() => setHowItWorksOpen((open) => !open)}
+						>
+							<h3>How it works</h3>
+							<i
+								className={`fa-solid fa-chevron-down doc-hiw-chevron${
+									howItWorksOpen ? " is-open" : ""
+								}`}
+							/>
+						</button>
+						<div
+							className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+						>
+							<div className="doc-hiw-collapse__inner">
+								<div className="doc-hiw">
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-code-branch" />
+										</div>
+										<div className="doc-hiw-label">Point at it</div>
+										<div className="doc-hiw-desc">
+											GitHub, GitLab (no clone needed), or a local folder under
+											sources/codebases/
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-rotate" />
+										</div>
+										<div className="doc-hiw-label">Kept in sync</div>
+										<div className="doc-hiw-desc">
+											The file tree (remote) or search index (local) refreshes
+											every 6 hours, or on demand via Sync
+										</div>
+									</div>
+									<div className="doc-hiw-arrow">
+										<i className="fa-solid fa-chevron-right" />
+									</div>
+									<div className="doc-hiw-step">
+										<div className="doc-hiw-icon">
+											<i className="fa-solid fa-magnifying-glass-chart" />
+										</div>
+										<div className="doc-hiw-label">Agent browses it</div>
+										<div className="doc-hiw-desc">
+											Roles grant access so the agent can list, read, and search
+											files via MCP
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
+				<div className="form-split">
+					<div className="wizard-section">
+						<WizardSectionHeading step={STEPS[0]} index={0} />
 						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
 							<FormField label="Name">
 								<input
 									className="form-control"
@@ -358,262 +386,113 @@ export function CodebaseFormPage() {
 								onChange={(v) => set("is_active", v)}
 							/>
 						</div>
-
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Repository</h3>
-							<FormField label="Provider">
-								<select
-									className="form-control"
-									value={form.provider}
-									onChange={(e) => set("provider", e.target.value)}
-								>
-									{PROVIDER_CHOICES.map((c) => (
-										<option key={c.value} value={c.value}>
-											{c.label}
-										</option>
-									))}
-								</select>
-							</FormField>
-							{isLocal ? (
-								<FormField
-									label="Codebase Folder"
-									help="Folder under sources/codebases/ (chosen at registration)."
-								>
-									<input
-										className="form-control"
-										value={form.local_root}
-										disabled
-									/>
-								</FormField>
-							) : (
-								<FormField
-									label="Repository URL"
-									help={`e.g. ${urlPlaceholder}`}
-								>
-									<input
-										className="form-control"
-										value={form.repo_url}
-										required
-										placeholder={urlPlaceholder}
-										onChange={(e) => set("repo_url", e.target.value)}
-									/>
-								</FormField>
-							)}
-							<div className="form-grid">
-								{!isLocal && (
-									<FormField
-										label="Branch"
-										help="Leave blank to use the default branch."
-									>
-										<input
-											className="form-control"
-											value={form.branch}
-											onChange={(e) => set("branch", e.target.value)}
-										/>
-									</FormField>
-								)}
-								<FormField label="Subpath" help="e.g. services/api">
-									<input
-										className="form-control"
-										value={form.subpath}
-										onChange={(e) => set("subpath", e.target.value)}
-									/>
-								</FormField>
-							</div>
-							<FormField
-								label="Include globs"
-								help="One glob per line, e.g. src/**. Empty = everything."
-							>
-								<textarea
-									className="form-control"
-									rows={2}
-									value={form.include_globs}
-									onChange={(e) => set("include_globs", e.target.value)}
-									placeholder={"src/**\n*.py"}
-								/>
-							</FormField>
-							<FormField
-								label="Exclude globs"
-								help="One glob per line. Empty = a sensible default set (node_modules, build output, binaries)."
-							>
-								<textarea
-									className="form-control"
-									rows={2}
-									value={form.exclude_globs}
-									onChange={(e) => set("exclude_globs", e.target.value)}
-									placeholder={"node_modules/*\n*.lock"}
-								/>
-							</FormField>
-							{!isLocal && (
-								<FormField
-									label="Access token"
-									help={
-										hasToken
-											? "A token is stored. Leave blank to keep it."
-											: tokenHelp
-									}
-								>
-									<input
-										type="password"
-										className="form-control"
-										value={form.access_token}
-										autoComplete="new-password"
-										placeholder={
-											hasToken
-												? "••••••••  (leave blank to keep)"
-												: `Enter ${providerLabel} token`
-										}
-										onChange={(e) => set("access_token", e.target.value)}
-									/>
-								</FormField>
-							)}
-						</div>
 					</div>
-				) : (
-					<div className="form-split-col">
-						<div className="form-split">
-							<div className="wizard-section">
-								<WizardSectionHeading step={STEPS[0]} index={0} />
-								<div className="card">
-									<FormField label="Name">
+
+					<div className="wizard-section">
+						<WizardSectionHeading step={STEPS[1]} index={1} />
+						<div className="card">
+							{isEdit && (
+								<FormField label="Provider">
+									<select
+										className="form-control"
+										value={form.provider}
+										onChange={(e) => set("provider", e.target.value)}
+									>
+										{PROVIDER_CHOICES.map((c) => (
+											<option key={c.value} value={c.value}>
+												{c.label}
+											</option>
+										))}
+									</select>
+								</FormField>
+							)}
+							{isLocal ? (
+								isEdit ? (
+									<FormField
+										label="Codebase Folder"
+										help="Folder under sources/codebases/ (chosen at registration)."
+									>
 										<input
 											className="form-control"
-											value={form.name}
+											value={form.local_root}
+											disabled
+										/>
+									</FormField>
+								) : (
+									<FormField label="Codebase Folder">
+										<select
+											className="form-control"
+											value={form.local_root}
 											required
-											onChange={(e) => set("name", e.target.value)}
+											onChange={(e) => set("local_root", e.target.value)}
+										>
+											<option value="">— Select a folder —</option>
+											{unregisteredFolders.map((f) => (
+												<option key={f.name} value={f.name}>
+													{f.name}
+												</option>
+											))}
+										</select>
+										{unregisteredFolders.length === 0 && !folders.isLoading && (
+											<div
+												className="flash flash-error"
+												style={{ marginTop: "var(--sm)" }}
+											>
+												No unregistered folders found in sources/codebases/. Add
+												one on the server first.
+											</div>
+										)}
+										<div className="hint-steps">
+											{LOCAL_FOLDER_HINT_STEPS.map((step, i) => (
+												<WizardSectionHeading
+													key={step.key}
+													step={step}
+													index={i}
+												/>
+											))}
+										</div>
+									</FormField>
+								)
+							) : (
+								<>
+									<FormField
+										label="Repository URL"
+										help={`e.g. ${urlPlaceholder}`}
+									>
+										<input
+											className="form-control"
+											value={form.repo_url}
+											required
+											placeholder={urlPlaceholder}
+											onChange={(e) => set("repo_url", e.target.value)}
 										/>
 									</FormField>
 									<FormField
-										label="Description"
-										help="Helps the agent understand what this repo contains."
+										label="Access token"
+										help={
+											hasToken
+												? "A token is stored. Leave blank to keep it."
+												: tokenHelp
+										}
 									>
-										<textarea
-											className="form-control"
-											rows={3}
-											value={form.description}
-											onChange={(e) => set("description", e.target.value)}
-										/>
-									</FormField>
-									<ToggleField
-										label="Is active"
-										description="The agent only browses this repo while it's active."
-										checked={form.is_active}
-										onChange={(v) => set("is_active", v)}
-									/>
-								</div>
-							</div>
-
-							<div className="wizard-section">
-								<WizardSectionHeading step={STEPS[1]} index={1} />
-								<div className="card">
-									{isLocal ? (
-										<FormField
-											label="Codebase Folder"
-											help="Select a folder from sources/codebases/."
-										>
-											<select
-												className="form-control"
-												value={form.local_root}
-												required
-												onChange={(e) => set("local_root", e.target.value)}
-											>
-												<option value="">— Select a folder —</option>
-												{unregisteredFolders.map((f) => (
-													<option key={f.name} value={f.name}>
-														{f.name}
-													</option>
-												))}
-											</select>
-											{unregisteredFolders.length === 0 &&
-												!folders.isLoading && (
-													<div className="helptext">
-														No unregistered folders found under
-														sources/codebases/. Add one on the server first.
-													</div>
-												)}
-										</FormField>
-									) : (
-										<FormField
-											label="Repository URL"
-											help={`e.g. ${urlPlaceholder}`}
-										>
-											<input
-												className="form-control"
-												value={form.repo_url}
-												required
-												placeholder={urlPlaceholder}
-												onChange={(e) => set("repo_url", e.target.value)}
-											/>
-										</FormField>
-									)}
-								</div>
-							</div>
-						</div>
-
-						<div className="wizard-section">
-							<WizardSectionHeading step={STEPS[2]} index={2} />
-							<div className="card">
-								<div className="form-grid">
-									{!isLocal && (
-										<FormField
-											label="Branch"
-											help="Leave blank to use the default branch."
-										>
-											<input
-												className="form-control"
-												value={form.branch}
-												onChange={(e) => set("branch", e.target.value)}
-											/>
-										</FormField>
-									)}
-									<FormField label="Subpath" help="e.g. services/api">
-										<input
-											className="form-control"
-											value={form.subpath}
-											onChange={(e) => set("subpath", e.target.value)}
-										/>
-									</FormField>
-								</div>
-								<FormField
-									label="Include globs"
-									help="One glob per line, e.g. src/**. Empty = everything."
-								>
-									<textarea
-										className="form-control"
-										rows={2}
-										value={form.include_globs}
-										onChange={(e) => set("include_globs", e.target.value)}
-										placeholder={"src/**\n*.py"}
-									/>
-								</FormField>
-								<FormField
-									label="Exclude globs"
-									help="One glob per line. Empty = a sensible default set (node_modules, build output, binaries)."
-								>
-									<textarea
-										className="form-control"
-										rows={2}
-										value={form.exclude_globs}
-										onChange={(e) => set("exclude_globs", e.target.value)}
-										placeholder={"node_modules/*\n*.lock"}
-									/>
-								</FormField>
-								{!isLocal && (
-									<FormField label="Access token" help={tokenHelp}>
 										<input
 											type="password"
 											className="form-control"
 											value={form.access_token}
 											autoComplete="new-password"
-											placeholder={`Enter ${providerLabel} token`}
+											placeholder={
+												hasToken
+													? "••••••••  (leave blank to keep)"
+													: `Enter ${providerLabel} token`
+											}
 											onChange={(e) => set("access_token", e.target.value)}
 										/>
 									</FormField>
-								)}
-							</div>
+								</>
+							)}
 						</div>
 					</div>
-				)}
+				</div>
 			</form>
 		</div>
 	);
