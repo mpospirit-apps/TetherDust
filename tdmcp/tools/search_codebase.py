@@ -87,14 +87,7 @@ back to get_codebase_tree and read_codebase_file to navigate the repository."""
         logger.exception("Unexpected error searching codebase %s", codebase)
         return _FALLBACK
 
-    # Honor the configured subpath when filtering results.
-    sub = cb.subpath.strip("/")
-    paths = []
-    for h in hits:
-        p = h.get("path", "")
-        if sub and not (p == sub or p.startswith(sub + "/")):
-            continue
-        paths.append(p[len(sub) + 1 :] if sub and p.startswith(sub + "/") else p)
+    paths = [h.get("path", "") for h in hits]
 
     if not paths:
         return f"No matches for '{query}' in codebase '{codebase}'."

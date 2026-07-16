@@ -638,7 +638,7 @@ export function DatabaseFormPage() {
 											</div>
 										)}
 									{isSqlite && (
-										<div className="sqlite-hint-steps">
+										<div className="hint-steps">
 											{SQLITE_HINT_STEPS.map((step, i) => (
 												<WizardSectionHeading
 													key={step.key}

@@ -7,7 +7,6 @@ A standalone copy of the Django-side client (the ``mcp`` container cannot import
 from __future__ import annotations
 
 import base64
-import fnmatch
 from typing import Any, cast
 
 import httpx
@@ -30,19 +29,6 @@ class GitHubNotFoundError(GitHubError):
 
 class GitHubRateLimitError(GitHubError):
     """GitHub API rate limit exceeded."""
-
-
-def _matches(path: str, pattern: str) -> bool:
-    base = path.rsplit("/", 1)[-1]
-    return (
-        fnmatch.fnmatch(path, pattern)
-        or fnmatch.fnmatch(path, f"*/{pattern}")
-        or fnmatch.fnmatch(base, pattern)
-    )
-
-
-def matches_any(path: str, patterns: list[str]) -> bool:
-    return any(_matches(path, p) for p in patterns)
 
 
 def parse_owner_repo(repo_url: str) -> tuple[str, str]:

@@ -43,18 +43,16 @@ binaries are refused."""
         return f"# {codebase}: {path}\n\n```\n{data.decode('utf-8', errors='replace')}\n```"
 
     rel = path.strip("/")
-    # Honor the codebase subpath so paths are relative to the configured root.
-    full_path = f"{cb.subpath.strip('/')}/{rel}" if cb.subpath else rel
 
     try:
         if cb.provider == "gitlab":
             project = parse_gitlab_path(cb.repo_url)
             gl_client = GitLabClient(token=cb.access_token or None)
-            result = gl_client.get_file(project, full_path, cb.ref)
+            result = gl_client.get_file(project, rel, cb.ref)
         else:
             owner, repo = parse_owner_repo(cb.repo_url)
             gh_client = GitHubClient(token=cb.access_token or None)
-            result = gh_client.get_file(owner, repo, full_path, cb.ref)
+            result = gh_client.get_file(owner, repo, rel, cb.ref)
     except (GitHubError, GitLabError) as exc:
         return f"Could not read '{path}' from '{codebase}': {exc}"
     except ValueError as exc:

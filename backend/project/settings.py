@@ -280,9 +280,9 @@ CELERY_BEAT_SCHEDULE = {
         "task": "engine.tasks.check_for_updates",
         "schedule": 21600.0,  # every 6 hours
     },
-    "reindex-local-codebases": {
-        "task": "engine.tasks.reindex_local_codebases",
-        "schedule": 21600.0,  # every 6 hours — refresh the ccc semantic index
+    "resync-codebases": {
+        "task": "engine.tasks.resync_codebases",
+        "schedule": 21600.0,  # every 6 hours — refresh local index + remote tree cache
     },
 }
 

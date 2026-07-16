@@ -140,33 +140,6 @@ class Codebase(models.Model):
         (SYNC_ERROR, "Error"),
     ]
 
-    # Sensible defaults so the agent isn't flooded with build output / binaries.
-    DEFAULT_EXCLUDE_GLOBS: ClassVar[list[str]] = [
-        "node_modules/*",
-        "dist/*",
-        "build/*",
-        "vendor/*",
-        ".git/*",
-        "*.lock",
-        "*.min.js",
-        "*.map",
-        "*.png",
-        "*.jpg",
-        "*.jpeg",
-        "*.gif",
-        "*.svg",
-        "*.ico",
-        "*.webp",
-        "*.pdf",
-        "*.zip",
-        "*.gz",
-        "*.tar",
-        "*.woff",
-        "*.woff2",
-        "*.ttf",
-        "*.eot",
-    ]
-
     __prefix__: ClassVar[str] = "cb"
 
     # Identifiers
@@ -204,26 +177,6 @@ class Codebase(models.Model):
         max_length=255,
         blank=True,
         help_text="For local codebases: the folder name under sources/codebases/.",
-    )
-    branch = models.CharField(
-        max_length=255, blank=True, help_text="Leave blank to use the repository's default branch"
-    )
-    subpath = models.CharField(
-        max_length=500,
-        blank=True,
-        help_text="Optional sub-directory to scope to, for monorepos (e.g. services/api)",
-    )
-    include_globs = models.JSONField(
-        verbose_name="include globs",
-        default=list,
-        blank=True,
-        help_text='Glob patterns to include, e.g. ["src/**", "*.py"]. Empty = everything (minus excludes).',  # noqa: E501
-    )
-    exclude_globs = models.JSONField(
-        verbose_name="exclude globs",
-        default=list,
-        blank=True,
-        help_text="Glob patterns to exclude. Empty = a sensible default set (node_modules, build output, binaries).",  # noqa: E501
     )
     access_token = EncryptedCharField(
         verbose_name="access token",

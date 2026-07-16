@@ -187,19 +187,20 @@ form .card {
 	margin: var(--xs) 0 0;
 }
 
-/* Mini "how to" steps nested inside a field (e.g. the SQLite file picker) —
-   reuses the wizard-section-heading look, in blue, to read as a nested aside
-   rather than a top-level wizard step. */
-.sqlite-hint-steps {
+/* Mini "how to" steps nested inside a field (e.g. the SQLite file picker or
+   the local codebase folder picker) — reuses the wizard-section-heading
+   look, in blue, to read as a nested aside rather than a top-level wizard
+   step. */
+.hint-steps {
 	display: flex;
 	flex-direction: column;
 	gap: var(--md);
 	margin-top: var(--md);
 }
-.sqlite-hint-steps .wizard-section-heading {
+.hint-steps .wizard-section-heading {
 	margin-bottom: 0;
 }
-.sqlite-hint-steps .wizard-section-heading__num {
+.hint-steps .wizard-section-heading__num {
 	color: var(--c-cyan);
 }
 
@@ -438,7 +439,9 @@ details.card[open] > summary .details-chevron {
 }
 
 .confirm-modal__panel {
-	background: var(--surface);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(24px);
+	-webkit-backdrop-filter: blur(24px);
 	border: 1px solid rgba(26, 26, 26, 0.1);
 	box-shadow: var(--rim-light-strong);
 	width: 420px;
@@ -490,10 +493,32 @@ details.card[open] > summary .details-chevron {
 }
 
 .confirm-modal__body {
-	padding: var(--xl);
+	padding: var(--xl) var(--xl) var(--lg);
 	font-size: var(--text-sm);
 	color: var(--text-sec);
 	line-height: 1.7;
+}
+
+.confirm-modal__footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--sm);
+	padding: 0 var(--xl) var(--xl);
+}
+
+/* Full-cover invisible button behind the panel, closing the dialog on an
+   outside click. A real <button> (rather than a div + onClick) so it's
+   keyboard/AT-accessible without extra role/tabindex wiring. Panel paints
+   over it because .confirm-modal__panel is also `position: relative` and
+   comes later in the DOM — both positioned, so DOM order wins. */
+.confirm-modal__backdrop {
+	position: absolute;
+	inset: 0;
+	background: none;
+	border: none;
+	padding: 0;
+	margin: 0;
+	cursor: default;
 }
 
 /* ── Agent Star Diagram (Getting Started → Configure an Agent) ── */

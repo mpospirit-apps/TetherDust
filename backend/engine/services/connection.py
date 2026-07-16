@@ -62,24 +62,13 @@ class CodebaseService:
         """Parse ``repo_url`` into a GitLab project path. Raises ValueError if invalid."""
         return parse_gitlab_path(codebase.repo_url)
 
-    def ref(self, codebase: Codebase) -> str:
-        """Branch the agent should read: explicit branch, else default, else 'main'."""
-        return codebase.branch or codebase.default_branch or "main"
-
-    def effective_exclude_globs(self, codebase: Codebase) -> list[str]:
-        """Configured excludes, or the default set when none are configured."""
-        return codebase.exclude_globs or Codebase.DEFAULT_EXCLUDE_GLOBS
-
     def ccc_project(self, codebase: Codebase) -> str:
         """ccc project path (relative to the ccc ``/app`` mount) for a local codebase.
 
         Kept in sync with the tdmcp-side ``_codebase_local.ccc_project`` so search
         hits resolve against the same root the browse tools read from.
         """
-        project = "sources/codebases/" + codebase.local_root.strip("/")
-        if codebase.subpath:
-            project += "/" + codebase.subpath.strip("/")
-        return project
+        return "sources/codebases/" + codebase.local_root.strip("/")
 
 
 class DocSourceService:

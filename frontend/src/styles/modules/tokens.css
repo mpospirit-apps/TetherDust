@@ -187,6 +187,15 @@
 	border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
+[data-theme="dark"] .confirm-modal__panel {
+	background: rgba(15, 15, 13, 0.4);
+	border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .confirm-modal__header {
+	border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
 /* ── Theme Toggle Button ── */
 .theme-toggle {
 	background: none;
