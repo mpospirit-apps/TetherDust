@@ -80,9 +80,9 @@ export function SourceSelect({
 		);
 	}
 	return (
-		<div>
+		<div className="doc-sources-columns">
 			<CheckColumn
-				title="Databases"
+				title="Database"
 				options={options.databases}
 				selected={value.databases}
 				onChange={(ids) => onChange({ ...value, databases: ids })}
@@ -94,7 +94,7 @@ export function SourceSelect({
 				onChange={(ids) => onChange({ ...value, docs: ids })}
 			/>
 			<CheckColumn
-				title="Codebases"
+				title="Codebase"
 				options={options.codebases}
 				selected={value.codebases}
 				onChange={(ids) => onChange({ ...value, codebases: ids })}

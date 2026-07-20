@@ -76,18 +76,16 @@ _EXT_TO_LANG: dict[str, str] = {
 }
 
 
-def _build_file_tree(base_path: Path, patterns: list[str]) -> list[dict[str, Any]]:
-    """Build a nested file tree from a documentation source path.
+def _build_file_tree(base_path: Path) -> list[dict[str, Any]]:
+    """Build a nested file tree of Markdown files from a documentation source path.
 
     Returns a list of dicts: {"name", "path" (relative), "type" ("file"|"dir"),
-    "children" | "is_code"}.
+    "children"}.
     """
     if not base_path.is_dir():
         return []
 
-    matched_files: set[Path] = set()
-    for pattern in patterns or ["*.md"]:
-        matched_files.update(base_path.rglob(pattern))
+    matched_files = set(base_path.rglob("*.md"))
 
     dirs_with_files: set[Path] = set()
     for f in matched_files:
@@ -112,13 +110,11 @@ def _build_file_tree(base_path: Path, patterns: list[str]) -> list[dict[str, Any
                     }
                 )
             elif child.is_file() and child in matched_files:
-                is_md = child.suffix.lower() == ".md"
                 entries.append(
                     {
-                        "name": child.stem if is_md else child.name,
+                        "name": child.stem,
                         "path": str(rel),
                         "type": "file",
-                        "is_code": not is_md,
                     }
                 )
         return entries
@@ -158,7 +154,7 @@ class DocsSourcesView(APIView):
                     "id": src.pk,
                     "name": src.folder_name,
                     "doc_type": src.doc_type,
-                    "tree": _build_file_tree(base, src.file_patterns or ["*.md"]),
+                    "tree": _build_file_tree(base),
                 }
             )
         return Response({"sources": result})

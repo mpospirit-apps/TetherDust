@@ -1,12 +1,17 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
+import Markdown from "react-markdown";
 import { Link } from "react-router-dom";
+import remarkGfm from "remark-gfm";
 import { apiErrorDetail } from "../../api/client";
-import { getGenerateOptions, startGenerateLibrary } from "../../api/docs";
-import { FormField } from "../components/forms";
+import {
+	getGenerateOptions,
+	previewGenerateLibrary,
+	startGenerateLibrary,
+} from "../../api/docs";
+import { CustomSelect, FormField } from "../components/forms";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 import {
-	AgentSelect,
 	SourceSelect,
 	type SourceSelection,
 	StatusPanel,
@@ -15,8 +20,7 @@ import {
 
 const NO_SOURCES: SourceSelection = { databases: [], docs: [], codebases: [] };
 
-// Identity first, the required generation config next — this form has no
-// optional fields, so there's no third step.
+// Identity first, the generation config next, source material last.
 const STEPS: WizardStepDef[] = [
 	{
 		key: "identity",
@@ -26,8 +30,17 @@ const STEPS: WizardStepDef[] = [
 	{
 		key: "configuration",
 		label: "Configuration",
-		description:
-			"Pick the library type, agent, and source material to generate from.",
+		description: "Pick the library type and scope to steer generation.",
+	},
+	{
+		key: "sources",
+		label: "Sources",
+		description: "Select the databases, docs, and codebases to generate from.",
+	},
+	{
+		key: "prompt",
+		label: "Prompt",
+		description: "Preview the exact prompt that will be sent to the agent.",
 	},
 ];
 
@@ -39,6 +52,7 @@ export function DocLibraryPage() {
 
 	const [libraryName, setLibraryName] = useState("");
 	const [sourceDocType, setSourceDocType] = useState("database");
+	const [scope, setScope] = useState("");
 	const [agent, setAgent] = useState("");
 	const [sources, setSources] = useState<SourceSelection>(NO_SOURCES);
 	const [error, setError] = useState<string | null>(null);
@@ -51,6 +65,36 @@ export function DocLibraryPage() {
 			if (active) setAgent(active.id);
 		}
 	}, [options.data, agent]);
+
+	// Debounce the Prompt step's live preview so it doesn't refetch on every
+	// keystroke — settles 400ms after the last change to any input it depends on.
+	const [previewInputs, setPreviewInputs] = useState({
+		library_name: libraryName,
+		source_doc_type: sourceDocType,
+		scope,
+		source_db: sources.databases,
+		source_doc: sources.docs,
+		source_codebase: sources.codebases,
+	});
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setPreviewInputs({
+				library_name: libraryName,
+				source_doc_type: sourceDocType,
+				scope,
+				source_db: sources.databases,
+				source_doc: sources.docs,
+				source_codebase: sources.codebases,
+			});
+		}, 400);
+		return () => clearTimeout(timer);
+	}, [libraryName, sourceDocType, scope, sources]);
+
+	const preview = useQuery({
+		queryKey: ["docgen-library-preview", previewInputs],
+		queryFn: () => previewGenerateLibrary(previewInputs),
+		placeholderData: keepPreviousData,
+	});
 
 	const status = useDocGenStatus(logId);
 
@@ -67,6 +111,7 @@ export function DocLibraryPage() {
 		start.mutate({
 			library_name: libraryName,
 			source_doc_type: sourceDocType,
+			scope,
 			agent,
 			source_db: sources.databases,
 			source_doc: sources.docs,
@@ -75,6 +120,7 @@ export function DocLibraryPage() {
 	}
 
 	const opts = options.data;
+	const noActiveAgent = Boolean(opts) && !opts?.agents.some((a) => a.is_active);
 
 	return (
 		<div>
@@ -95,7 +141,7 @@ export function DocLibraryPage() {
 							type="submit"
 							form="doc-library-form"
 							className="btn btn-primary"
-							disabled={start.isPending}
+							disabled={start.isPending || noActiveAgent}
 						>
 							{start.isPending ? "Starting…" : "Generate Library"}
 						</button>
@@ -121,6 +167,7 @@ export function DocLibraryPage() {
 								onClick={() => {
 									setLogId(null);
 									setLibraryName("");
+									setScope("");
 								}}
 							>
 								Generate another
@@ -136,6 +183,15 @@ export function DocLibraryPage() {
 							style={{ marginBottom: "var(--md)" }}
 						>
 							{error}
+						</div>
+					)}
+					{noActiveAgent && (
+						<div
+							className="flash flash-error"
+							style={{ marginBottom: "var(--md)" }}
+						>
+							No active agent configured. Set one active under Agents before
+							generating.
 						</div>
 					)}
 
@@ -164,7 +220,7 @@ export function DocLibraryPage() {
 										</div>
 										<div className="doc-hiw-label">Configure</div>
 										<div className="doc-hiw-desc">
-											Name the library and select your data sources
+											Name the library and scope, then select your data sources
 										</div>
 									</div>
 									<div className="doc-hiw-arrow">
@@ -221,68 +277,81 @@ export function DocLibraryPage() {
 						</div>
 					</div>
 
-					<div className="form-split">
-						<div className="wizard-section">
-							<WizardSectionHeading step={STEPS[0]} index={0} />
-							<div className="card">
-								<FormField
-									label="Library name"
-									help="Top-level folder under documentations/ (the library root)."
-								>
-									<input
-										className="form-control"
-										value={libraryName}
-										required
-										placeholder="MyDatabase"
-										onChange={(e) => setLibraryName(e.target.value)}
-									/>
-								</FormField>
+					<div className="form-split-col">
+						<div className="form-split">
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[0]} index={0} />
+								<div className="card">
+									<FormField
+										label="Library name"
+										help="Top-level folder under /sources/docs/ (the library root)."
+									>
+										<input
+											className="form-control"
+											value={libraryName}
+											required
+											placeholder="MyDatabase"
+											onChange={(e) => setLibraryName(e.target.value)}
+										/>
+									</FormField>
+								</div>
+							</div>
+
+							<div className="wizard-section">
+								<WizardSectionHeading step={STEPS[1]} index={1} />
+								<div className="card">
+									<FormField label="Library type">
+										<CustomSelect
+											value={sourceDocType}
+											onChange={setSourceDocType}
+											options={opts?.library_doc_types ?? []}
+										/>
+									</FormField>
+
+									<FormField
+										label="Scope & goals"
+										help="Steer what the library should cover."
+									>
+										<textarea
+											className="form-control"
+											rows={3}
+											value={scope}
+											onChange={(e) => setScope(e.target.value)}
+										/>
+									</FormField>
+								</div>
 							</div>
 						</div>
 
 						<div className="wizard-section">
-							<WizardSectionHeading step={STEPS[1]} index={1} />
+							<WizardSectionHeading step={STEPS[2]} index={2} />
 							<div className="card">
-								<FormField label="Library type">
-									<select
-										className="form-control"
-										value={sourceDocType}
-										onChange={(e) => setSourceDocType(e.target.value)}
-									>
-										{(opts?.library_doc_types ?? []).map((t) => (
-											<option key={t.value} value={t.value}>
-												{t.label}
-											</option>
-										))}
-									</select>
-								</FormField>
+								{opts ? (
+									<SourceSelect
+										options={opts}
+										value={sources}
+										onChange={setSources}
+									/>
+								) : (
+									<p className="text-sec">Loading…</p>
+								)}
+							</div>
+						</div>
 
-								<div className="doc-section">
-									<div className="doc-section__title">Source material</div>
-									{opts ? (
-										<SourceSelect
-											options={opts}
-											value={sources}
-											onChange={setSources}
-										/>
-									) : (
-										<p className="text-sec">Loading…</p>
-									)}
-								</div>
-
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[3]} index={3} />
+							<div className="card">
 								<FormField
-									label="Agent"
-									help="Generation runs on the active agent."
+									label="Prompt"
+									help="Read-only — updates automatically as the fields above change."
 								>
-									{opts ? (
-										<AgentSelect
-											options={opts}
-											value={agent}
-											onChange={setAgent}
-										/>
-									) : (
-										<p className="text-sec">Loading…</p>
-									)}
+									<div className="doc-result-preview__content">
+										<Markdown remarkPlugins={[remarkGfm]}>
+											{preview.isLoading
+												? "_Loading preview…_"
+												: preview.data?.prompt || "_(empty)_"}
+										</Markdown>
+									</div>
 								</FormField>
 							</div>
 						</div>

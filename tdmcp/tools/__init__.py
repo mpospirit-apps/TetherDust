@@ -41,7 +41,7 @@ def _load_sources_from_admin_db() -> list[DocumentationSourceConfig] | None:
         with engine.connect() as conn:
             rows = conn.execute(
                 text(
-                    "SELECT folder_name, description, file_patterns "
+                    "SELECT folder_name, description "
                     "FROM engine_documentationsource "
                     "WHERE is_active = true ORDER BY folder_name"
                 )
@@ -53,7 +53,6 @@ def _load_sources_from_admin_db() -> list[DocumentationSourceConfig] | None:
                 name=row.folder_name,
                 path=str(Path(docs_dir) / row.folder_name),
                 description=row.description or "",
-                file_patterns=row.file_patterns if row.file_patterns else ["*.md"],
             )
             for row in rows
         ]
@@ -73,7 +72,6 @@ def get_shared_parser() -> DocumentationParser:
     if _shared_parser is None:
         logger.info("[DEBUG PARSER] Initializing shared DocumentationParser...")
 
-        # Try loading sources from the admin DB so file_patterns are respected
         sources = _load_sources_from_admin_db()
         if sources is not None:
             logger.info("[DEBUG PARSER] Loaded %d sources from ADMIN_DATABASE_URL", len(sources))
@@ -93,12 +91,11 @@ def get_shared_parser() -> DocumentationParser:
             exists = Path(source_path).exists()
             is_dir = Path(source_path).is_dir() if exists else False
             logger.info(
-                "[DEBUG PARSER]   source: name=%s, path=%s, exists=%s, is_dir=%s, patterns=%s",
+                "[DEBUG PARSER]   source: name=%s, path=%s, exists=%s, is_dir=%s",
                 s.name,
                 source_path,
                 exists,
                 is_dir,
-                s.file_patterns,
             )
     return _shared_parser
 

@@ -1,7 +1,7 @@
 """Documentation source admin API: CRUD + validate + AI generation.
 
 Ports ``management/views/docsource.py``. Sources map to top-level folders under
-``documentations/`` (auto-discovered via ``DocSourceService.sync_from_filesystem``).
+``sources/docs/`` (auto-discovered via ``DocSourceService.sync_from_filesystem``).
 Generation (single-file + multi-file library) is delegated to
 ``engine.engines.docgen`` and tracked by ``DocGenerationLog``, which the SPA polls
 via the ``status`` action.
@@ -10,7 +10,6 @@ via the ``status`` action.
 from __future__ import annotations
 
 import datetime
-import shutil
 from pathlib import Path
 from typing import Any, cast
 
@@ -46,12 +45,14 @@ class DocSourceSerializer(serializers.ModelSerializer[DocumentationSource]):
             "doc_type",
             "doc_type_display",
             "description",
-            "file_patterns",
             "is_active",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        # is_active is derived from sources/docs/ presence by sync_from_filesystem()
+        # (see DocSourceViewSet.list) and reasserted on every admin-list load, so
+        # letting the API set it directly would just get silently overwritten.
+        read_only_fields = ["id", "is_active", "created_at", "updated_at"]
 
     def validate_folder_name(self, value: str) -> str:
         path = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR) / value
@@ -61,20 +62,12 @@ class DocSourceSerializer(serializers.ModelSerializer[DocumentationSource]):
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         folder_name = attrs.get("folder_name") or getattr(self.instance, "folder_name", None)
-        file_patterns = attrs.get(
-            "file_patterns", getattr(self.instance, "file_patterns", None)
-        ) or ["*.md"]
         if folder_name:
             path = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR) / folder_name
-            if path.exists() and path.is_dir():
-                file_count = sum(len(list(path.rglob(p))) for p in file_patterns)
-                if file_count == 0:
-                    raise serializers.ValidationError(
-                        {
-                            "file_patterns": f"No files matching {file_patterns} found in "
-                            f'"{folder_name}".'
-                        }
-                    )
+            if path.exists() and path.is_dir() and not any(path.rglob("*.md")):
+                raise serializers.ValidationError(
+                    {"folder_name": f'No Markdown files found in "{folder_name}".'}
+                )
         return attrs
 
 
@@ -96,13 +89,22 @@ class DocSourceViewSet(viewsets.ModelViewSet[DocumentationSource]):
 
     def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         obj = self.get_object()
-        # Remove the folder on disk too, else the next list() sync would rediscover
-        # the orphaned folder and recreate the source. Guard the path so we only
-        # ever remove a directory directly under the documentations dir.
-        docs_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR).resolve()
-        folder = Path(get(DocSourceService).resolved_path(obj)).resolve()
-        if folder != docs_dir and docs_dir in folder.parents and folder.is_dir():
-            shutil.rmtree(folder, ignore_errors=True)
+        # `sources/docs` is mounted read-only in the backend container, so we can't
+        # remove the folder ourselves — if it's still there, the next list() sync
+        # would just rediscover it and recreate the source. Require the admin to
+        # delete the folder on disk first, then delete again to drop the DB row.
+        folder = Path(get(DocSourceService).resolved_path(obj))
+        if folder.is_dir():
+            return Response(
+                {
+                    "detail": (
+                        f'Delete the "{obj.folder_name}" folder from disk first '
+                        "(under sources/docs/), then delete again to remove it "
+                        "from this list."
+                    )
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
         obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -116,8 +118,7 @@ class DocSourceViewSet(viewsets.ModelViewSet[DocumentationSource]):
         if not path.is_dir():
             return Response({"ok": False, "level": "error", "message": "Not a directory"})
 
-        patterns = obj.file_patterns or ["*.md"]
-        all_files = [f for p in patterns for f in path.rglob(p) if f.is_file()]
+        all_files = [f for f in path.rglob("*.md") if f.is_file()]
         if not all_files:
             return Response({"ok": False, "level": "warning", "message": "No matching files"})
 
@@ -130,19 +131,6 @@ class DocSourceViewSet(viewsets.ModelViewSet[DocumentationSource]):
                 "file_count": len(all_files),
                 "last_modified": last_mod,
                 "message": f"{len(all_files)} files",
-            }
-        )
-
-    @action(detail=False, methods=["get"])
-    def folders(self, request: Request) -> Response:
-        """Top-level folders under documentations/ (for the register dropdown)."""
-        registered = set(DocumentationSource.objects.values_list("folder_name", flat=True))
-        return Response(
-            {
-                "folders": [
-                    {"name": name, "registered": name in registered}
-                    for name in docgen.top_level_folders()
-                ]
             }
         )
 
@@ -227,12 +215,37 @@ class DocSourceViewSet(viewsets.ModelViewSet[DocumentationSource]):
         )
         return Response({"log_id": log.pk}, status=status.HTTP_202_ACCEPTED)
 
+    @action(detail=False, methods=["post"], url_path="generate-preview")
+    def generate_preview(self, request: Request) -> Response:
+        """Return the exact prompt single-file generation would send (no side effects)."""
+        data = request.data
+        doc_name = (data.get("doc_name") or "").strip()
+        doc_type = str(data.get("doc_type") or DocumentationSource.DocType.DATABASE)
+        destination = (data.get("destination") or "").strip()
+        destination = destination.replace("\\", "/")
+        destination = "/".join(p for p in destination.split("/") if p and p != "..")
+        scope = (data.get("scope") or "").strip()
+
+        prompt = docgen.build_single_generation_prompt(
+            doc_name=doc_name,
+            doc_type=doc_type,
+            destination=destination,
+            scope=scope,
+            db_names=_resolve_names(DatabaseConnection, "name", data.get("source_db", [])),
+            doc_names=_resolve_names(
+                DocumentationSource, "folder_name", data.get("source_doc", [])
+            ),
+            codebase_names=_resolve_names(Codebase, "name", data.get("source_codebase", [])),
+        )
+        return Response({"prompt": prompt})
+
     @action(detail=False, methods=["post"], url_path="generate-library")
     def generate_library(self, request: Request) -> Response:
         """Start multi-file AI documentation library generation; returns the log id."""
         data = request.data
         library_name = (data.get("library_name") or "").strip()
         agent_id = data.get("agent")
+        scope = (data.get("scope") or "").strip()
         source_doc_type = data.get("source_doc_type", DocumentationSource.DocType.DATABASE)
         if source_doc_type not in docgen.LIBRARY_DOC_TYPES:
             source_doc_type = DocumentationSource.DocType.DATABASE
@@ -256,6 +269,7 @@ class DocSourceViewSet(viewsets.ModelViewSet[DocumentationSource]):
             agent_config=agent_config,
             library_root=library_root,
             source_doc_type=source_doc_type,
+            scope=scope,
             db_names=_resolve_names(DatabaseConnection, "name", data.get("source_db", [])),
             doc_names=_resolve_names(
                 DocumentationSource, "folder_name", data.get("source_doc", [])
@@ -263,6 +277,30 @@ class DocSourceViewSet(viewsets.ModelViewSet[DocumentationSource]):
             codebase_names=_resolve_names(Codebase, "name", data.get("source_codebase", [])),
         )
         return Response({"log_id": log.pk}, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=False, methods=["post"], url_path="generate-library-preview")
+    def generate_library_preview(self, request: Request) -> Response:
+        """Return the exact prompt library generation would send (no side effects)."""
+        data = request.data
+        library_name = (data.get("library_name") or "").strip()
+        library_root = library_name.replace("\\", "/")
+        library_root = "/".join(p for p in library_root.split("/") if p and p != "..")
+        scope = (data.get("scope") or "").strip()
+        source_doc_type = data.get("source_doc_type", DocumentationSource.DocType.DATABASE)
+        if source_doc_type not in docgen.LIBRARY_DOC_TYPES:
+            source_doc_type = DocumentationSource.DocType.DATABASE
+
+        prompt = docgen.build_library_generation_prompt(
+            library_root=library_root,
+            source_doc_type=source_doc_type,
+            scope=scope,
+            db_names=_resolve_names(DatabaseConnection, "name", data.get("source_db", [])),
+            doc_names=_resolve_names(
+                DocumentationSource, "folder_name", data.get("source_doc", [])
+            ),
+            codebase_names=_resolve_names(Codebase, "name", data.get("source_codebase", [])),
+        )
+        return Response({"prompt": prompt})
 
 
 class DocGenerationLogSerializer(serializers.ModelSerializer[DocGenerationLog]):

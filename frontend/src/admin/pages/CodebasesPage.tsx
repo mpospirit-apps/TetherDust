@@ -101,7 +101,7 @@ export function CodebasesPage() {
 									<th>Name</th>
 									<th>Branch</th>
 									<th>Last Synced</th>
-									<th>Activity</th>
+									<th>Status</th>
 									<th>Actions</th>
 								</tr>
 							</thead>

@@ -73,9 +73,9 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
-# Docs except default
+# Docs: admins drop folders here; keep the dir, ignore its contents.
+# No default sources ship with the app.
 sources/docs/*
-!sources/docs/TetherDust\ Documentation
 
 # Local codebases: admins drop folders here; keep the dir, ignore its contents
 # (including ccc's nested .cocoindex_code index).

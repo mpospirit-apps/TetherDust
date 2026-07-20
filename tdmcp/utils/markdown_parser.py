@@ -31,7 +31,6 @@ class DocumentationSourceConfig:
     name: str
     path: str
     description: str = ""
-    file_patterns: list[str] = field(default_factory=lambda: ["*.md"])
 
 
 @dataclass
@@ -104,7 +103,6 @@ def _load_sources_from_django() -> list[DocumentationSourceConfig] | None:
                 name=src.folder_name,
                 path=doc_service.resolved_path(src),
                 description=src.description,
-                file_patterns=src.file_patterns if src.file_patterns else ["*.md"],
             )
             for src in sources
         ]
@@ -236,19 +234,17 @@ class DocumentationParser:
 
         resolved_root = root.resolve()
 
-        patterns = source.file_patterns if source.file_patterns else ["*.md"]
-        for pattern in patterns:
-            for file_path in root.rglob(pattern):
-                if not file_path.is_file():
-                    continue
-                # Resolve symlinks before the containment check so that a
-                # symlink pointing outside the source root is caught.
-                resolved = file_path.resolve()
-                if not self._is_under(resolved, resolved_root):
-                    continue
-                rel = str(file_path.relative_to(root))
-                display = f"{source.name}/{rel}" if source.name != "default" else rel
-                yield file_path, display
+        for file_path in root.rglob("*.md"):
+            if not file_path.is_file():
+                continue
+            # Resolve symlinks before the containment check so that a
+            # symlink pointing outside the source root is caught.
+            resolved = file_path.resolve()
+            if not self._is_under(resolved, resolved_root):
+                continue
+            rel = str(file_path.relative_to(root))
+            display = f"{source.name}/{rel}" if source.name != "default" else rel
+            yield file_path, display
 
     def _load_all(self) -> None:
         """Load all documentation from disk across all sources."""

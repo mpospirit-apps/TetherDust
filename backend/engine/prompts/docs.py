@@ -6,8 +6,11 @@ the caller, since they depend on request context.
 """
 
 WIKILINK_NOTE = (
-    "\n\nWhen referencing other documentation pages, use wiki-link syntax: "
-    "[[Source/path.md|Display Text]]. The docs viewer renders these as clickable links."
+    "\n\nWhen referencing another documentation page, use wiki-link syntax: "
+    "[[Library Name/path.md|Display Text]] — always the full path from that page's "
+    "library root (e.g. [[Repomance Database/Tables/api_user.md|api_user]]). There is "
+    "no relative '../' syntax. The docs viewer renders these as clickable links; a path "
+    "it cannot resolve renders as plain, non-clickable text instead."
 )
 
 # Environment context shared by single-file and library generation. Tells the
@@ -51,11 +54,14 @@ syntax highlighting, plus mermaid and wiki-links):
 - Tables: use GFM pipe tables for any enumerable set.
 - Diagrams: use ```mermaid fenced blocks (flowcharts, ER, sequence) — rendered as SVG by
   mermaid.js, themed to the UI. Use them for every flow and hierarchy.
-- Cross-links: use wiki-link syntax [[Folder/Page.md|Display Text]] — document each topic
-  once and link everywhere else that touches it. Linking to a sibling page at the library
-  root can use a bare filename ([[Page.md|Display Text]], no slash). Any link that contains
-  a slash is read as Folder/path, so a page in a subfolder, or in another library, needs the
-  full source-prefixed path ([[Library Name/Schemas/Page.md|Display Text]]).
+- Cross-links: use wiki-link syntax [[path|Display Text]] — document each topic once and
+  link everywhere else that touches it. The path is matched literally, never resolved
+  relative to the page you are writing: a bare filename ([[Page.md|Display Text]], no
+  slash) only resolves against the *library root*, so it only works between two root-level
+  pages. Every other link — a page in a subfolder, a page in another library, or even a
+  sibling in the *same* subfolder as the page you're writing — needs the full path from the
+  library root: [[Library Name/Schemas/Page.md|Display Text]]. There is no relative '../'
+  syntax; never use it, even for a same-folder sibling.
 - Non-markdown files (.sql, .py) render as highlighted code, not as markdown.
 
 Saving — `create_documentation` is the only way to write; never emit documentation as a
@@ -204,7 +210,9 @@ Each major subsystem gets its own page with a consistent internal shape — once
 learns the rhythm of one page, every other page is navigable:
 
 - Purpose and scope — what the subsystem does, in terms of the abstractions it owns, then
-  links to adjacent subsystems ("for how this integrates with X, see [[X]]").
+  links to adjacent subsystems using each page's full path from the library root — most
+  deep-dive pages live in a subfolder, so a bare [[X]] will not resolve between them (e.g.
+  "for how this integrates with X, see [[<LibraryRoot>/Subsystems/X.md|X]]").
 - Core architecture / data model — the central data structure or class: name it, cite its
   definition, table its important members.
 - Mechanism sections — one section per distinct mechanism (declaration, resolution,
@@ -242,7 +250,10 @@ greppable identifiers. Do not explain the same mechanism in two places; document
 link. Do not bury enumerable facts in prose when a table would let readers scan. Do not let
 the overview drown in detail that belongs in a deep-dive, and do not let a deep-dive omit
 the high-level framing that situates it. Do not cite files or symbols you did not actually
-open with the read tools.
+open with the read tools. Do not write a bare [[Page.md]] link to a page that lives in a
+subfolder, and do not use relative '../' paths — both silently fail to resolve; every link
+to a subfolder page, including between two pages in the same subfolder, needs the full
+[[<LibraryRoot>/Subfolder/Page.md|...]] path.
 
 ## Checklist
 
@@ -259,7 +270,9 @@ Before considering the library done, confirm:
 - Enumerable facts are in tables; flows and hierarchies are in mermaid diagrams
 - Every section carries a source citation (codebase file/symbol, or database -> table ->
   column)
-- Cross-links connect the overview to subsystems and subsystems to neighbors
+- Cross-links connect the overview to subsystems and subsystems to neighbors, and every
+  link to a subfolder page uses the full [[<LibraryRoot>/Subfolder/Page.md|...]] path
+  (no bare filenames, no relative '../' paths)
 - Domain terms defined once in a glossary
 """
 
@@ -437,7 +450,7 @@ and link back up to `Architecture.md`.
 One `##` section per meaningful flow that touches this table — cover every INSERT, UPDATE,
 and significant SELECT pattern. Each flow section, in this order:
 
-```markdown
+````markdown
 ## <Flow Name>
 
 **Purpose:** One sentence — what this flow achieves.
@@ -466,7 +479,7 @@ sequenceDiagram
 
 **Database Changes:**
 - TableName: What changes (new row inserted / column X updated / read-only)
-```
+````
 
 Separate flows with `---`.
 
@@ -510,7 +523,7 @@ One or more labelled SQL blocks for the table's most common query patterns. Each
 syntax-highlighted, so write real SQL. Use `@Param` notation for parameters and a leading
 comment when the intent is not obvious:
 
-```markdown
+````markdown
 ## Query Label
 
 ```sql
@@ -522,7 +535,7 @@ FROM Schema.TableName
 WHERE SomeId = @SomeId
 ORDER BY CreatedDateUtc DESC;
 ```
-```
+````
 
 ---
 
@@ -558,7 +571,7 @@ ORDER BY CreatedDateUtc DESC;
 """
 
 
-def build_library_prompt(library_name: str, doc_type: str = "codebase") -> str:
+def build_library_prompt(library_name: str, doc_type: str = "codebase", scope: str = "") -> str:
     """Build the base prompt for an AI-planned multi-file documentation library.
 
     ``doc_type`` selects the guide: ``"database"`` uses the fixed table-oriented
@@ -591,5 +604,7 @@ def build_library_prompt(library_name: str, doc_type: str = "codebase") -> str:
         "\n---\n",
         task,
     ]
+    if scope.strip():
+        parts.append(f"\n\nScope and goals:\n{scope.strip()}")
 
     return "\n".join(parts)

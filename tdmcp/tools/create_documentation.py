@@ -12,17 +12,6 @@ from ._db_shared import check_database_access, get_allowed_doc_sources, get_db_s
 logger = logging.getLogger(__name__)
 
 
-def _get_file_patterns(source_name: str) -> list[str]:
-    """Return file_patterns for a documentation source, defaulting to ['*.md']."""
-    from . import get_shared_parser
-
-    parser = get_shared_parser()
-    for source in parser._sources:
-        if source.name == source_name:
-            return source.file_patterns if source.file_patterns else ["*.md"]
-    return ["*.md"]
-
-
 def _get_documentations_dir() -> Path:
     """Resolve the root documentations directory."""
     docs_dir = os.environ.get("TETHERDUST_DOCUMENTATIONS_DIR", "").strip()
@@ -128,14 +117,9 @@ def _list_existing_docs(source_names: list[str]) -> str:
             continue
 
         parts.append(f"## Related Documentation: {source_name}")
-        patterns = _get_file_patterns(source_name)
-        matched: set[Path] = set()
-        for pattern in patterns:
-            matched.update(source_path.rglob(pattern))
-        for doc_file in sorted(matched):
+        for doc_file in sorted(source_path.rglob("*.md")):
             rel_path = doc_file.relative_to(docs_dir)
-            display = doc_file.stem if doc_file.suffix.lower() == ".md" else doc_file.name
-            parts.append(f"- [[{rel_path}|{display}]]")
+            parts.append(f"- [[{rel_path}|{doc_file.stem}]]")
         parts.append("")
 
     return "\n".join(parts)

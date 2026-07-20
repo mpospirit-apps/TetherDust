@@ -359,10 +359,8 @@ def _enabled_tools() -> list[str]:
     return enabled
 
 
-def start_single(
+def build_single_generation_prompt(
     *,
-    user: User,
-    agent_config: AgentConfiguration,
     doc_name: str,
     doc_type: str,
     destination: str,
@@ -370,8 +368,11 @@ def start_single(
     db_names: list[str],
     doc_names: list[str],
     codebase_names: list[str],
-) -> DocGenerationLog:
-    """Build the prompt, create the log, and start single-file generation."""
+) -> str:
+    """Build the exact prompt single-file generation will send to the agent.
+
+    Pure (no DB writes) so it can also back a preview endpoint.
+    """
     base_prompt = build_doc_generation_prompt(doc_type, [], scope=scope)
 
     tool_instruction = (
@@ -403,7 +404,31 @@ def start_single(
         "Use the create_documentation tool to write it directly."
     )
 
-    prompt = base_prompt + tool_instruction
+    return base_prompt + tool_instruction
+
+
+def start_single(
+    *,
+    user: User,
+    agent_config: AgentConfiguration,
+    doc_name: str,
+    doc_type: str,
+    destination: str,
+    scope: str,
+    db_names: list[str],
+    doc_names: list[str],
+    codebase_names: list[str],
+) -> DocGenerationLog:
+    """Build the prompt, create the log, and start single-file generation."""
+    prompt = build_single_generation_prompt(
+        doc_name=doc_name,
+        doc_type=doc_type,
+        destination=destination,
+        scope=scope,
+        db_names=db_names,
+        doc_names=doc_names,
+        codebase_names=codebase_names,
+    )
 
     safe_name = doc_name.replace("/", "").replace("\\", "").strip()
     if not safe_name.endswith(".md"):
@@ -440,18 +465,20 @@ def start_single(
     return log_entry
 
 
-def start_library(
+def build_library_generation_prompt(
     *,
-    user: User,
-    agent_config: AgentConfiguration,
     library_root: str,
     source_doc_type: str,
+    scope: str,
     db_names: list[str],
     doc_names: list[str],
     codebase_names: list[str],
-) -> DocGenerationLog:
-    """Build the prompt, create the log, and start multi-file library generation."""
-    base_prompt = build_library_prompt(library_root, source_doc_type)
+) -> str:
+    """Build the exact prompt library generation will send to the agent.
+
+    Pure (no DB writes) so it can also back a preview endpoint.
+    """
+    base_prompt = build_library_prompt(library_root, source_doc_type, scope=scope)
 
     is_database = source_doc_type == DocumentationSource.DocType.DATABASE.value
     overview_name = "Architecture.md" if is_database else "index.md"
@@ -484,7 +511,29 @@ def start_library(
         "the create_documentation tool."
     )
 
-    prompt = base_prompt + tool_instruction
+    return base_prompt + tool_instruction
+
+
+def start_library(
+    *,
+    user: User,
+    agent_config: AgentConfiguration,
+    library_root: str,
+    source_doc_type: str,
+    scope: str,
+    db_names: list[str],
+    doc_names: list[str],
+    codebase_names: list[str],
+) -> DocGenerationLog:
+    """Build the prompt, create the log, and start multi-file library generation."""
+    prompt = build_library_generation_prompt(
+        library_root=library_root,
+        source_doc_type=source_doc_type,
+        scope=scope,
+        db_names=db_names,
+        doc_names=doc_names,
+        codebase_names=codebase_names,
+    )
 
     log_entry = DocGenerationLog.objects.create(
         user=user,

@@ -721,13 +721,6 @@ table {
 	border-collapse: collapse;
 }
 
-/* Inline test/validate action + its result badge (Databases, Doc Sources) */
-.db-test {
-	display: flex;
-	align-items: center;
-	gap: var(--sm);
-}
-
 thead th {
 	background: rgba(26, 26, 26, 0.04);
 	color: var(--text);
@@ -764,7 +757,7 @@ tr.clickable-row td {
 	cursor: pointer;
 }
 
-/* Test-result row rendered under a Databases table row */
+/* Test/validate-result row rendered under a table row (Databases, Doc Sources, Codebases) */
 .db-test-result-cell {
 	padding: 0 20px 14px;
 }

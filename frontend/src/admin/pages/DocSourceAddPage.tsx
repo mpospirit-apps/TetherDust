@@ -1,11 +1,25 @@
 import { Link } from "react-router-dom";
+import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
-const MANUAL_CHOICES = [
+// Manual sources need no button — sync_from_filesystem auto-registers any
+// folder it finds under /sources/docs. These are just the steps to do it.
+const MANUAL_STEPS: WizardStepDef[] = [
 	{
-		to: "/admin/docsources/register",
-		icon: "fa-folder-open",
-		title: "Register a folder",
-		blurb: "Expose an existing folder under documentations/ as a source.",
+		key: "create",
+		label: "Create the folder",
+		description: "Add a folder under /sources/docs with Markdown files.",
+	},
+	{
+		key: "auto-register",
+		label: "It's auto-registered",
+		description:
+			"The next time this list loads, the folder appears as a source with default settings (type Database, no description). Only Markdown (*.md) files are ever parsed.",
+	},
+	{
+		key: "edit",
+		label: "Edit it",
+		description:
+			"Open the new source from the list and set its type and description as you like.",
 	},
 ];
 
@@ -19,7 +33,7 @@ const AI_CHOICES = [
 	{
 		to: "/admin/docsources/library",
 		icon: "fa-book-open",
-		title: "Generate a library",
+		title: "Generate documentation library",
 		blurb: "Plan and write a multi-page documentation library (a folder tree).",
 	},
 ];
@@ -56,10 +70,16 @@ export function DocSourceAddPage() {
 			</div>
 
 			<div className="choice-section">
-				<div className="choice-list">
-					{MANUAL_CHOICES.map((c) => (
-						<ChoiceCard key={c.to} {...c} />
-					))}
+				<h3 className="choice-section__title">Manual</h3>
+				<div className="card">
+					<p className="text-sec">
+						Follow these steps to add an existing documentation to TetherDust.
+					</p>
+					<div className="hint-steps">
+						{MANUAL_STEPS.map((step, i) => (
+							<WizardSectionHeading key={step.key} step={step} index={i} />
+						))}
+					</div>
 				</div>
 			</div>
 
