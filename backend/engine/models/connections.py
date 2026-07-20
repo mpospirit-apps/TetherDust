@@ -214,7 +214,7 @@ DOC_TYPE_DESCRIPTIONS: dict[str, str] = {
 class DocumentationSource(models.Model):
     """Configurable documentation source for MCP tools.
 
-    Each record maps to a top-level folder inside the documentations/ directory.
+    Each record maps to a top-level folder inside the sources/docs/ directory.
     Sources are auto-discovered via ``DocSourceService.sync_from_filesystem()``
     and assigned to roles for visibility control.
     """
@@ -256,7 +256,7 @@ class DocumentationSource(models.Model):
     folder_name = models.CharField(
         verbose_name="folder name",
         max_length=255,
-        help_text="Folder name inside the documentations/ directory",
+        help_text="Folder name inside the sources/docs/ directory",
     )
     doc_type = models.CharField(
         verbose_name="type",
@@ -267,12 +267,6 @@ class DocumentationSource(models.Model):
     )
     description = models.TextField(
         blank=True, help_text="Helps AI understand what this source contains"
-    )
-    file_patterns = models.JSONField(
-        verbose_name="file patterns",
-        default=list,
-        blank=True,
-        help_text='Glob patterns for files, e.g. ["*.md"] or ["*.py", "*.sql"]. Leave empty for default (*.md).',  # noqa: E501
     )
 
     def __str__(self) -> str:

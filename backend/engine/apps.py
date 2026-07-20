@@ -9,13 +9,6 @@ def _seed_builtin_mcp(sender: object, using: str, **kwargs: object) -> None:
     ensure_builtin_mcp(using=using)
 
 
-def _seed_shipped_docs(sender: object, using: str, **kwargs: object) -> None:
-    """Register the shipped docs + sync filesystem folders after migrations."""
-    from .builtin_docs import ensure_shipped_docs
-
-    ensure_shipped_docs(using=using)
-
-
 class EngineConfig(AppConfig):
     name = "engine"
     default_auto_field = "django.db.models.BigAutoField"
@@ -24,4 +17,3 @@ class EngineConfig(AppConfig):
         from . import receivers, signals  # noqa: F401
 
         post_migrate.connect(_seed_builtin_mcp, sender=self)
-        post_migrate.connect(_seed_shipped_docs, sender=self)

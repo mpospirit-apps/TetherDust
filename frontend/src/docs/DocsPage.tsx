@@ -46,7 +46,6 @@ function TreeNodes({
 								? "docs-file-btn active"
 								: "docs-file-btn"
 						}
-						style={{ paddingLeft: `calc(var(--lg) + ${depth} * var(--md))` }}
 						onClick={() => onOpen(node.path)}
 					>
 						<i className="fa-solid fa-file-lines" />

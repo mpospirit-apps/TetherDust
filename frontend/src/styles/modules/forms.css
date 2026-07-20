@@ -128,6 +128,11 @@ select.form-control {
 	transform: translateY(0);
 }
 .custom-select__option {
+	display: block;
+	width: 100%;
+	background: none;
+	border: 0;
+	text-align: left;
 	padding: 10px var(--md);
 	font-family: var(--font);
 	font-size: var(--text-sm);

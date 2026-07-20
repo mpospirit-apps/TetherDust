@@ -92,7 +92,6 @@ export function App() {
 				<Route path="databases/:id" element={<DatabaseFormPage />} />
 				<Route path="docsources" element={<DocSourcesPage />} />
 				<Route path="docsources/add" element={<DocSourceAddPage />} />
-				<Route path="docsources/register" element={<DocSourceFormPage />} />
 				<Route path="docsources/generate" element={<DocGeneratePage />} />
 				<Route path="docsources/library" element={<DocLibraryPage />} />
 				<Route path="docsources/:id" element={<DocSourceFormPage />} />

@@ -1,12 +1,17 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
+import Markdown from "react-markdown";
 import { Link } from "react-router-dom";
+import remarkGfm from "remark-gfm";
 import { apiErrorDetail } from "../../api/client";
-import { getGenerateOptions, startGenerate } from "../../api/docs";
-import { FormField } from "../components/forms";
+import {
+	getGenerateOptions,
+	previewGenerate,
+	startGenerate,
+} from "../../api/docs";
+import { ComboInput, CustomSelect, FormField } from "../components/forms";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 import {
-	AgentSelect,
 	SourceSelect,
 	type SourceSelection,
 	StatusPanel,
@@ -15,8 +20,7 @@ import {
 
 const NO_SOURCES: SourceSelection = { databases: [], docs: [], codebases: [] };
 
-// Identity first, the required generation config next, optional/advanced
-// fields last.
+// Identity first, the generation config next, source material last.
 const STEPS: WizardStepDef[] = [
 	{
 		key: "identity",
@@ -26,12 +30,17 @@ const STEPS: WizardStepDef[] = [
 	{
 		key: "configuration",
 		label: "Configuration",
-		description: "Pick the type, agent, and source material to generate from.",
+		description: "Pick the type and scope to steer generation.",
 	},
 	{
-		key: "optional",
-		label: "Optional Configurations",
-		description: "Optional — steer what the page should cover.",
+		key: "sources",
+		label: "Sources",
+		description: "Select the databases, docs, and codebases to generate from.",
+	},
+	{
+		key: "prompt",
+		label: "Prompt",
+		description: "Preview the exact prompt that will be sent to the agent.",
 	},
 ];
 
@@ -58,6 +67,38 @@ export function DocGeneratePage() {
 			if (active) setAgent(active.id);
 		}
 	}, [options.data, agent]);
+
+	// Debounce the Prompt step's live preview so it doesn't refetch on every
+	// keystroke — settles 400ms after the last change to any input it depends on.
+	const [previewInputs, setPreviewInputs] = useState({
+		doc_name: docName,
+		doc_type: docType,
+		destination,
+		scope,
+		source_db: sources.databases,
+		source_doc: sources.docs,
+		source_codebase: sources.codebases,
+	});
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setPreviewInputs({
+				doc_name: docName,
+				doc_type: docType,
+				destination,
+				scope,
+				source_db: sources.databases,
+				source_doc: sources.docs,
+				source_codebase: sources.codebases,
+			});
+		}, 400);
+		return () => clearTimeout(timer);
+	}, [docName, docType, destination, scope, sources]);
+
+	const preview = useQuery({
+		queryKey: ["docgen-preview", previewInputs],
+		queryFn: () => previewGenerate(previewInputs),
+		placeholderData: keepPreviousData,
+	});
 
 	const status = useDocGenStatus(logId);
 
@@ -90,6 +131,7 @@ export function DocGeneratePage() {
 	}
 
 	const opts = options.data;
+	const noActiveAgent = Boolean(opts) && !opts?.agents.some((a) => a.is_active);
 
 	return (
 		<div>
@@ -110,7 +152,7 @@ export function DocGeneratePage() {
 							type="submit"
 							form="doc-generate-form"
 							className="btn btn-primary"
-							disabled={start.isPending}
+							disabled={start.isPending || noActiveAgent}
 						>
 							{start.isPending ? "Starting…" : "Generate"}
 						</button>
@@ -150,6 +192,15 @@ export function DocGeneratePage() {
 							{error}
 						</div>
 					)}
+					{noActiveAgent && (
+						<div
+							className="flash flash-error"
+							style={{ marginBottom: "var(--md)" }}
+						>
+							No active agent configured. Set one active under Agents before
+							generating.
+						</div>
+					)}
 
 					<div className="card doc-hiw-card">
 						<button
@@ -176,8 +227,7 @@ export function DocGeneratePage() {
 										</div>
 										<div className="doc-hiw-label">Configure</div>
 										<div className="doc-hiw-desc">
-											Pick a template, optional scope, and select your data
-											sources
+											Pick a template and scope, then select your data sources
 										</div>
 									</div>
 									<div className="doc-hiw-arrow">
@@ -237,21 +287,15 @@ export function DocGeneratePage() {
 									</FormField>
 									<FormField
 										label="Destination folder"
-										help="Existing or new folder under documentations/."
+										help="Existing or new folder under /sources/docs/."
 									>
-										<input
-											className="form-control"
-											list="dest-folders"
+										<ComboInput
 											value={destination}
-											required
+											onChange={setDestination}
+											options={opts?.dest_folders ?? []}
 											placeholder="MyDatabase"
-											onChange={(e) => setDestination(e.target.value)}
+											required
 										/>
-										<datalist id="dest-folders">
-											{(opts?.dest_folders ?? []).map((f) => (
-												<option key={f} value={f} />
-											))}
-										</datalist>
 									</FormField>
 								</div>
 							</div>
@@ -260,45 +304,23 @@ export function DocGeneratePage() {
 								<WizardSectionHeading step={STEPS[1]} index={1} />
 								<div className="card">
 									<FormField label="Type">
-										<select
-											className="form-control"
+										<CustomSelect
 											value={docType}
-											onChange={(e) => setDocType(e.target.value)}
-										>
-											{(opts?.doc_types ?? []).map((t) => (
-												<option key={t.value} value={t.value}>
-													{t.label}
-												</option>
-											))}
-										</select>
+											onChange={setDocType}
+											options={opts?.doc_types ?? []}
+										/>
 									</FormField>
 
-									<div className="doc-section">
-										<div className="doc-section__title">Source material</div>
-										{opts ? (
-											<SourceSelect
-												options={opts}
-												value={sources}
-												onChange={setSources}
-											/>
-										) : (
-											<p className="text-sec">Loading…</p>
-										)}
-									</div>
-
 									<FormField
-										label="Agent"
-										help="Generation runs on the active agent."
+										label="Scope & goals"
+										help="Steer what the page should cover."
 									>
-										{opts ? (
-											<AgentSelect
-												options={opts}
-												value={agent}
-												onChange={setAgent}
-											/>
-										) : (
-											<p className="text-sec">Loading…</p>
-										)}
+										<textarea
+											className="form-control"
+											rows={3}
+											value={scope}
+											onChange={(e) => setScope(e.target.value)}
+										/>
 									</FormField>
 								</div>
 							</div>
@@ -307,16 +329,32 @@ export function DocGeneratePage() {
 						<div className="wizard-section">
 							<WizardSectionHeading step={STEPS[2]} index={2} />
 							<div className="card">
-								<FormField
-									label="Scope & goals"
-									help="Optional — steer what the page should cover."
-								>
-									<textarea
-										className="form-control"
-										rows={3}
-										value={scope}
-										onChange={(e) => setScope(e.target.value)}
+								{opts ? (
+									<SourceSelect
+										options={opts}
+										value={sources}
+										onChange={setSources}
 									/>
+								) : (
+									<p className="text-sec">Loading…</p>
+								)}
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[3]} index={3} />
+							<div className="card">
+								<FormField
+									label="Prompt"
+									help="Read-only — updates automatically as the fields above change."
+								>
+									<div className="doc-result-preview__content">
+										<Markdown remarkPlugins={[remarkGfm]}>
+											{preview.isLoading
+												? "_Loading preview…_"
+												: preview.data?.prompt || "_(empty)_"}
+										</Markdown>
+									</div>
 								</FormField>
 							</div>
 						</div>

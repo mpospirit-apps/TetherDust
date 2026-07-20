@@ -144,7 +144,7 @@ def test_context_names_tetherdust_tools_and_rendering() -> None:
     """The agent must learn its actual tools, how output renders, and how to save."""
     assert "create_documentation" in TETHERDUST_CONTEXT
     assert "mermaid" in TETHERDUST_CONTEXT
-    assert "[[Folder/Page.md|Display Text]]" in TETHERDUST_CONTEXT
+    assert "[[Library Name/Schemas/Page.md|Display Text]]" in TETHERDUST_CONTEXT
     for tool in ("list_codebases", "get_codebase_tree", "search_docs", "query_database"):
         assert tool in TETHERDUST_CONTEXT
 

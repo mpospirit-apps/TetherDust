@@ -177,13 +177,9 @@ def _build_doc_resources_index() -> list[dict[str, str]]:
         base = Path(source.path)
         if not base.is_dir():
             continue
-        patterns = source.file_patterns if source.file_patterns else ["*.md"]
-        matched: set[Path] = set()
-        for pattern in patterns:
-            matched.update(base.rglob(pattern))
-        for doc_file in sorted(matched):
+        for doc_file in sorted(base.rglob("*.md")):
             rel = doc_file.relative_to(base)
-            name = doc_file.stem if doc_file.suffix.lower() == ".md" else doc_file.name
+            name = doc_file.stem
             uri = f"docs://{source.name}/{rel}"
             results.append(
                 {

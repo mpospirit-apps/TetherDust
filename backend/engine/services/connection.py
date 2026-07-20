@@ -79,7 +79,7 @@ class DocSourceService:
         return str(Path(settings.TETHERDUST_DOCUMENTATIONS_DIR) / source.folder_name)
 
     def sync_from_filesystem(self) -> dict[str, list[str]]:
-        """Auto-discover top-level folders in documentations/ and sync to DB.
+        """Auto-discover top-level folders in sources/docs/ and sync to DB.
 
         Creates a source for any folder not yet in the DB, reactivates sources
         whose folder reappeared, and deactivates sources whose folder is gone.

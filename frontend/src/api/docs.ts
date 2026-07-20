@@ -8,7 +8,6 @@ export interface DocTreeNode {
 	path: string;
 	type: "file" | "dir";
 	children?: DocTreeNode[];
-	is_code?: boolean;
 }
 
 export interface DocSourceTree {
@@ -47,18 +46,14 @@ export interface DocSource {
 	doc_type: string;
 	doc_type_display: string;
 	description: string;
-	file_patterns: string[];
 	is_active: boolean;
 	created_at: string;
 	updated_at: string;
 }
 
 export interface DocSourceInput {
-	folder_name?: string;
 	doc_type?: string;
 	description?: string;
-	file_patterns?: string[];
-	is_active?: boolean;
 }
 
 export interface DocSourceValidation {
@@ -67,11 +62,6 @@ export interface DocSourceValidation {
 	message: string;
 	file_count?: number;
 	last_modified?: string;
-}
-
-export interface FolderOption {
-	name: string;
-	registered: boolean;
 }
 
 export interface DocTypeOption {
@@ -105,6 +95,7 @@ export interface GenerateRequest {
 export interface LibraryRequest {
 	library_name: string;
 	source_doc_type: string;
+	scope?: string;
 	agent: string;
 	source_db?: string[];
 	source_doc?: string[];
@@ -164,9 +155,6 @@ export function listDocSources(): Promise<Paginated<DocSource>> {
 export function getDocSource(id: string): Promise<DocSource> {
 	return apiFetch(`${BASE}${id}/`);
 }
-export function createDocSource(data: DocSourceInput): Promise<DocSource> {
-	return apiFetch(BASE, { method: "POST", body: JSON.stringify(data) });
-}
 export function updateDocSource(
 	id: string,
 	data: DocSourceInput,
@@ -182,9 +170,6 @@ export function deleteDocSource(id: string): Promise<void> {
 export function validateDocSource(id: string): Promise<DocSourceValidation> {
 	return apiFetch(`${BASE}${id}/validate/`, { method: "POST" });
 }
-export function getDocSourceFolders(): Promise<{ folders: FolderOption[] }> {
-	return apiFetch(`${BASE}folders/`);
-}
 export function getGenerateOptions(): Promise<GenerateOptions> {
 	return apiFetch(`${BASE}generate-options/`);
 }
@@ -196,10 +181,26 @@ export function startGenerate(
 		body: JSON.stringify(data),
 	});
 }
+export function previewGenerate(
+	data: Omit<GenerateRequest, "agent">,
+): Promise<{ prompt: string }> {
+	return apiFetch(`${BASE}generate-preview/`, {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+}
 export function startGenerateLibrary(
 	data: LibraryRequest,
 ): Promise<{ log_id: string }> {
 	return apiFetch(`${BASE}generate-library/`, {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+}
+export function previewGenerateLibrary(
+	data: Omit<LibraryRequest, "agent">,
+): Promise<{ prompt: string }> {
+	return apiFetch(`${BASE}generate-library-preview/`, {
 		method: "POST",
 		body: JSON.stringify(data),
 	});
