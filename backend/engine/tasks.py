@@ -313,6 +313,51 @@ def resync_codebases() -> None:
             sync_codebase(cb_id)
 
 
+@shared_task(soft_time_limit=600, time_limit=650)
+def sync_doc_source(doc_source_id: str) -> None:
+    """Refresh the ccc semantic index for a documentation source.
+
+    Each source maps to a folder under ``sources/docs/``; ``search_docs`` runs
+    semantic search against this index. When ccc is not configured the source
+    remains searchable via the in-process keyword fallback, so this is a no-op.
+    """
+    from .integrations import ccc_client
+    from .models import DocumentationSource
+    from .services import DocSourceService
+
+    try:
+        src = DocumentationSource.objects.get(pk=doc_source_id)
+    except DocumentationSource.DoesNotExist:
+        logger.warning("Documentation source %s not found, skipping index.", doc_source_id)
+        return
+
+    if not ccc_client.is_configured():
+        logger.info(
+            "ccc not configured; doc source '%s' is searchable via keyword fallback only.",
+            src.folder_name,
+        )
+        return
+
+    try:
+        result = ccc_client.index(get(DocSourceService).ccc_project(src))
+        logger.info("Indexed documentation source '%s' via ccc: %s", src.folder_name, result)
+    except Exception as e:
+        logger.error("Doc source index failed for %s: %s", doc_source_id, e)
+
+
+@shared_task
+def resync_doc_sources() -> None:
+    """Periodic: refresh the ccc semantic index for every active doc source."""
+    from .models import DocumentationSource
+
+    ids = DocumentationSource.objects.filter(is_active=True).values_list("pk", flat=True)
+    for src_id in ids:
+        try:
+            sync_doc_source.delay(src_id)
+        except Exception:
+            sync_doc_source(src_id)
+
+
 @shared_task(soft_time_limit=60, time_limit=90)
 def refresh_single_chart(chart_id: str) -> None:
     """Execute a chart's SQL query and cache the results."""

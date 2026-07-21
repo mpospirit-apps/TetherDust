@@ -109,6 +109,31 @@ class DocSourceViewSet(viewsets.ModelViewSet[DocumentationSource]):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"])
+    def reindex(self, request: Request, pk: str | None = None) -> Response:
+        """Rebuild the ccc semantic index for this documentation source (synchronous).
+
+        Runs inline so the admin sees a spinner for the real indexing duration and
+        a result reflecting the actual outcome. Returns a validate-style
+        ``{ok, level, message}`` payload the SPA renders in the result row.
+        """
+        from engine.integrations import ccc_client
+
+        obj = self.get_object()
+        if not ccc_client.is_configured():
+            return Response(
+                {
+                    "ok": False,
+                    "level": "warning",
+                    "message": "Semantic search service is not configured.",
+                }
+            )
+        try:
+            ccc_client.index(get(DocSourceService).ccc_project(obj))
+        except Exception as exc:
+            return Response({"ok": False, "level": "error", "message": f"Reindex failed: {exc}"})
+        return Response({"ok": True, "level": "success", "message": "Semantic index rebuilt."})
+
+    @action(detail=True, methods=["post"])
     def validate(self, request: Request, pk: str | None = None) -> Response:
         """Check the source folder resolves and matches files (mirrors the badge)."""
         obj = self.get_object()

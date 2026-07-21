@@ -170,6 +170,9 @@ export function deleteDocSource(id: string): Promise<void> {
 export function validateDocSource(id: string): Promise<DocSourceValidation> {
 	return apiFetch(`${BASE}${id}/validate/`, { method: "POST" });
 }
+export function reindexDocSource(id: string): Promise<DocSourceValidation> {
+	return apiFetch(`${BASE}${id}/reindex/`, { method: "POST" });
+}
 export function getGenerateOptions(): Promise<GenerateOptions> {
 	return apiFetch(`${BASE}generate-options/`);
 }

@@ -284,6 +284,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "engine.tasks.resync_codebases",
         "schedule": 21600.0,  # every 6 hours — refresh local index + remote tree cache
     },
+    "resync-doc-sources": {
+        "task": "engine.tasks.resync_doc_sources",
+        "schedule": 21600.0,  # every 6 hours — refresh doc semantic indexes
+    },
 }
 
 

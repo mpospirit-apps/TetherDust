@@ -7,10 +7,12 @@ import {
 	type DocSourceValidation,
 	deleteDocSource,
 	listDocSources,
+	reindexDocSource,
 	validateDocSource,
 } from "../../api/docs";
 import { AlertDialog } from "../../components/AlertDialog";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { ActionTooltip } from "../components/ActionTooltip";
 
 const TABLE_COLUMNS = 4;
 
@@ -34,6 +36,12 @@ function DocSourceRow({
 		onError: () =>
 			setResult({ ok: false, level: "error", message: "Request failed" }),
 	});
+	const reindex = useMutation({
+		mutationFn: () => reindexDocSource(src.id),
+		onSuccess: setResult,
+		onError: () =>
+			setResult({ ok: false, level: "error", message: "Reindex failed" }),
+	});
 
 	return (
 		<>
@@ -56,6 +64,27 @@ function DocSourceRow({
 				</td>
 				<td>
 					<div className="flex-gap">
+						<ActionTooltip content="Rebuild the semantic search index for this documentation source">
+							<button
+								type="button"
+								className="btn btn-ghost btn-sm"
+								disabled={reindex.isPending}
+								onClick={() => {
+									setResult(null);
+									reindex.mutate();
+								}}
+							>
+								{reindex.isPending ? (
+									<>
+										<i className="fa-solid fa-spinner fa-spin" /> Indexing…
+									</>
+								) : (
+									<>
+										<i className="fa-solid fa-rotate" /> Reindex
+									</>
+								)}
+							</button>
+						</ActionTooltip>
 						<button
 							type="button"
 							className="btn btn-ghost btn-sm"
