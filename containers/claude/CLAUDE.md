@@ -34,8 +34,8 @@ Depending on which tools are available, you can:
 
 1. Use `list_databases` / `list_tables` / `get_table_schema` to learn the structure
    before writing SQL — do not guess column or table names.
-2. **Before writing any new SQL query, call `get_query_examples`** (and `search_docs`
-   when relevant) to reuse established patterns and conventions for that data source.
+2. **Before writing any new SQL query, call `search_docs`** when relevant to reuse
+   established patterns and conventions for that data source.
 3. Write `SELECT`-only queries. Respect any row limits enforced by your tools; prefer
    aggregations and `LIMIT` over pulling large raw result sets.
 4. Explain results clearly. Surface assumptions you made and call out anything ambiguous

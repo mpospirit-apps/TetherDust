@@ -9,6 +9,12 @@ function serverKind(s: MCPServer): string {
 	return "Remote (HTTP)";
 }
 
+function serverIcon(s: MCPServer): string {
+	if (s.is_builtin) return "fa-server";
+	if (s.is_local) return "fa-terminal";
+	return "fa-globe";
+}
+
 export function MCPServersPage() {
 	const queryClient = useQueryClient();
 	const { data, isLoading, isError } = useQuery({
@@ -41,7 +47,7 @@ export function MCPServersPage() {
 					</p>
 				</div>
 				<Link to="/admin/mcp-servers/new" className="btn btn-primary">
-					+ Add Server
+					+ Add MCP Server
 				</Link>
 			</div>
 
@@ -60,7 +66,7 @@ export function MCPServersPage() {
 							Register a custom MCP server to extend the agent's tools.
 						</p>
 						<Link to="/admin/mcp-servers/new" className="btn btn-primary mt-md">
-							+ Add Server
+							+ Add MCP Server
 						</Link>
 					</div>
 				) : (
@@ -69,7 +75,6 @@ export function MCPServersPage() {
 							<thead>
 								<tr>
 									<th>Name</th>
-									<th>Type</th>
 									<th>Tools</th>
 									<th>Status</th>
 									<th>Actions</th>
@@ -79,13 +84,20 @@ export function MCPServersPage() {
 								{servers.map((s) => (
 									<tr key={s.id}>
 										<td>
-											<strong>{s.name}</strong>
-											{s.description && (
-												<div className="text-sec text-sm">{s.description}</div>
-											)}
-										</td>
-										<td>
-											<span className="type-badge">{serverKind(s)}</span>
+											<div className="db-name-cell">
+												<i
+													className={`fa-solid ${serverIcon(s)} choice-card__icon db-name-cell__icon`}
+													title={serverKind(s)}
+												/>
+												<div>
+													<strong>{s.name}</strong>
+													{s.description && (
+														<div className="text-sec text-sm">
+															{s.description}
+														</div>
+													)}
+												</div>
+											</div>
 										</td>
 										<td className="text-mono">{s.tool_count}</td>
 										<td>

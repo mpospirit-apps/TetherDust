@@ -34,7 +34,6 @@ class ChartEditConsumer(BaseAgentConsumer):
         "query_database",
         "list_tables",
         "get_table_schema",
-        "get_query_examples",
         "list_databases",
         "search_docs",
     ]

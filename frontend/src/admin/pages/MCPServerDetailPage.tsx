@@ -10,11 +10,54 @@ import {
 	listMCPPrompts,
 	type MCPProbeResult,
 	type MCPPrompt,
+	type MCPTool,
 	testMCPServer,
 	toggleMCPPrompt,
 	updateMCPPrompt,
 } from "../../api/mcp";
 import { FormCheckbox, FormField } from "../components/forms";
+
+const TOOL_CATEGORY_ICON: Record<string, string> = {
+	querying: "fa-database",
+	docs: "fa-book",
+	charts: "fa-chart-simple",
+	codebases: "fa-code",
+	// Matches the Tethers nav tab's own icon (see NAV_LINKS in Navbar.tsx).
+	tethers: "fa-diagram-project",
+	reports: "fa-file-lines",
+};
+const DEFAULT_TOOL_ICON = "fa-wrench";
+
+// Colors match each category's counterpart nav tab accent (see NAV_LINKS in
+// Navbar.tsx: Chat=cyan, Docs=lime, Reports=orange, Dashboards=red,
+// Tethers=pink). Querying and Codebases have no nav-tab counterpart of their
+// own, so they fall back to the app-wide default icon color (cyan).
+const TOOL_CATEGORY_COLOR: Record<string, string> = {
+	docs: "var(--c-lime)",
+	charts: "var(--c-red)",
+	tethers: "var(--c-pink)",
+	reports: "var(--c-orange)",
+};
+const DEFAULT_TOOL_COLOR = "var(--c-cyan)";
+
+// Preserves the API's category ordering (already grouped/sorted server-side)
+// instead of re-sorting client-side.
+function groupToolsByCategory(
+	tools: MCPTool[],
+): { category: string; tools: MCPTool[] }[] {
+	const groups: { category: string; tools: MCPTool[] }[] = [];
+	const byCategory = new Map<string, MCPTool[]>();
+	for (const t of tools) {
+		let bucket = byCategory.get(t.category_label);
+		if (!bucket) {
+			bucket = [];
+			byCategory.set(t.category_label, bucket);
+			groups.push({ category: t.category_label, tools: bucket });
+		}
+		bucket.push(t);
+	}
+	return groups;
+}
 
 interface PromptForm {
 	prompt_name: string;
@@ -28,6 +71,36 @@ const EMPTY_PROMPT: PromptForm = {
 	content: "",
 	is_enabled: true,
 };
+
+function ToolSchema({ tool }: { tool: MCPTool }) {
+	if (tool.parameters === undefined) return null;
+
+	return (
+		<div className="tool-schema">
+			<div className="tool-schema__label">Parameters</div>
+			{tool.parameters.length === 0 ? (
+				<p>None.</p>
+			) : (
+				<ul className="tool-schema__params">
+					{tool.parameters.map((p) => (
+						<li key={p.name} className="tool-schema__param-head">
+							<span className="type-badge">{p.type}</span>
+							<code style={p.required ? undefined : { color: "var(--c-lime)" }}>
+								{p.name}
+							</code>
+						</li>
+					))}
+				</ul>
+			)}
+			{tool.returns && (
+				<div className="tool-schema__returns">
+					<span className="tool-schema__label">Returns</span>{" "}
+					<span className="type-badge">{tool.returns}</span>
+				</div>
+			)}
+		</div>
+	);
+}
 
 function ProbeReport({ result }: { result: MCPProbeResult }) {
 	return (
@@ -256,49 +329,42 @@ export function MCPServerDetailPage() {
 			</div>
 
 			<h2 style={{ marginTop: "var(--lg)" }}>Tools</h2>
-			<div className="card">
-				{tools.isLoading ? (
+			{tools.isLoading ? (
+				<div className="card">
 					<p className="text-sec">Loading…</p>
-				) : (tools.data?.results ?? []).length === 0 ? (
+				</div>
+			) : (tools.data?.results ?? []).length === 0 ? (
+				<div className="card">
 					<p className="text-sec">No tools registered for this server.</p>
-				) : (
-					<div className="table-wrap">
-						<table>
-							<thead>
-								<tr>
-									<th>Name</th>
-									<th>Category</th>
-									<th>Enabled</th>
-									<th>Description</th>
-								</tr>
-							</thead>
-							<tbody>
-								{(tools.data?.results ?? []).map((t) => (
-									<tr key={t.id}>
-										<td>
-											<strong>{t.display_name}</strong>
-											<div className="text-mono text-sm text-sec">
-												{t.tool_name}
-											</div>
-										</td>
-										<td>
-											<span className="type-badge">{t.category_label}</span>
-										</td>
-										<td>
-											{t.is_enabled ? (
-												<span className="badge badge-success">ON</span>
-											) : (
-												<span className="badge badge-muted">OFF</span>
-											)}
-										</td>
-										<td className="text-sm truncate">{t.description}</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+				</div>
+			) : (
+				groupToolsByCategory(tools.data?.results ?? []).map((group) => (
+					<div className="choice-section" key={group.category}>
+						<h3 className="choice-section__title">{group.category}</h3>
+						<div className="choice-list choice-list--grid">
+							{group.tools.map((t) => (
+								<div key={t.id} className="choice-card choice-card--static">
+									<i
+										className={`fa-solid ${TOOL_CATEGORY_ICON[t.category] ?? DEFAULT_TOOL_ICON} choice-card__icon`}
+										style={{
+											color:
+												TOOL_CATEGORY_COLOR[t.category] ?? DEFAULT_TOOL_COLOR,
+										}}
+									/>
+									<div className="choice-card__body">
+										<h4>{t.display_name}</h4>
+										<p className="text-mono" style={{ marginBottom: 2 }}>
+											{t.tool_name}
+										</p>
+										{t.description && <p>{t.description}</p>}
+										<ToolSchema tool={t} />
+									</div>
+								</div>
+							))}
+						</div>
 					</div>
-				)}
-			</div>
+				))
+			)}
 
 			<div
 				className="page-header"

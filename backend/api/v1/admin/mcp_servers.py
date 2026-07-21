@@ -18,6 +18,7 @@ from typing import Any
 
 import httpx
 from django.db.models import Count, QuerySet
+from engine.builtin_mcp import describe_builtin_tool_schemas
 from engine.models import MCPServerConfiguration, PromptConfiguration, ToolConfiguration
 from engine.services import McpServerService, SystemConfigService, ToolService, get
 from rest_framework import serializers, status, viewsets
@@ -201,9 +202,16 @@ class MCPServerViewSet(viewsets.ModelViewSet[MCPServerConfiguration]):
 
     @action(detail=True, methods=["get"])
     def tools(self, request: Request, pk: str | None = None) -> Response:
-        """Read-only tool list for this server."""
+        """Read-only tool list for this server.
+
+        Built-in tools also get their real ``parameters``/``returns`` schema,
+        introspected live from the tdmcp function each one actually calls —
+        see ``describe_builtin_tool_schemas``. Custom servers have no local
+        Python function to introspect, so they're omitted for those.
+        """
         server = self.get_object()
         tool_service = get(ToolService)
+        schemas = describe_builtin_tool_schemas() if server.is_builtin else {}
         return Response(
             {
                 "results": [
@@ -215,6 +223,7 @@ class MCPServerViewSet(viewsets.ModelViewSet[MCPServerConfiguration]):
                         "category_label": tool_service.category_label(tool),
                         "is_enabled": tool.is_enabled,
                         "description": tool.description,
+                        **schemas.get(tool.tool_name, {}),
                     }
                     for tool in ToolConfiguration.objects.filter(mcp_server=server)
                 ]

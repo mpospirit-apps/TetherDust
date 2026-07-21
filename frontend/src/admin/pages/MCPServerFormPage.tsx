@@ -193,37 +193,45 @@ export function MCPServerFormPage() {
 						Back
 					</Link>
 				</div>
-				<div className="choice-list">
-					<button
-						type="button"
-						className="choice-card"
-						onClick={() => {
-							setKind("remote");
-							setKindPicked(true);
-						}}
-					>
-						<i className="fa-solid fa-globe choice-card__icon" />
-						<div className="choice-card__body">
-							<h4>Connection (Remote HTTP)</h4>
-							<p>Connect to an existing MCP server over HTTP/SSE.</p>
-						</div>
-						<i className="fa-solid fa-chevron-right choice-card__chevron" />
-					</button>
-					<button
-						type="button"
-						className="choice-card"
-						onClick={() => {
-							setKind("local");
-							setKindPicked(true);
-						}}
-					>
-						<i className="fa-solid fa-terminal choice-card__icon" />
-						<div className="choice-card__body">
-							<h4>Local (subprocess)</h4>
-							<p>Run a command-line MCP server as a subprocess.</p>
-						</div>
-						<i className="fa-solid fa-chevron-right choice-card__chevron" />
-					</button>
+				<div className="choice-section">
+					<h3 className="choice-section__title">Remote</h3>
+					<div className="choice-list choice-list--grid">
+						<button
+							type="button"
+							className="choice-card"
+							onClick={() => {
+								setKind("remote");
+								setKindPicked(true);
+							}}
+						>
+							<i className="fa-solid fa-globe choice-card__icon" />
+							<div className="choice-card__body">
+								<h4>Connection (Remote HTTP)</h4>
+								<p>Connect to an existing MCP server over HTTP/SSE.</p>
+							</div>
+							<i className="fa-solid fa-chevron-right choice-card__chevron" />
+						</button>
+					</div>
+				</div>
+				<div className="choice-section">
+					<h3 className="choice-section__title">Local</h3>
+					<div className="choice-list choice-list--grid">
+						<button
+							type="button"
+							className="choice-card"
+							onClick={() => {
+								setKind("local");
+								setKindPicked(true);
+							}}
+						>
+							<i className="fa-solid fa-terminal choice-card__icon" />
+							<div className="choice-card__body">
+								<h4>Local (subprocess)</h4>
+								<p>Run a command-line MCP server as a subprocess.</p>
+							</div>
+							<i className="fa-solid fa-chevron-right choice-card__chevron" />
+						</button>
+					</div>
 				</div>
 			</div>
 		);

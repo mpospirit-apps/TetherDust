@@ -23,6 +23,17 @@
 	gap: var(--md);
 }
 
+/* flex-basis:0 (not the default `auto`, which resolves to the block's
+   unwrapped max-content width) so a long description doesn't get sized by
+   its single-line width before flex-wrap decides on line breaks — that would
+   overflow the container and push the whole action button group (Edit/Back)
+   onto its own row below instead of letting the description wrap next to it
+   on one line. */
+.page-header > *:first-child {
+	min-width: 0;
+	flex: 1 1 0%;
+}
+
 /* .form-actions is reused here as the Cancel/primary-action button row, but
    its padding-top/border-top (meant to divide it from form fields above)
    would otherwise push it down and misalign it with the title. */
@@ -115,6 +126,22 @@ form .card {
 .choice-card:hover {
 	border-color: var(--c-cyan);
 }
+/* Read-only variant (e.g. a server's tool list) — same card look, but not
+   a link/button, so no pointer cursor and no hover affordance implying
+   it's actionable. */
+.choice-card--static {
+	cursor: default;
+	/* These cards can grow tall (e.g. a tool's parameter list), unlike the
+	   short single-line picker cards this variant borrows its look from —
+	   keep the icon pinned to the top instead of floating at vertical center. */
+	align-items: flex-start;
+}
+.choice-card--static:hover {
+	border-color: rgba(26, 26, 26, 0.06);
+}
+[data-theme="dark"] .choice-card--static:hover {
+	border-color: rgba(255, 255, 255, 0.05);
+}
 .choice-card__icon {
 	font-size: 1.25rem;
 	color: var(--c-cyan);
@@ -145,6 +172,41 @@ form .card {
 	font-size: var(--text-xs);
 	color: var(--text-sec);
 	margin: 0;
+}
+
+/* A tool card's parameters/returns block (see ToolSchema in
+   MCPServerDetailPage.tsx). */
+.tool-schema {
+	margin-top: var(--sm);
+	padding-top: var(--sm);
+	border-top: 1px solid rgba(26, 26, 26, 0.06);
+}
+[data-theme="dark"] .tool-schema {
+	border-top-color: rgba(255, 255, 255, 0.05);
+}
+.tool-schema__label {
+	font-size: var(--text-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	color: var(--text-sec);
+}
+.tool-schema__params {
+	list-style: none;
+	margin: var(--xs) 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--xs);
+}
+.tool-schema__param-head {
+	display: flex;
+	align-items: center;
+	gap: var(--xs);
+	flex-wrap: wrap;
+}
+.tool-schema__returns {
+	margin-top: var(--sm);
 }
 .choice-card__chevron {
 	color: var(--text-muted);
