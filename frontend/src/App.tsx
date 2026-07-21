@@ -27,9 +27,9 @@ import { DocSourceAddPage } from "./admin/pages/DocSourceAddPage";
 import { DocSourceFormPage } from "./admin/pages/DocSourceFormPage";
 import { DocSourcesPage } from "./admin/pages/DocSourcesPage";
 import { GettingStartedPage } from "./admin/pages/GettingStartedPage";
-import { MCPServerDetailPage } from "./admin/pages/MCPServerDetailPage";
 import { MCPServerFormPage } from "./admin/pages/MCPServerFormPage";
 import { MCPServersPage } from "./admin/pages/MCPServersPage";
+import { MCPServerToolsPage } from "./admin/pages/MCPServerToolsPage";
 import { ReportFormPage } from "./admin/pages/ReportFormPage";
 import { ReportRunDetailPage } from "./admin/pages/ReportRunDetailPage";
 import { ReportRunsPage } from "./admin/pages/ReportRunsPage";
@@ -144,7 +144,7 @@ export function App() {
 				<Route path="agents/:id" element={<AgentFormPage />} />
 				<Route path="mcp-servers" element={<MCPServersPage />} />
 				<Route path="mcp-servers/new" element={<MCPServerFormPage />} />
-				<Route path="mcp-servers/:id" element={<MCPServerDetailPage />} />
+				<Route path="mcp-servers/:id" element={<MCPServerToolsPage />} />
 				<Route path="mcp-servers/:id/edit" element={<MCPServerFormPage />} />
 				<Route path="*" element={<AdminPlaceholder />} />
 			</Route>

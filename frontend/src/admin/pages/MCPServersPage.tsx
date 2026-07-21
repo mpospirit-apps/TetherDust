@@ -75,7 +75,7 @@ function MCPServerRow({
 								to={`/admin/mcp-servers/${s.id}`}
 								className="btn btn-ghost btn-sm"
 							>
-								<i className="fa-solid fa-eye" /> View
+								<i className="fa-solid fa-wrench" /> Tools and Prompts
 							</Link>
 						) : (
 							<>

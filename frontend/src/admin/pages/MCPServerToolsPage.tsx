@@ -100,7 +100,7 @@ function ToolSchema({ tool }: { tool: MCPTool }) {
 	);
 }
 
-export function MCPServerDetailPage() {
+export function MCPServerToolsPage() {
 	const { id } = useParams();
 	const serverId = id as string;
 	const navigate = useNavigate();
@@ -119,9 +119,10 @@ export function MCPServerDetailPage() {
 		queryFn: () => listMCPPrompts(serverId),
 	});
 
-	// Custom servers have no view page — only the built-in server lands here.
-	// Anyone reaching this URL for a custom server (a stale link, etc.) is
-	// bounced to its edit page, which now also carries the connection test.
+	// Custom servers have no Tools & Prompts view — only the built-in server
+	// lands here. Anyone reaching this URL for a custom server (a stale
+	// link, etc.) is bounced to its edit page, which now also carries the
+	// connection test.
 	useEffect(() => {
 		if (server.data && !server.data.is_builtin) {
 			navigate(`/admin/mcp-servers/${serverId}/edit`, { replace: true });
@@ -207,7 +208,15 @@ export function MCPServerDetailPage() {
 		<div>
 			<div className="page-header">
 				<div>
-					<h1>{s.name}</h1>
+					<h1>
+						<span className="title-icon-tag">
+							<i
+								className="fa-solid fa-server"
+								style={{ color: "var(--c-cyan)" }}
+							/>
+							{s.name} MCP Server
+						</span>
+					</h1>
 					<p>{s.description || "MCP server"}</p>
 				</div>
 				<div className="flex-gap">
@@ -215,47 +224,6 @@ export function MCPServerDetailPage() {
 						Back
 					</Link>
 				</div>
-			</div>
-
-			<div className="card">
-				<dl
-					style={{
-						display: "grid",
-						gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-						gap: "var(--md)",
-						margin: 0,
-					}}
-				>
-					<div>
-						<dt className="text-sec text-sm">Type</dt>
-						<dd>
-							{s.is_builtin
-								? "Built-in"
-								: s.is_local
-									? "Local (subprocess)"
-									: "Remote (HTTP)"}
-						</dd>
-					</div>
-					{s.url && (
-						<div>
-							<dt className="text-sec text-sm">URL</dt>
-							<dd className="text-mono">{s.url}</dd>
-						</div>
-					)}
-					{s.command && (
-						<div>
-							<dt className="text-sec text-sm">Command</dt>
-							<dd className="text-mono">
-								{s.command}{" "}
-								{Array.isArray(s.args) ? (s.args as string[]).join(" ") : ""}
-							</dd>
-						</div>
-					)}
-					<div>
-						<dt className="text-sec text-sm">Status</dt>
-						<dd>{s.is_active ? "Active" : "Inactive"}</dd>
-					</div>
-				</dl>
 			</div>
 
 			<h2 style={{ marginTop: "var(--lg)" }}>Tools</h2>

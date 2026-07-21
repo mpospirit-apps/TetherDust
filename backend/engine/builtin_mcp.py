@@ -105,7 +105,8 @@ def describe_builtin_tool_schemas() -> dict[str, dict[str, object]]:
 
 def ensure_builtin_mcp(using: str | None = None) -> None:
     """Idempotently ensure the built-in MCP server and its tool rows exist and
-    match the real tools' current name/category/description.
+    match the current ``BUILTIN_SERVER_NAME``/``BUILTIN_SERVER_DESCRIPTION``
+    and the real tools' current name/category/description.
 
     Safe to call repeatedly (e.g. from post_migrate). Silently no-ops if the
     tables do not exist yet (e.g. mid-bootstrap) — the next migrate run fires
@@ -138,6 +139,13 @@ def ensure_builtin_mcp(using: str | None = None) -> None:
                 is_active=True,
                 is_builtin=True,
             )
+        elif server.name != BUILTIN_SERVER_NAME or server.description != BUILTIN_SERVER_DESCRIPTION:
+            # Re-sync on every call, like the tool rows below, so an edit to
+            # these constants shows up on the next deploy instead of staying
+            # stuck with whatever an earlier version originally seeded.
+            server.name = BUILTIN_SERVER_NAME
+            server.description = BUILTIN_SERVER_DESCRIPTION
+            server.save(using=db, update_fields=["name", "description"])
 
         current_tools = iter_builtin_tools()
         for tool_name, display_name, category, description in current_tools:

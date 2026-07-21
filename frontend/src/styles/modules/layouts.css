@@ -175,7 +175,7 @@ form .card {
 }
 
 /* A tool card's parameters/returns block (see ToolSchema in
-   MCPServerDetailPage.tsx). */
+   MCPServerToolsPage.tsx). */
 .tool-schema {
 	margin-top: var(--sm);
 	padding-top: var(--sm);
