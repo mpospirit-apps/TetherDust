@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { type FormEvent, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiErrorDetail } from "../../api/client";
 import {
 	createMCPPrompt,
@@ -8,10 +8,8 @@ import {
 	getMCPServer,
 	getMCPServerTools,
 	listMCPPrompts,
-	type MCPProbeResult,
 	type MCPPrompt,
 	type MCPTool,
-	testMCPServer,
 	toggleMCPPrompt,
 	updateMCPPrompt,
 } from "../../api/mcp";
@@ -102,58 +100,10 @@ function ToolSchema({ tool }: { tool: MCPTool }) {
 	);
 }
 
-function ProbeReport({ result }: { result: MCPProbeResult }) {
-	return (
-		<div className="card" style={{ marginTop: "var(--md)" }}>
-			<div style={{ marginBottom: "var(--sm)" }}>
-				{result.ok ? (
-					<span className="badge badge-success">Reachable ✓</span>
-				) : (
-					<span className="badge badge-error">Failed</span>
-				)}
-			</div>
-			{result.url && (
-				<p className="text-sec text-sm">
-					Probed <span className="text-mono">{result.url}</span>
-					{result.transport ? ` (${result.transport})` : ""}
-				</p>
-			)}
-			{result.error && <p className="text-sec">{result.error}</p>}
-			{result.initialize && (
-				<p className="text-sec text-sm">
-					initialize: HTTP {result.initialize.status_code} in{" "}
-					{result.initialize.elapsed_ms}ms
-					{result.initialize.server_name
-						? ` · ${result.initialize.server_name}`
-						: ""}
-					{result.initialize.server_version
-						? ` v${result.initialize.server_version}`
-						: ""}
-				</p>
-			)}
-			{result.tools_list?.count != null && (
-				<div>
-					<p className="text-sec text-sm">
-						tools/list: {result.tools_list.count} tool(s) in{" "}
-						{result.tools_list.elapsed_ms}ms
-					</p>
-					<ul className="text-sm">
-						{(result.tools_list.tools ?? []).map((t) => (
-							<li key={t.name}>
-								<strong>{t.name}</strong>
-								{t.description ? ` — ${t.description}` : ""}
-							</li>
-						))}
-					</ul>
-				</div>
-			)}
-		</div>
-	);
-}
-
 export function MCPServerDetailPage() {
 	const { id } = useParams();
 	const serverId = id as string;
+	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
 	const server = useQuery({
@@ -169,16 +119,14 @@ export function MCPServerDetailPage() {
 		queryFn: () => listMCPPrompts(serverId),
 	});
 
-	const [probe, setProbe] = useState<MCPProbeResult | null>(null);
-	const test = useMutation({
-		mutationFn: () => testMCPServer(serverId),
-		onSuccess: setProbe,
-		onError: (err) =>
-			setProbe({
-				ok: false,
-				error: apiErrorDetail(err, "Test request failed."),
-			}),
-	});
+	// Custom servers have no view page — only the built-in server lands here.
+	// Anyone reaching this URL for a custom server (a stale link, etc.) is
+	// bounced to its edit page, which now also carries the connection test.
+	useEffect(() => {
+		if (server.data && !server.data.is_builtin) {
+			navigate(`/admin/mcp-servers/${serverId}/edit`, { replace: true });
+		}
+	}, [server.data, serverId, navigate]);
 
 	// Prompt editor: null = closed, "new" = create, else editing prompt id.
 	const [editing, setEditing] = useState<string | null>(null);
@@ -251,6 +199,9 @@ export function MCPServerDetailPage() {
 		);
 	}
 	const s = server.data;
+	// Redirecting to the edit page (see the effect above) — render nothing
+	// for the instant it takes the navigation to land.
+	if (!s.is_builtin) return null;
 
 	return (
 		<div>
@@ -260,14 +211,6 @@ export function MCPServerDetailPage() {
 					<p>{s.description || "MCP server"}</p>
 				</div>
 				<div className="flex-gap">
-					{!s.is_builtin && (
-						<Link
-							to={`/admin/mcp-servers/${s.id}/edit`}
-							className="btn btn-secondary"
-						>
-							Edit
-						</Link>
-					)}
 					<Link to="/admin/mcp-servers" className="btn btn-ghost">
 						Back
 					</Link>
@@ -313,19 +256,6 @@ export function MCPServerDetailPage() {
 						<dd>{s.is_active ? "Active" : "Inactive"}</dd>
 					</div>
 				</dl>
-				{!s.is_builtin && (
-					<div style={{ marginTop: "var(--md)" }}>
-						<button
-							type="button"
-							className="btn btn-secondary"
-							disabled={test.isPending}
-							onClick={() => test.mutate()}
-						>
-							{test.isPending ? "Testing…" : "Test connection"}
-						</button>
-					</div>
-				)}
-				{probe && <ProbeReport result={probe} />}
 			</div>
 
 			<h2 style={{ marginTop: "var(--lg)" }}>Tools</h2>

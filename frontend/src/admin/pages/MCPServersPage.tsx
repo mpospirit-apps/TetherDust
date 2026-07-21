@@ -1,7 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { apiErrorDetail } from "../../api/client";
-import { deleteMCPServer, listMCPServers, type MCPServer } from "../../api/mcp";
+import {
+	deleteMCPServer,
+	listMCPServers,
+	type MCPProbeResult,
+	type MCPServer,
+	testMCPServer,
+} from "../../api/mcp";
+import { ProbeReport } from "../components/mcpProbe";
+
+const TABLE_COLUMNS = 4;
 
 function serverKind(s: MCPServer): string {
 	if (s.is_builtin) return "Built-in";
@@ -13,6 +23,107 @@ function serverIcon(s: MCPServer): string {
 	if (s.is_builtin) return "fa-server";
 	if (s.is_local) return "fa-terminal";
 	return "fa-globe";
+}
+
+function MCPServerRow({
+	s,
+	onDelete,
+}: {
+	s: MCPServer;
+	onDelete: (s: MCPServer) => void;
+}) {
+	const [probe, setProbe] = useState<MCPProbeResult | null>(null);
+	const test = useMutation({
+		mutationFn: () => testMCPServer(s.id),
+		onSuccess: setProbe,
+		onError: (err) =>
+			setProbe({
+				ok: false,
+				error: apiErrorDetail(err, "Test request failed."),
+			}),
+	});
+
+	return (
+		<>
+			<tr>
+				<td>
+					<div className="db-name-cell">
+						<i
+							className={`fa-solid ${serverIcon(s)} choice-card__icon db-name-cell__icon`}
+							title={serverKind(s)}
+						/>
+						<div>
+							<strong>{s.name}</strong>
+							{s.description && (
+								<div className="text-sec text-sm">{s.description}</div>
+							)}
+						</div>
+					</div>
+				</td>
+				<td className="text-mono">{s.tool_count}</td>
+				<td>
+					{s.is_active ? (
+						<span className="badge badge-success">ACTIVE</span>
+					) : (
+						<span className="badge badge-muted">INACTIVE</span>
+					)}
+				</td>
+				<td>
+					<div className="flex-gap">
+						{s.is_builtin ? (
+							<Link
+								to={`/admin/mcp-servers/${s.id}`}
+								className="btn btn-ghost btn-sm"
+							>
+								<i className="fa-solid fa-eye" /> View
+							</Link>
+						) : (
+							<>
+								<button
+									type="button"
+									className="btn btn-ghost btn-sm"
+									disabled={test.isPending}
+									onClick={() => {
+										setProbe(null);
+										test.mutate();
+									}}
+								>
+									{test.isPending ? (
+										<i className="fa-solid fa-spinner fa-spin" />
+									) : (
+										<>
+											<i className="fa-solid fa-plug-circle-check" /> Test
+										</>
+									)}
+								</button>
+								<Link
+									to={`/admin/mcp-servers/${s.id}/edit`}
+									className="btn btn-ghost btn-sm"
+								>
+									<i className="fa-solid fa-pen" /> Edit
+								</Link>
+								<button
+									type="button"
+									className="btn btn-ghost btn-sm"
+									style={{ color: "var(--danger)" }}
+									onClick={() => onDelete(s)}
+								>
+									<i className="fa-solid fa-trash" /> Delete
+								</button>
+							</>
+						)}
+					</div>
+				</td>
+			</tr>
+			{probe && (
+				<tr>
+					<td colSpan={TABLE_COLUMNS} className="db-test-result-cell">
+						<ProbeReport result={probe} />
+					</td>
+				</tr>
+			)}
+		</>
+	);
 }
 
 export function MCPServersPage() {
@@ -82,60 +193,7 @@ export function MCPServersPage() {
 							</thead>
 							<tbody>
 								{servers.map((s) => (
-									<tr key={s.id}>
-										<td>
-											<div className="db-name-cell">
-												<i
-													className={`fa-solid ${serverIcon(s)} choice-card__icon db-name-cell__icon`}
-													title={serverKind(s)}
-												/>
-												<div>
-													<strong>{s.name}</strong>
-													{s.description && (
-														<div className="text-sec text-sm">
-															{s.description}
-														</div>
-													)}
-												</div>
-											</div>
-										</td>
-										<td className="text-mono">{s.tool_count}</td>
-										<td>
-											{s.is_active ? (
-												<span className="badge badge-success">ACTIVE</span>
-											) : (
-												<span className="badge badge-muted">INACTIVE</span>
-											)}
-										</td>
-										<td>
-											<div className="flex-gap">
-												<Link
-													to={`/admin/mcp-servers/${s.id}`}
-													className="btn btn-ghost btn-sm"
-												>
-													<i className="fa-solid fa-eye" /> View
-												</Link>
-												{!s.is_builtin && (
-													<>
-														<Link
-															to={`/admin/mcp-servers/${s.id}/edit`}
-															className="btn btn-ghost btn-sm"
-														>
-															<i className="fa-solid fa-pen" /> Edit
-														</Link>
-														<button
-															type="button"
-															className="btn btn-ghost btn-sm"
-															style={{ color: "var(--danger)" }}
-															onClick={() => onDelete(s)}
-														>
-															<i className="fa-solid fa-trash" /> Delete
-														</button>
-													</>
-												)}
-											</div>
-										</td>
-									</tr>
+									<MCPServerRow key={s.id} s={s} onDelete={onDelete} />
 								))}
 							</tbody>
 						</table>
