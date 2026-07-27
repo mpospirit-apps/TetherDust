@@ -7,17 +7,13 @@ import json
 import logging
 from typing import Any
 
+from engine.builtin_mcp import CHAT_EXCLUDED_TOOLS as _CHART_EDIT_ONLY_TOOLS
 from engine.consumers.base import BaseAgentConsumer
 from engine.consumers.mcp_client import fetch_tools_called, read_mcp_resources
 from engine.consumers.permissions import PermissionsMixin
 from engine.consumers.session import SessionMixin
 
 logger = logging.getLogger(__name__)
-
-
-# Tools that are only callable via the chart edit panel and must never
-# be exposed via the general chat, regardless of role configuration.
-_CHART_EDIT_ONLY_TOOLS = frozenset({"update_chart"})
 
 
 class ChatConsumer(SessionMixin, PermissionsMixin, BaseAgentConsumer):

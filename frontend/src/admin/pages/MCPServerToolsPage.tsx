@@ -13,6 +13,7 @@ import {
 	toggleMCPPrompt,
 	updateMCPPrompt,
 } from "../../api/mcp";
+import { ActionTooltip } from "../components/ActionTooltip";
 import { FormCheckbox, FormField } from "../components/forms";
 
 const TOOL_CATEGORY_ICON: Record<string, string> = {
@@ -69,6 +70,30 @@ const EMPTY_PROMPT: PromptForm = {
 	content: "",
 	is_enabled: true,
 };
+
+// Same comments icon as the Chat nav tab, marking whether the chat agent can
+// invoke this tool. `chat_callable` is absent for custom-server tools (they're
+// all chat-callable), so undefined is treated as callable.
+function ChatCallableBadge({ tool }: { tool: MCPTool }) {
+	const callable = tool.chat_callable !== false;
+	const content = callable
+		? "Callable from chat — the assistant can invoke this tool during a conversation."
+		: "Not callable from chat — this tool is scoped to the dashboard chart-edit panel and stripped from regular chat.";
+	return (
+		<ActionTooltip content={content}>
+			<button
+				type="button"
+				className="tool-card__chat-btn"
+				aria-label={content}
+			>
+				<i
+					className={`fa-solid fa-comments tool-card__chat${callable ? " is-callable" : ""}`}
+					aria-hidden="true"
+				/>
+			</button>
+		</ActionTooltip>
+	);
+}
 
 function ToolSchema({ tool }: { tool: MCPTool }) {
 	if (tool.parameters === undefined) return null;
@@ -250,7 +275,10 @@ export function MCPServerToolsPage() {
 										}}
 									/>
 									<div className="choice-card__body">
-										<h4>{t.display_name}</h4>
+										<div className="tool-card__head">
+											<h4>{t.display_name}</h4>
+											<ChatCallableBadge tool={t} />
+										</div>
 										<p className="text-mono" style={{ marginBottom: 2 }}>
 											{t.tool_name}
 										</p>

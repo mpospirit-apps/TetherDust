@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	type FormEvent,
+	Fragment,
 	useCallback,
 	useEffect,
 	useRef,
@@ -72,6 +73,116 @@ function categoryHint(title: string): string {
 	return "";
 }
 
+interface HiwStep {
+	icon: string;
+	label: string;
+	desc: string;
+}
+
+// Per-method "How it works" steps. Each integration type is set up differently
+// (subscription device-login vs. pasted token vs. API key vs. in-process), so
+// the overview walks through that method's specific path.
+function howItWorksSteps(flags: {
+	isCodexAuth: boolean;
+	isClaudeCode: boolean;
+	isApiKey: boolean;
+	isDirect: boolean;
+}): HiwStep[] {
+	const nameIt: HiwStep = {
+		icon: "fa-signature",
+		label: "Name it",
+		desc: "Give the agent a name so you can recognise it in the list.",
+	};
+	const setModel: HiwStep = {
+		icon: "fa-sliders",
+		label: "Set the model",
+		desc: "Choose the model (and reasoning effort for Codex), or leave blank for the default.",
+	};
+	if (flags.isDirect) {
+		return [
+			nameIt,
+			{
+				icon: "fa-link",
+				label: "Point at the API",
+				desc: "Set the OpenAI-compatible base URL and API key for the provider.",
+			},
+			setModel,
+			{
+				icon: "fa-floppy-disk",
+				label: "Save & activate",
+				desc: "Create the agent, then make it the active one.",
+			},
+			{
+				icon: "fa-bolt",
+				label: "Runs in-process",
+				desc: "TetherDust drives the tool-call loop itself — no CLI container — calling only MCP tools.",
+			},
+		];
+	}
+	if (flags.isApiKey) {
+		return [
+			nameIt,
+			{
+				icon: "fa-key",
+				label: "Paste the API key",
+				desc: "Provide the provider API key; usage is billed per token against that key.",
+			},
+			setModel,
+			{
+				icon: "fa-floppy-disk",
+				label: "Save & activate",
+				desc: "Create the agent, then make it the active one.",
+			},
+			{
+				icon: "fa-terminal",
+				label: "Chat routes to the CLI",
+				desc: "Questions run through the CLI gateway, scoped to the MCP tools your roles allow.",
+			},
+		];
+	}
+	if (flags.isClaudeCode) {
+		return [
+			nameIt,
+			{
+				icon: "fa-key",
+				label: "Paste the OAuth token",
+				desc: "Run `claude setup-token` locally and paste the sk-ant-oat… token here.",
+			},
+			setModel,
+			{
+				icon: "fa-floppy-disk",
+				label: "Save & activate",
+				desc: "Create the agent, then make it the active one.",
+			},
+			{
+				icon: "fa-terminal",
+				label: "Chat routes to Claude Code",
+				desc: "Questions run through `claude -p` behind the gateway, scoped to MCP tools only.",
+			},
+		];
+	}
+	// Codex subscription (auth-token) — the only method with browser device login.
+	return [
+		nameIt,
+		setModel,
+		{
+			icon: "fa-floppy-disk",
+			label: "Save first",
+			desc: "Create the agent, then reopen it to finish sign-in.",
+		},
+		{
+			icon: "fa-right-to-bracket",
+			label: "Sign in to ChatGPT",
+			desc: "Approve the device-code login in your browser; the credential is stored encrypted and auto-refreshed.",
+		},
+		{
+			icon: "fa-terminal",
+			label: "Chat routes to Codex",
+			desc: "Once active, questions run through `codex exec` behind the gateway using MCP tools.",
+		},
+	];
+}
+
 const EMPTY: AgentForm = {
 	name: "",
 	system_prompt: "",
@@ -104,6 +215,7 @@ export function AgentFormPage() {
 	const [hasKey, setHasKey] = useState(false);
 	const [hasToken, setHasToken] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 	const seededType = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -283,6 +395,56 @@ export function AgentFormPage() {
 					style={{ marginBottom: "var(--md)" }}
 				>
 					{error}
+				</div>
+			)}
+
+			{!isEdit && (
+				<div
+					className="card doc-hiw-card"
+					style={{ marginBottom: "var(--md)" }}
+				>
+					<button
+						type="button"
+						className="doc-hiw-toggle"
+						aria-expanded={howItWorksOpen}
+						onClick={() => setHowItWorksOpen((open) => !open)}
+					>
+						<h3>How it works</h3>
+						<i
+							className={`fa-solid fa-chevron-down doc-hiw-chevron${
+								howItWorksOpen ? " is-open" : ""
+							}`}
+						/>
+					</button>
+					<div
+						className={`doc-hiw-collapse${howItWorksOpen ? " is-open" : ""}`}
+					>
+						<div className="doc-hiw-collapse__inner">
+							<div className="doc-hiw">
+								{howItWorksSteps({
+									isCodexAuth,
+									isClaudeCode,
+									isApiKey,
+									isDirect,
+								}).map((step, i, steps) => (
+									<Fragment key={step.label}>
+										<div className="doc-hiw-step">
+											<div className="doc-hiw-icon">
+												<i className={`fa-solid ${step.icon}`} />
+											</div>
+											<div className="doc-hiw-label">{step.label}</div>
+											<div className="doc-hiw-desc">{step.desc}</div>
+										</div>
+										{i < steps.length - 1 && (
+											<div className="doc-hiw-arrow">
+												<i className="fa-solid fa-chevron-right" />
+											</div>
+										)}
+									</Fragment>
+								))}
+							</div>
+						</div>
+					</div>
 				</div>
 			)}
 

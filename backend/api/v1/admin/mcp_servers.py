@@ -18,7 +18,7 @@ from typing import Any
 
 import httpx
 from django.db.models import Count, QuerySet
-from engine.builtin_mcp import describe_builtin_tool_schemas
+from engine.builtin_mcp import CHAT_EXCLUDED_TOOLS, describe_builtin_tool_schemas
 from engine.models import MCPServerConfiguration, PromptConfiguration, ToolConfiguration
 from engine.services import McpServerService, SystemConfigService, ToolService, get
 from rest_framework import serializers, status, viewsets
@@ -223,6 +223,7 @@ class MCPServerViewSet(viewsets.ModelViewSet[MCPServerConfiguration]):
                         "category_label": tool_service.category_label(tool),
                         "is_enabled": tool.is_enabled,
                         "description": tool.description,
+                        "chat_callable": tool.tool_name not in CHAT_EXCLUDED_TOOLS,
                         **schemas.get(tool.tool_name, {}),
                     }
                     for tool in ToolConfiguration.objects.filter(mcp_server=server)

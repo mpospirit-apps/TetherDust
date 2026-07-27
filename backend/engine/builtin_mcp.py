@@ -32,6 +32,14 @@ BUILTIN_SERVER_DESCRIPTION = (
     "Core database querying, documentation, dashboard, and tether tools that ship with TetherDust."
 )
 
+# Built-in tools that are deliberately NOT exposed to regular chat, even when a
+# role enables them — they're scoped to a specific feature surface instead.
+# ``update_chart`` is only reachable through the dashboard chart-edit panel (see
+# ``workspace/consumers/chat.py``, which strips these before handing the tool
+# list to the agent). Kept here as the single source of truth so the admin tool
+# list can flag chat-callability without re-deriving the rule.
+CHAT_EXCLUDED_TOOLS = frozenset({"update_chart"})
+
 # tool_name -> ToolConfiguration category (must match a value in
 # ToolConfiguration.CATEGORY_CHOICES).
 TOOL_CATEGORIES: dict[str, str] = {

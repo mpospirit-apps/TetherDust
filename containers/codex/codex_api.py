@@ -376,12 +376,13 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
     else:
         env["CODEX_HOME"] = str(CODEX_HOME_DIR)
 
-    # Build command args. The agent runs sandboxed (see CODEX_SANDBOX_MODE):
-    # commands the model executes are confined, while MCP tool calls — made by
-    # Codex engine, not the sandboxed shell — keep working. `codex exec` is already
-    # non-interactive (it never prompts for approval), so a command the sandbox
-    # denies simply fails rather than blocking — no approval flag is needed or
-    # accepted (`exec` only takes `--sandbox <mode>`).
+    # Build command args. The built-in shell tool is disabled outright (see the
+    # `features.shell_tool=false` override below), and the sandbox (see
+    # CODEX_SANDBOX_MODE) confines any remaining built-in the model can reach.
+    # MCP tool calls — made by the Codex engine, not the shell — keep working.
+    # `codex exec` is already non-interactive (it never prompts for approval), so
+    # a command the sandbox denies simply fails rather than blocking — no approval
+    # flag is needed or accepted (`exec` only takes `--sandbox <mode>`).
     cmd = [
         CODEX_COMMAND,
         "exec",
@@ -395,6 +396,14 @@ async def _stream_codex(request: ChatRequest) -> AsyncIterator[str]:
     cmd += [
         "--ephemeral",
         "--json",  # emit structured JSONL events so we can surface tool calls
+        # Disable Codex's built-in shell tool so the agent has no way to read
+        # container files or run commands — the closest Codex offers to Claude's
+        # MCP-only tool scoping. Data/artifact access still flows through the MCP
+        # tools (made by the Codex engine, not the shell), so this is unaffected.
+        # The read-only sandbox above remains defense-in-depth for any built-in
+        # (e.g. apply_patch) that has no individual disable switch.
+        "-c",
+        "features.shell_tool=false",
     ]
     # Inline MCP config overrides (restricted, no-custom-server fast path). Must
     # precede the `--` prompt separator so they're parsed as options.
