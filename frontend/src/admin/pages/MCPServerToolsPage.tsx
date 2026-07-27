@@ -78,7 +78,7 @@ function ChatCallableBadge({ tool }: { tool: MCPTool }) {
 	const callable = tool.chat_callable !== false;
 	const content = callable
 		? "Callable from chat — the assistant can invoke this tool during a conversation."
-		: "Not callable from chat — this tool is scoped to the dashboard chart-edit panel and stripped from regular chat.";
+		: "Not callable from chat — this tool is scoped to a dedicated feature surface (dashboards, tethers, docs, or the chart-edit panel) and stripped from regular chat.";
 	return (
 		<ActionTooltip content={content}>
 			<button

@@ -32,14 +32,6 @@ BUILTIN_SERVER_DESCRIPTION = (
     "Core database querying, documentation, dashboard, and tether tools that ship with TetherDust."
 )
 
-# Built-in tools that are deliberately NOT exposed to regular chat, even when a
-# role enables them — they're scoped to a specific feature surface instead.
-# ``update_chart`` is only reachable through the dashboard chart-edit panel (see
-# ``workspace/consumers/chat.py``, which strips these before handing the tool
-# list to the agent). Kept here as the single source of truth so the admin tool
-# list can flag chat-callability without re-deriving the rule.
-CHAT_EXCLUDED_TOOLS = frozenset({"update_chart"})
-
 # tool_name -> ToolConfiguration category (must match a value in
 # ToolConfiguration.CATEGORY_CHOICES).
 TOOL_CATEGORIES: dict[str, str] = {
@@ -96,6 +88,14 @@ def iter_builtin_tools() -> list[tuple[str, str, str, str]]:
         )
         for handler in iter_tool_handlers()
     ]
+
+
+def builtin_tool_names() -> set[str]:
+    """The authoritative set of built-in tool names, read live from ``tdmcp``.
+
+    Used by ``engine.chat_surfaces`` to decide which tool names are subject to a
+    surface's built-in allow-list (vs. custom MCP server tools, which are not)."""
+    return {name for name, *_ in iter_builtin_tools()}
 
 
 def describe_builtin_tool_schemas() -> dict[str, dict[str, object]]:
