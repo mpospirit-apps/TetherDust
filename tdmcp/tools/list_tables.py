@@ -5,10 +5,9 @@ from ._db_shared import get_allowed_doc_sources
 
 
 async def list_tables() -> str:
-    """List all available database tables that have documentation. \
-Returns table names grouped by domain (e.g., Orders, Products, Users). \
-Use this tool first when the user asks about available tables or when \
-you need to discover what data exists."""
+    """List all documented database tables available to you. \
+Use this to discover which tables exist before inspecting them with get_table_schema. \
+Returns table names grouped by domain (e.g., Orders, Products, Users)."""
     parser = get_shared_parser()
     tables = parser.list_tables()
 

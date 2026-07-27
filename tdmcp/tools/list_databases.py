@@ -4,9 +4,9 @@ from ._db_shared import get_allowed_databases, get_db_service
 
 
 async def list_databases() -> str:
-    """List all configured database connections with their descriptions. \
-Use this to discover which databases are available before querying. \
-Each database may contain different data domains."""
+    """List all databases available to you. \
+Use this to discover which databases exist before querying them with query_database. \
+Returns each database's name, engine, description, and connection host."""
     db_service = get_db_service()
     databases = db_service.list_databases()
 

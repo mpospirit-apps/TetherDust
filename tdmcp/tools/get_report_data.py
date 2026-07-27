@@ -28,7 +28,7 @@ async def get_report_data(
 ) -> str:
     """Run a report's SQL query against its configured database and return live results.
 
-Use list_reports first to discover available report names. The query is the \
+Use list_reports first to discover available reports. The query is the \
 same read-only SELECT stored in the report definition — no writes are possible. \
 Results are returned as a markdown table."""
     from sqlalchemy import text
