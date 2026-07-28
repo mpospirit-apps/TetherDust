@@ -21,7 +21,7 @@ async def get_dashboard_charts(
     """Return the charts in a dashboard, including each chart's title, type, \
 description, and SQL query.
 
-Use list_dashboards first to discover available dashboard names. This tool \
+Use list_dashboards first to discover available dashboards. This tool \
 gives you the full chart definitions so you can describe what data the \
 dashboard visualises or answer questions about specific charts."""
     from sqlalchemy import text

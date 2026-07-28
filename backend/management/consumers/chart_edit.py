@@ -19,6 +19,7 @@ from typing import cast
 
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AbstractUser
+from engine.agent_surfaces import AgentSurface, surface_tools
 from engine.consumers.base import BaseAgentConsumer
 from engine.prompts import build_chart_edit_prompt
 
@@ -27,17 +28,6 @@ logger = logging.getLogger(__name__)
 
 class ChartEditConsumer(BaseAgentConsumer):
     user: AbstractUser
-
-    # Tools the agent is allowed to call from the chart edit panel.
-    _CHART_EDIT_TOOLS = [
-        "update_chart",
-        "query_database",
-        "list_tables",
-        "get_table_schema",
-        "get_query_examples",
-        "list_databases",
-        "search_docs",
-    ]
 
     def _codex_session_id(self) -> str:
         return f"chart-edit-{self.chart_id}-{self.user.pk}"
@@ -139,7 +129,7 @@ class ChartEditConsumer(BaseAgentConsumer):
                 message=agent_message,
                 user_id=self.user.pk,
                 session_id=self._codex_session_id(),
-                allowed_tools=list(self._CHART_EDIT_TOOLS),
+                allowed_tools=list(surface_tools(AgentSurface.CHART_EDIT)),
                 allowed_databases=[self._chart_database_name],
                 allowed_doc_sources=[],
                 allowed_codebases=[],

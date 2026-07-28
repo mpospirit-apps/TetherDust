@@ -82,9 +82,8 @@ def get_shared_parser() -> DocumentationParser:
         _shared_parser._ensure_loaded()
         logger.info("[DEBUG PARSER] Sources loaded: %s", [s.name for s in _shared_parser._sources])
         logger.info(
-            "[DEBUG PARSER] Tables cached: %d, Examples cached: %d",
+            "[DEBUG PARSER] Tables cached: %d",
             len(_shared_parser._table_cache),
-            len(_shared_parser._examples_cache),
         )
         for s in _shared_parser._sources:
             source_path = s.path
@@ -100,14 +99,20 @@ def get_shared_parser() -> DocumentationParser:
     return _shared_parser
 
 
-def register_tools(mcp: FastMCP) -> None:
-    """Register all TetherDust tools on the FastMCP server instance."""
+def iter_tool_handlers() -> list[Callable[..., object]]:
+    """The concrete list of tool handler functions, in a stable order.
+
+    Single source of truth for "what tools exist": ``register_tools`` (which
+    exposes them over MCP) and the Django backend's built-in-server seeding
+    (``engine.builtin_mcp``, which mirrors each tool's real name/docstring
+    into the admin DB) both read from this instead of keeping their own
+    separately-maintained list.
+    """
     from .add_chart import add_chart
     from .create_dashboard import create_dashboard
     from .create_documentation import create_documentation
     from .get_codebase_tree import get_codebase_tree
     from .get_dashboard_charts import get_dashboard_charts
-    from .get_query_examples import get_query_examples
     from .get_report_data import get_report_data
     from .get_table_schema import get_table_schema
     from .get_tether_graph import get_tether_graph
@@ -124,11 +129,10 @@ def register_tools(mcp: FastMCP) -> None:
     from .search_docs import search_docs
     from .update_chart import update_chart
 
-    handlers: list[Callable[..., object]] = [
+    return [
         list_tables,
         get_table_schema,
         search_docs,
-        get_query_examples,
         list_databases,
         query_database,
         create_documentation,
@@ -147,5 +151,67 @@ def register_tools(mcp: FastMCP) -> None:
         list_tethers,
         get_tether_graph,
     ]
-    for handler in handlers:
+
+
+def register_tools(mcp: FastMCP) -> None:
+    """Register all TetherDust tools on the FastMCP server instance."""
+    for handler in iter_tool_handlers():
         mcp.tool()(handler)
+
+
+def _json_schema_type_label(schema: dict[str, object]) -> str:
+    """A short, human-readable type label from a JSON Schema property.
+
+    Handles the two shapes FastMCP emits for tool parameters: a plain
+    ``{"type": "..."}`` and an optional/nullable ``{"anyOf": [...]}``.
+    """
+    schema_type = schema.get("type")
+    if not schema_type:
+        any_of = schema.get("anyOf")
+        if isinstance(any_of, list):
+            types = [
+                s.get("type") for s in any_of if isinstance(s, dict) and s.get("type") != "null"
+            ]
+            schema_type = types[0] if types else "any"
+        else:
+            schema_type = "any"
+
+    if schema_type == "array":
+        items = schema.get("items")
+        item_type = items.get("type", "any") if isinstance(items, dict) else "any"
+        return f"array<{item_type}>"
+    return str(schema_type)
+
+
+def describe_tool_schema(handler: Callable[..., object]) -> dict[str, object]:
+    """The real parameter/return schema for a tool handler.
+
+    Built via ``mcp.server.fastmcp``'s own ``Tool.from_function`` — the exact
+    code path FastMCP uses when registering a tool — rather than a hand-rolled
+    re-parse of each function's ``Annotated``/``Field`` metadata, so this can
+    never drift from what the agent is actually sent.
+    """
+    import inspect
+
+    from mcp.server.fastmcp.tools.base import Tool as MCPTool
+
+    mcp_tool = MCPTool.from_function(handler)
+    schema = mcp_tool.parameters
+    properties = schema.get("properties", {})
+    required = set(schema.get("required", []))
+
+    parameters = [
+        {
+            "name": name,
+            "type": _json_schema_type_label(prop),
+            "description": prop.get("description", ""),
+            "required": name in required,
+            "default": prop.get("default"),
+        }
+        for name, prop in properties.items()
+    ]
+
+    return_annotation = inspect.signature(handler).return_annotation
+    returns = getattr(return_annotation, "__name__", None) or str(return_annotation)
+
+    return {"parameters": parameters, "returns": returns}

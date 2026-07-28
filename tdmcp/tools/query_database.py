@@ -37,10 +37,9 @@ async def query_database(
     """Execute a read-only SQL query against the database and return results.
 
 REQUIREMENTS:
-1. ALWAYS call get_query_examples first to check for existing query patterns
-2. Only SELECT statements are allowed (no INSERT, UPDATE, DELETE, DROP, etc.)
-3. Results are limited to prevent large data transfers (default 100 rows)
-4. Use get_table_schema if unsure about column names or types
+1. Only SELECT statements are allowed (no INSERT, UPDATE, DELETE, DROP, etc.)
+2. Results are limited to prevent large data transfers (default 100 rows)
+3. Use get_table_schema if unsure about column names or types
 
 If the query fails, check the error message and verify table/column names \
 using get_table_schema before retrying."""

@@ -1342,7 +1342,7 @@ function AdvancedTab() {
 						complete={hasCustomServer}
 						to="/admin/mcp-servers/new"
 						icon="fa-server"
-						label="Add Server"
+						label="Add MCP Server"
 					/>
 				</div>
 				<div className="card">

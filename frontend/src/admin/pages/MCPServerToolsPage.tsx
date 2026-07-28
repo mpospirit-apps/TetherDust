@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { type FormEvent, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiErrorDetail } from "../../api/client";
 import {
 	createMCPPrompt,
@@ -8,13 +8,55 @@ import {
 	getMCPServer,
 	getMCPServerTools,
 	listMCPPrompts,
-	type MCPProbeResult,
 	type MCPPrompt,
-	testMCPServer,
+	type MCPTool,
 	toggleMCPPrompt,
 	updateMCPPrompt,
 } from "../../api/mcp";
+import { ActionTooltip } from "../components/ActionTooltip";
 import { FormCheckbox, FormField } from "../components/forms";
+
+const TOOL_CATEGORY_ICON: Record<string, string> = {
+	querying: "fa-database",
+	docs: "fa-book",
+	charts: "fa-chart-simple",
+	codebases: "fa-code",
+	// Matches the Tethers nav tab's own icon (see NAV_LINKS in Navbar.tsx).
+	tethers: "fa-diagram-project",
+	reports: "fa-file-lines",
+};
+const DEFAULT_TOOL_ICON = "fa-wrench";
+
+// Colors match each category's counterpart nav tab accent (see NAV_LINKS in
+// Navbar.tsx: Chat=cyan, Docs=lime, Reports=orange, Dashboards=red,
+// Tethers=pink). Querying and Codebases have no nav-tab counterpart of their
+// own, so they fall back to the app-wide default icon color (cyan).
+const TOOL_CATEGORY_COLOR: Record<string, string> = {
+	docs: "var(--c-lime)",
+	charts: "var(--c-red)",
+	tethers: "var(--c-pink)",
+	reports: "var(--c-orange)",
+};
+const DEFAULT_TOOL_COLOR = "var(--c-cyan)";
+
+// Preserves the API's category ordering (already grouped/sorted server-side)
+// instead of re-sorting client-side.
+function groupToolsByCategory(
+	tools: MCPTool[],
+): { category: string; tools: MCPTool[] }[] {
+	const groups: { category: string; tools: MCPTool[] }[] = [];
+	const byCategory = new Map<string, MCPTool[]>();
+	for (const t of tools) {
+		let bucket = byCategory.get(t.category_label);
+		if (!bucket) {
+			bucket = [];
+			byCategory.set(t.category_label, bucket);
+			groups.push({ category: t.category_label, tools: bucket });
+		}
+		bucket.push(t);
+	}
+	return groups;
+}
 
 interface PromptForm {
 	prompt_name: string;
@@ -29,58 +71,106 @@ const EMPTY_PROMPT: PromptForm = {
 	is_enabled: true,
 };
 
-function ProbeReport({ result }: { result: MCPProbeResult }) {
+// The agent surfaces a built-in tool can be invoked from, in display order.
+// Keys match engine.agent_surfaces.AgentSurface values; icons/colors reuse the
+// nav-tab / category language so the badges read consistently across the app.
+interface SurfaceMeta {
+	key: string;
+	label: string;
+	icon: string;
+	color: string;
+}
+const SURFACES: SurfaceMeta[] = [
+	{ key: "chat", label: "Chat", icon: "fa-comments", color: "var(--c-cyan)" },
+	{
+		key: "chart_edit",
+		label: "Chart editor",
+		icon: "fa-pen-to-square",
+		color: "var(--c-orange)",
+	},
+	{
+		key: "doc_gen",
+		label: "Doc generation",
+		icon: "fa-file-lines",
+		color: "var(--c-lime)",
+	},
+	{
+		key: "dashboard_gen",
+		label: "Dashboard generation",
+		icon: "fa-chart-simple",
+		color: "var(--c-red)",
+	},
+	{
+		key: "tether_gen",
+		label: "Tether generation",
+		icon: "fa-diagram-project",
+		color: "var(--c-pink)",
+	},
+];
+
+// A cluster of surface icons on a tool card: each surface lit (in its accent
+// color) when the tool is callable there, muted otherwise. `surfaces` is absent
+// for custom-server tools (never rendered here — the page is built-in only).
+function SurfaceBadges({ tool }: { tool: MCPTool }) {
+	const callable = new Set(tool.surfaces ?? []);
 	return (
-		<div className="card" style={{ marginTop: "var(--md)" }}>
-			<div style={{ marginBottom: "var(--sm)" }}>
-				{result.ok ? (
-					<span className="badge badge-success">Reachable ✓</span>
-				) : (
-					<span className="badge badge-error">Failed</span>
-				)}
-			</div>
-			{result.url && (
-				<p className="text-sec text-sm">
-					Probed <span className="text-mono">{result.url}</span>
-					{result.transport ? ` (${result.transport})` : ""}
-				</p>
+		<div className="tool-card__surfaces">
+			{SURFACES.map((s) => {
+				const on = callable.has(s.key);
+				const content = on
+					? `Callable while: ${s.label}`
+					: `Not available in: ${s.label}`;
+				return (
+					<ActionTooltip key={s.key} content={content}>
+						<button
+							type="button"
+							className={`tool-card__surface${on ? " is-callable" : ""}`}
+							style={on ? { color: s.color } : undefined}
+							aria-label={content}
+						>
+							<i className={`fa-solid ${s.icon}`} aria-hidden="true" />
+						</button>
+					</ActionTooltip>
+				);
+			})}
+		</div>
+	);
+}
+
+function ToolSchema({ tool }: { tool: MCPTool }) {
+	if (tool.parameters === undefined) return null;
+
+	return (
+		<div className="tool-schema">
+			<div className="tool-schema__label">Parameters</div>
+			{tool.parameters.length === 0 ? (
+				<p>None.</p>
+			) : (
+				<ul className="tool-schema__params">
+					{tool.parameters.map((p) => (
+						<li key={p.name} className="tool-schema__param-head">
+							<span className="type-badge">{p.type}</span>
+							<code style={p.required ? undefined : { color: "var(--c-lime)" }}>
+								{p.name}
+							</code>
+						</li>
+					))}
+				</ul>
 			)}
-			{result.error && <p className="text-sec">{result.error}</p>}
-			{result.initialize && (
-				<p className="text-sec text-sm">
-					initialize: HTTP {result.initialize.status_code} in{" "}
-					{result.initialize.elapsed_ms}ms
-					{result.initialize.server_name
-						? ` · ${result.initialize.server_name}`
-						: ""}
-					{result.initialize.server_version
-						? ` v${result.initialize.server_version}`
-						: ""}
-				</p>
-			)}
-			{result.tools_list?.count != null && (
-				<div>
-					<p className="text-sec text-sm">
-						tools/list: {result.tools_list.count} tool(s) in{" "}
-						{result.tools_list.elapsed_ms}ms
-					</p>
-					<ul className="text-sm">
-						{(result.tools_list.tools ?? []).map((t) => (
-							<li key={t.name}>
-								<strong>{t.name}</strong>
-								{t.description ? ` — ${t.description}` : ""}
-							</li>
-						))}
-					</ul>
+			{tool.returns && (
+				<div className="tool-schema__returns">
+					<span className="tool-schema__label">Returns</span>{" "}
+					<span className="type-badge">{tool.returns}</span>
 				</div>
 			)}
 		</div>
 	);
 }
 
-export function MCPServerDetailPage() {
+export function MCPServerToolsPage() {
 	const { id } = useParams();
 	const serverId = id as string;
+	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
 	const server = useQuery({
@@ -96,16 +186,15 @@ export function MCPServerDetailPage() {
 		queryFn: () => listMCPPrompts(serverId),
 	});
 
-	const [probe, setProbe] = useState<MCPProbeResult | null>(null);
-	const test = useMutation({
-		mutationFn: () => testMCPServer(serverId),
-		onSuccess: setProbe,
-		onError: (err) =>
-			setProbe({
-				ok: false,
-				error: apiErrorDetail(err, "Test request failed."),
-			}),
-	});
+	// Custom servers have no Tools & Prompts view — only the built-in server
+	// lands here. Anyone reaching this URL for a custom server (a stale
+	// link, etc.) is bounced to its edit page, which now also carries the
+	// connection test.
+	useEffect(() => {
+		if (server.data && !server.data.is_builtin) {
+			navigate(`/admin/mcp-servers/${serverId}/edit`, { replace: true });
+		}
+	}, [server.data, serverId, navigate]);
 
 	// Prompt editor: null = closed, "new" = create, else editing prompt id.
 	const [editing, setEditing] = useState<string | null>(null);
@@ -178,127 +267,72 @@ export function MCPServerDetailPage() {
 		);
 	}
 	const s = server.data;
+	// Redirecting to the edit page (see the effect above) — render nothing
+	// for the instant it takes the navigation to land.
+	if (!s.is_builtin) return null;
 
 	return (
 		<div>
 			<div className="page-header">
 				<div>
-					<h1>{s.name}</h1>
+					<h1>
+						<span className="title-icon-tag">
+							<i
+								className="fa-solid fa-server"
+								style={{ color: "var(--c-cyan)" }}
+							/>
+							{s.name} MCP Server
+						</span>
+					</h1>
 					<p>{s.description || "MCP server"}</p>
 				</div>
 				<div className="flex-gap">
-					{!s.is_builtin && (
-						<Link
-							to={`/admin/mcp-servers/${s.id}/edit`}
-							className="btn btn-secondary"
-						>
-							Edit
-						</Link>
-					)}
 					<Link to="/admin/mcp-servers" className="btn btn-ghost">
 						Back
 					</Link>
 				</div>
 			</div>
 
-			<div className="card">
-				<dl
-					style={{
-						display: "grid",
-						gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-						gap: "var(--md)",
-						margin: 0,
-					}}
-				>
-					<div>
-						<dt className="text-sec text-sm">Type</dt>
-						<dd>
-							{s.is_builtin
-								? "Built-in"
-								: s.is_local
-									? "Local (subprocess)"
-									: "Remote (HTTP)"}
-						</dd>
-					</div>
-					{s.url && (
-						<div>
-							<dt className="text-sec text-sm">URL</dt>
-							<dd className="text-mono">{s.url}</dd>
-						</div>
-					)}
-					{s.command && (
-						<div>
-							<dt className="text-sec text-sm">Command</dt>
-							<dd className="text-mono">
-								{s.command}{" "}
-								{Array.isArray(s.args) ? (s.args as string[]).join(" ") : ""}
-							</dd>
-						</div>
-					)}
-					<div>
-						<dt className="text-sec text-sm">Status</dt>
-						<dd>{s.is_active ? "Active" : "Inactive"}</dd>
-					</div>
-				</dl>
-				{!s.is_builtin && (
-					<div style={{ marginTop: "var(--md)" }}>
-						<button
-							type="button"
-							className="btn btn-secondary"
-							disabled={test.isPending}
-							onClick={() => test.mutate()}
-						>
-							{test.isPending ? "Testing…" : "Test connection"}
-						</button>
-					</div>
-				)}
-				{probe && <ProbeReport result={probe} />}
-			</div>
-
 			<h2 style={{ marginTop: "var(--lg)" }}>Tools</h2>
-			<div className="card">
-				{tools.isLoading ? (
+			{tools.isLoading ? (
+				<div className="card">
 					<p className="text-sec">Loading…</p>
-				) : (tools.data?.results ?? []).length === 0 ? (
+				</div>
+			) : (tools.data?.results ?? []).length === 0 ? (
+				<div className="card">
 					<p className="text-sec">No tools registered for this server.</p>
-				) : (
-					<div className="table-wrap">
-						<table>
-							<thead>
-								<tr>
-									<th>Name</th>
-									<th>Category</th>
-									<th>Enabled</th>
-									<th>Description</th>
-								</tr>
-							</thead>
-							<tbody>
-								{(tools.data?.results ?? []).map((t) => (
-									<tr key={t.id}>
-										<td>
-											<strong>{t.display_name}</strong>
-											<div className="text-mono text-sm text-sec">
-												{t.tool_name}
-											</div>
-										</td>
-										<td>
-											<span className="type-badge">{t.category_label}</span>
-										</td>
-										<td>
-											{t.is_enabled ? (
-												<span className="badge badge-success">ON</span>
-											) : (
-												<span className="badge badge-muted">OFF</span>
-											)}
-										</td>
-										<td className="text-sm truncate">{t.description}</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+				</div>
+			) : (
+				groupToolsByCategory(tools.data?.results ?? []).map((group) => (
+					<div className="choice-section" key={group.category}>
+						<h3 className="choice-section__title">{group.category}</h3>
+						<div className="choice-list choice-list--grid">
+							{group.tools.map((t) => (
+								<div key={t.id} className="choice-card choice-card--static">
+									<i
+										className={`fa-solid ${TOOL_CATEGORY_ICON[t.category] ?? DEFAULT_TOOL_ICON} choice-card__icon`}
+										style={{
+											color:
+												TOOL_CATEGORY_COLOR[t.category] ?? DEFAULT_TOOL_COLOR,
+										}}
+									/>
+									<div className="choice-card__body">
+										<div className="tool-card__head">
+											<h4>{t.display_name}</h4>
+											<SurfaceBadges tool={t} />
+										</div>
+										<p className="text-mono" style={{ marginBottom: 2 }}>
+											{t.tool_name}
+										</p>
+										{t.description && <p>{t.description}</p>}
+										<ToolSchema tool={t} />
+									</div>
+								</div>
+							))}
+						</div>
 					</div>
-				)}
-			</div>
+				))
+			)}
 
 			<div
 				className="page-header"

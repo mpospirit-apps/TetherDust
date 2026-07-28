@@ -24,6 +24,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+from engine.agent_surfaces import AgentSurface, filter_surface_tools
 from engine.models import (
     AgentConfiguration,
     DocGenerationLog,
@@ -48,6 +49,27 @@ class _LibraryFile(TypedDict):
 
 
 # ── Config helpers ───────────────────────────────────────────────────────────
+
+
+def _reindex_doc_folder(destination: str) -> None:
+    """Refresh the ccc semantic index for the doc source generation wrote into.
+
+    *destination* is a path under ``sources/docs/``; its top-level segment is the
+    documentation source folder. Dispatched after ``sync_from_filesystem`` so a
+    newly created source already exists in the DB.
+    """
+    from engine.tasks import sync_doc_source
+
+    top_folder = destination.split("/")[0]
+    if not top_folder:
+        return
+    src = DocumentationSource.objects.filter(folder_name=top_folder, is_active=True).first()
+    if src is None:
+        return
+    try:
+        sync_doc_source.delay(src.pk)
+    except Exception:
+        sync_doc_source(src.pk)
 
 
 def _get_docgen_timeout() -> float:
@@ -226,6 +248,7 @@ def _run_docgen_background(
     elapsed_ms = int((time.monotonic() - t_start) * 1000)
 
     get(DocSourceService).sync_from_filesystem()
+    _reindex_doc_folder(destination)
 
     generated_file = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR) / destination / safe_name
     file_size = None
@@ -309,6 +332,7 @@ def _run_docgen_library_background(
     # A library maps to its top-level folder under sources/docs/.
     top_folder = library_root.split("/")[0]
     DocumentationSource.objects.filter(folder_name=top_folder).update(doc_type=source_doc_type)
+    _reindex_doc_folder(library_root)
 
     root_dir = Path(settings.TETHERDUST_DOCUMENTATIONS_DIR) / library_root
     files, total_size = _scan_library_files(root_dir)
@@ -348,15 +372,17 @@ def _run_docgen_library_background(
 
 
 def _enabled_tools() -> list[str]:
-    """Enabled tool names across active MCP servers, plus create_documentation."""
+    """Tools for doc generation: the DOC_GEN surface allow-list intersected with
+    enabled tools (custom MCP tools pass through), plus create_documentation."""
     enabled = list(
         ToolConfiguration.objects.filter(is_enabled=True, mcp_server__is_active=True).values_list(
             "tool_name", flat=True
         )
     )
-    if "create_documentation" not in enabled:
-        enabled.append("create_documentation")
-    return enabled
+    tools = filter_surface_tools(AgentSurface.DOC_GEN, enabled)
+    if "create_documentation" not in tools:
+        tools.append("create_documentation")
+    return tools
 
 
 def build_single_generation_prompt(

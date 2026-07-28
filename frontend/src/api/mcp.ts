@@ -33,6 +33,14 @@ export interface MCPServerInput {
 	is_active?: boolean;
 }
 
+export interface MCPToolParameter {
+	name: string;
+	type: string;
+	description: string;
+	required: boolean;
+	default: unknown;
+}
+
 export interface MCPTool {
 	id: string;
 	tool_name: string;
@@ -41,6 +49,14 @@ export interface MCPTool {
 	category_label: string;
 	is_enabled: boolean;
 	description: string;
+	// Agent surfaces that may invoke this tool (e.g. ["chat","doc_gen"]).
+	// Built-in tools only; see engine.agent_surfaces. Absent for custom servers.
+	surfaces?: string[];
+	// Only present for built-in tools — introspected live from the real
+	// tdmcp function, not stored. Custom servers have no local function to
+	// introspect.
+	parameters?: MCPToolParameter[];
+	returns?: string;
 }
 
 export interface MCPProbeResult {

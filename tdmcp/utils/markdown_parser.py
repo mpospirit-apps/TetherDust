@@ -3,7 +3,6 @@
 Parses markdown files to extract:
 - Table schemas (columns, types, descriptions)
 - Documentation content for search
-- Query examples
 
 Supports:
 - Multiple documentation sources (each top-level folder = a source)
@@ -52,19 +51,6 @@ class TableSchema:
     domain: str = ""
     description: str = ""
     columns: list[TableColumn] = field(default_factory=list)
-    source_file: str = ""
-    source_name: str = ""
-
-
-@dataclass
-class QueryExample:
-    """Represents a documented SQL query example."""
-
-    title: str
-    description: str
-    sql: str
-    tables: list[str] = field(default_factory=list)
-    use_cases: list[str] = field(default_factory=list)
     source_file: str = ""
     source_name: str = ""
 
@@ -167,7 +153,6 @@ class DocumentationParser:
         # else: sources loaded lazily in _ensure_loaded
 
         self._table_cache: dict[str, TableSchema] = {}
-        self._examples_cache: list[QueryExample] = []
         self._loaded = False
         self._loaded_at: float = 0.0
         self._hot_reload_interval: int | None = None
@@ -249,7 +234,6 @@ class DocumentationParser:
     def _load_all(self) -> None:
         """Load all documentation from disk across all sources."""
         self._table_cache.clear()
-        self._examples_cache.clear()
 
         sources = self._resolve_sources()
 
@@ -269,11 +253,6 @@ class DocumentationParser:
                 for table in self._parse_table_schemas(content, display_path, source):
                     table.source_name = source.name
                     self._table_cache[table.name.lower()] = table
-
-                # Parse query examples
-                for example in self._parse_query_examples(content, display_path):
-                    example.source_name = source.name
-                    self._examples_cache.append(example)
 
     def _parse_table_schemas(
         self,
@@ -372,58 +351,6 @@ class DocumentationParser:
                 enum_values=enum_values,
             )
 
-    def _parse_query_examples(self, content: str, source_file: str) -> Iterator[QueryExample]:
-        """Extract SQL query examples from markdown content.
-
-        Expects format:
-        ### Query Title
-        Description of what the query does.
-
-        **Use cases:** order lookup, reporting
-
-        **Tables:** Order, Customer
-
-        ```sql
-        SELECT * FROM Order WHERE ...
-        ```
-        """
-        example_pattern = re.compile(
-            r"^###\s+(.+?)\s*\n"  # Title
-            r"(.*?)"  # Description and metadata
-            r"```sql\s*\n(.*?)```",  # SQL code block
-            re.MULTILINE | re.DOTALL,
-        )
-
-        for match in example_pattern.finditer(content):
-            title = match.group(1).strip()
-            metadata = match.group(2)
-            sql = match.group(3).strip()
-
-            # Extract description (first paragraph)
-            desc_match = re.match(r"([^\n*]+)", metadata.strip())
-            description = desc_match.group(1).strip() if desc_match else ""
-
-            # Extract use cases
-            use_cases: list[str] = []
-            use_case_match = re.search(r"\*\*Use cases?:\*\*\s*([^\n]+)", metadata, re.IGNORECASE)
-            if use_case_match:
-                use_cases = [uc.strip() for uc in use_case_match.group(1).split(",")]
-
-            # Extract tables
-            tables: list[str] = []
-            tables_match = re.search(r"\*\*Tables?:\*\*\s*([^\n]+)", metadata, re.IGNORECASE)
-            if tables_match:
-                tables = [t.strip() for t in tables_match.group(1).split(",")]
-
-            yield QueryExample(
-                title=title,
-                description=description,
-                sql=sql,
-                tables=tables,
-                use_cases=use_cases,
-                source_file=source_file,
-            )
-
     def _extract_domain(
         self,
         file_path: str,
@@ -453,30 +380,6 @@ class DocumentationParser:
         """Get schema for a specific table."""
         self._ensure_loaded()
         return self._table_cache.get(table_name.lower())
-
-    def get_query_examples(
-        self, table_name: str | None = None, use_case: str | None = None
-    ) -> list[QueryExample]:
-        """Get query examples, optionally filtered by table or use case."""
-        self._ensure_loaded()
-
-        results = self._examples_cache
-
-        if table_name:
-            table_lower = table_name.lower()
-            results = [ex for ex in results if any(t.lower() == table_lower for t in ex.tables)]
-
-        if use_case:
-            use_case_lower = use_case.lower()
-            results = [
-                ex
-                for ex in results
-                if any(use_case_lower in uc.lower() for uc in ex.use_cases)
-                or use_case_lower in ex.description.lower()
-                or use_case_lower in ex.title.lower()
-            ]
-
-        return results
 
     def search_docs(self, query: str, max_results: int = 10) -> list[SearchResult]:
         """Search documentation content for relevant sections.
@@ -566,6 +469,5 @@ class DocumentationParser:
     def reload(self) -> None:
         """Force reload of all documentation."""
         self._table_cache.clear()
-        self._examples_cache.clear()
         self._loaded = False
         self._ensure_loaded()

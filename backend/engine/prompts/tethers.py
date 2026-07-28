@@ -43,8 +43,8 @@ def build_tether_prompt(
     else:
         code_context = (
             f"- The code side is a documentation source. Explore it with "
-            f'`search_docs(source="{code_src}", ...)` and '
-            f"`get_query_examples` — there is no live repository to browse.\n"
+            f'`search_docs(source="{code_src}", ...)` — there is no live '
+            f"repository to browse.\n"
         )
         code_source_desc = "codebase documentation source"
 
@@ -81,7 +81,6 @@ def build_tether_prompt(
         f"{code_context}"
         f'- `search_docs(source="{db_src}", ...)` for database docs.\n'
         f"- `list_tables` / `get_table_schema` / `query_database` if a live DB is connected.\n"
-        f"- `get_query_examples` for known SQL patterns.\n"
         f"Plan multiple search rounds; don't stop at the first hit.\n\n"
         f"# Schema (v2)\n"
         f"- node.kind ∈ {sorted(allowed_kinds)}\n"

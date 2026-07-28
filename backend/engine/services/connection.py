@@ -78,6 +78,14 @@ class DocSourceService:
         """Absolute path by joining the documentations dir with the folder name."""
         return str(Path(settings.TETHERDUST_DOCUMENTATIONS_DIR) / source.folder_name)
 
+    def ccc_project(self, source: DocumentationSource) -> str:
+        """ccc project path (relative to the ccc ``/app`` mount) for a doc source.
+
+        Kept in sync with the tdmcp-side ``search_docs.ccc_project`` so search hits
+        resolve against the same root the indexer builds.
+        """
+        return "sources/docs/" + source.folder_name.strip("/")
+
     def sync_from_filesystem(self) -> dict[str, list[str]]:
         """Auto-discover top-level folders in sources/docs/ and sync to DB.
 

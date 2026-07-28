@@ -7,17 +7,13 @@ import json
 import logging
 from typing import Any
 
+from engine.agent_surfaces import AgentSurface, filter_surface_tools
 from engine.consumers.base import BaseAgentConsumer
 from engine.consumers.mcp_client import fetch_tools_called, read_mcp_resources
 from engine.consumers.permissions import PermissionsMixin
 from engine.consumers.session import SessionMixin
 
 logger = logging.getLogger(__name__)
-
-
-# Tools that are only callable via the chart edit panel and must never
-# be exposed via the general chat, regardless of role configuration.
-_CHART_EDIT_ONLY_TOOLS = frozenset({"update_chart"})
 
 
 class ChatConsumer(SessionMixin, PermissionsMixin, BaseAgentConsumer):
@@ -247,15 +243,17 @@ class ChatConsumer(SessionMixin, PermissionsMixin, BaseAgentConsumer):
 
         await self.send(text_data=json.dumps({"type": "stream_start"}))
 
-        # Build the permission args sent to the agent. Scope-restricted
-        # tools (like update_chart) are stripped here so regular chat can
-        # never invoke them even if a role has them enabled — they are
-        # only reachable via the chart edit panel.
+        # Build the permission args sent to the agent. The main chat is a
+        # read-only surface: only the tools in AgentSurface.CHAT's allow-list are
+        # exposed, so write/scope-restricted tools (create_dashboard, add_chart,
+        # update_chart, save_tether_graph, create_documentation) can never be
+        # invoked from chat even if a role enables them — they belong to their
+        # own generation surfaces. Custom MCP server tools pass through.
         if effective_tools is not None:
-            tools_arg = [t for t in effective_tools if t not in _CHART_EDIT_ONLY_TOOLS]
+            tools_arg = filter_surface_tools(AgentSurface.CHAT, effective_tools)
         else:
             all_enabled = await self._get_all_enabled_tools()
-            tools_arg = [t for t in all_enabled if t not in _CHART_EDIT_ONLY_TOOLS]
+            tools_arg = filter_surface_tools(AgentSurface.CHAT, all_enabled)
         dbs_arg = list(self.allowed_databases) if self.allowed_databases is not None else None
         docs_arg = list(self.allowed_doc_sources) if self.allowed_doc_sources is not None else None
         codebases_arg = list(self.allowed_codebases) if self.allowed_codebases is not None else None

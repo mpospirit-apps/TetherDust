@@ -9,11 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 async def list_dashboards() -> str:
-    """List all dashboards the current user can access.
-
-Use this tool to discover available dashboards before calling \
-get_dashboard_charts. Returns each dashboard's name, description, and the \
-number of charts it contains."""
+    """List all dashboards available to you. \
+Use this to discover which dashboards exist before inspecting them with get_dashboard_charts. \
+Returns each dashboard's name, description, and chart count."""
     from sqlalchemy import text
 
     try:

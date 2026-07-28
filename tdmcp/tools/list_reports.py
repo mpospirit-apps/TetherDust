@@ -9,10 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 async def list_reports() -> str:
-    """List all report definitions the current user can access.
-
-Use this tool to discover available reports before calling get_report_data. \
-Returns each report's name, description, associated database, schedule, and \
+    """List all reports available to you. \
+Use this to discover which reports exist before running them with get_report_data. \
+Returns each report's name, description, database, schedule, and \
 the status and row count of the most recent execution."""
     from sqlalchemy import text
 

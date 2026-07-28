@@ -21,7 +21,7 @@ async def get_tether_graph(
     """Return the current graph for a Tether — the AI-generated map of how \
 codebase entities relate to database tables.
 
-Use list_tethers first to find tether IDs. The graph describes nodes \
+Use list_tethers first to discover available tethers. The graph describes nodes \
 (code modules, classes, functions, database tables) and edges (the \
 relationships between them), giving a structural overview of how the \
 codebase and database are coupled."""

@@ -4,10 +4,11 @@ from ._codebase_shared import get_allowed_codebases, load_codebases
 
 
 async def list_codebases() -> str:
-    """List the source-code repositories (codebases) available to you. \
-Use this to discover which codebases exist before browsing or reading files. \
-Each codebase is a GitHub or GitLab repository you can explore with get_codebase_tree, \
-read_codebase_file, and search_codebase."""
+    """List all codebases available to you. \
+A codebase is a GitHub or GitLab repository or a local source-code folder. \
+Use this to discover which codebases exist before browsing them with get_codebase_tree, \
+read_codebase_file, and search_codebase. \
+Returns each codebase's name, provider, repository, and branch."""
     codebases = load_codebases()
 
     allowed = get_allowed_codebases()

@@ -32,7 +32,6 @@ Your read tools — explore before you write:
 | `list_databases`, `list_tables` | Discover databases and their documented tables |
 | `get_table_schema` | Read a table's columns, types, enums, existing notes |
 | `query_database` | Run read-only SELECTs to confirm real values, distributions, enum members |
-| `get_query_examples` | Pull existing example queries for a table |
 | `search_docs` | Search already-written documentation (flows, relationships, concepts) |
 | `list_codebases` | Discover the source repositories available to you |
 | `get_codebase_tree(codebase, path)` | Map a repo's directory structure to roles |
@@ -315,7 +314,7 @@ Ground the data model in real introspection, not assumptions:
   keys, and any enum/check constraints. Never hand-guess a type or nullability.
 - `query_database` — read-only SELECTs to confirm real example values, enum members in use,
   null ratios, and row-count scale. This is how `Examples:` and `### Concerns` get real data.
-- `get_query_examples` / `search_docs` — reuse query patterns and prose already written.
+- `search_docs` — reuse query patterns and prose already written.
 
 Start `Architecture.md` only after you have walked every table once; write each table page
 from its own schema read.

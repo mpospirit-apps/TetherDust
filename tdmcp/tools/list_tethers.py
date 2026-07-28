@@ -9,13 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 async def list_tethers() -> str:
-    """List all Tethers the current user can access.
-
-A Tether is a visual link between a codebase and a database that maps how \
-code entities relate to database tables. Use this tool to discover available \
-tethers before calling get_tether_graph. Returns each tether's name, \
-description, linked codebase and database, and the status of its latest \
-generated version."""
+    """List all tethers available to you. \
+A tether is a visual link between a codebase and a database that maps how \
+code entities relate to database tables. \
+Use this to discover which tethers exist before inspecting them with get_tether_graph. \
+Returns each tether's name, description, linked codebase and database, and \
+the status of its latest generated version."""
     from sqlalchemy import text
 
     try:
