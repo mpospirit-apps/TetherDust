@@ -7,6 +7,12 @@ import {
 	listAgents,
 } from "../../api/admin";
 import { apiErrorDetail } from "../../api/client";
+import {
+	AGENT_TYPE_ICONS,
+	AgentIconGlyph,
+	DEFAULT_AGENT_ICON,
+} from "../components/agentIcons";
+import { Toggle } from "../components/forms";
 
 export function AgentsPage() {
 	const queryClient = useQueryClient();
@@ -83,7 +89,15 @@ export function AgentsPage() {
 								{agents.map((a) => (
 									<tr key={a.id}>
 										<td>
-											<strong>{a.name}</strong>
+											<div className="db-name-cell">
+												<AgentIconGlyph
+													icon={
+														AGENT_TYPE_ICONS[a.agent_type] ?? DEFAULT_AGENT_ICON
+													}
+													className="db-name-cell__icon"
+												/>
+												<strong>{a.name}</strong>
+											</div>
 										</td>
 										<td>
 											<span className="type-badge">{a.agent_type_display}</span>
@@ -96,18 +110,19 @@ export function AgentsPage() {
 											)}
 										</td>
 										<td>
-											{a.is_active ? (
-												<span className="badge badge-success">ACTIVE</span>
-											) : (
-												<button
-													type="button"
-													className="btn btn-ghost btn-sm"
-													disabled={activate.isPending}
-													onClick={() => activate.mutate(a.id)}
-												>
-													<i className="fa-solid fa-toggle-on" /> Activate
-												</button>
-											)}
+											<Toggle
+												bare
+												checked={a.is_active}
+												disabled={a.is_active || activate.isPending}
+												title={
+													a.is_active
+														? "Already the active agent"
+														: "Activate this agent"
+												}
+												onChange={(checked) => {
+													if (checked) activate.mutate(a.id);
+												}}
+											/>
 										</td>
 										<td>
 											<div className="flex-gap">

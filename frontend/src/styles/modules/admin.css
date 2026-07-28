@@ -659,7 +659,7 @@
 	color: var(--text);
 }
 
-/* Engine icon + name (Databases list) */
+/* Icon + name (Databases, Agents lists) */
 .db-name-cell {
 	display: flex;
 	align-items: center;
@@ -669,7 +669,8 @@
 	font-size: 1rem;
 	width: 20px;
 }
-.db-name-cell__icon.choice-card__icon--logo svg {
+.db-name-cell__icon.choice-card__icon--logo svg,
+.db-name-cell__icon.choice-card__icon--logo img {
 	width: 1rem;
 	height: 1rem;
 }

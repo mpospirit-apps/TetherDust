@@ -22,6 +22,11 @@ import {
 	updateAgent,
 } from "../../api/admin";
 import { apiErrorDetail } from "../../api/client";
+import {
+	AGENT_TYPE_ICONS,
+	AgentIconGlyph,
+	DEFAULT_AGENT_ICON,
+} from "../components/agentIcons";
 import { FormField } from "../components/forms";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
@@ -55,25 +60,92 @@ interface AgentForm {
 	api_key: string;
 	oauth_token: string;
 }
-function categoryIcon(title: string): string {
-	if (title.startsWith("CLI Tool with Auth Token")) return "fa-terminal";
-	if (title.startsWith("CLI Tool with API Key")) return "fa-key";
-	if (title.startsWith("Direct API")) return "fa-bolt";
-	return "fa-robot";
+// The section title already conveys "API Key" (see AGENT_TYPE_CATEGORIES on
+// the backend), so strip the redundant "(API key)" suffix from individual
+// card titles in the step-1 picker.
+function cardLabel(label: string): string {
+	return label.replace(/\s*\(API key\)\s*$/i, "");
 }
 
-function categoryHint(title: string): string {
-	if (title.startsWith("CLI Tool with Auth Token")) {
-		return "Sign in with a subscription (ChatGPT/Claude) — no API key needed.";
-	}
-	if (title.startsWith("CLI Tool with API Key")) {
-		return "Runs the CLI, authenticated with a provider API key.";
-	}
-	if (title.startsWith("Direct API")) {
-		return "Runs in-process against an OpenAI-compatible API — no CLI container.";
-	}
-	return "";
+interface ModelHelp {
+	placeholder: string;
+	help: string;
 }
+
+// The Model field is just a free-text string passed straight through to the
+// CLI/API (`codex exec -c model=`, `claude --model`, or the request body for
+// Direct API types), so there's no dropdown to discover valid values from —
+// hence per-type examples. CLI types (Codex, Claude Code) fall back to the
+// CLI's own default when blank; Direct API types have no such fallback, so
+// the model is required there.
+const MODEL_HELP: Record<string, ModelHelp> = {
+	codex: {
+		placeholder: "gpt-5.4-codex",
+		help: "e.g. gpt-5.4, gpt-5.4-codex — leave blank to use the CLI's current default. Run `codex --help` or check OpenAI's Codex docs for the exact current model IDs.",
+	},
+	codex_api: {
+		placeholder: "gpt-5.4-codex",
+		help: "e.g. gpt-5.4, gpt-5.4-codex — leave blank to use the CLI's current default. Run `codex --help` or check OpenAI's Codex docs for the exact current model IDs.",
+	},
+	claude_code: {
+		placeholder: "claude-sonnet-5",
+		help: "e.g. claude-sonnet-5, claude-opus-4-8, claude-haiku-4-5-20251001 (or aliases like sonnet/opus/haiku). Leave blank to use the CLI's default.",
+	},
+	claude_code_api: {
+		placeholder: "claude-sonnet-5",
+		help: "e.g. claude-sonnet-5, claude-opus-4-8, claude-haiku-4-5-20251001 (or aliases like sonnet/opus/haiku). Leave blank to use the CLI's default.",
+	},
+	openai_platform: {
+		placeholder: "gpt-5.4",
+		help: "e.g. gpt-5.4, gpt-5.4-mini. Required — see OpenAI's model list for the exact current IDs.",
+	},
+	claude_console: {
+		placeholder: "claude-sonnet-5",
+		help: "e.g. claude-sonnet-5, claude-opus-4-8, claude-haiku-4-5-20251001. Required.",
+	},
+	openai_api: {
+		placeholder: "llama-3.3-70b-instruct",
+		help: "The model identifier your OpenAI-compatible endpoint expects (its docs will list the exact string). Required.",
+	},
+	ollama: {
+		placeholder: "llama3.3",
+		help: "The local model tag, e.g. llama3.3, qwen2.5-coder, mistral — must already be pulled (`ollama pull <name>`). Required.",
+	},
+	openrouter: {
+		placeholder: "anthropic/claude-sonnet-5",
+		help: "OpenRouter's provider/model slug, e.g. anthropic/claude-sonnet-5, openai/gpt-5.4 — see openrouter.ai/models for the full list. Required.",
+	},
+};
+
+const DEFAULT_MODEL_HELP: ModelHelp = {
+	placeholder: "",
+	help: "Leave blank for the default.",
+};
+
+// Mini "how to" steps shown under the Base URL field for Ollama, styled like
+// the SQLite file-picker hint on Add Database Connection. Ollama runs on the
+// admin's own machine, not in this app's Docker network, so `localhost` from
+// inside the `backend` container doesn't reach it — hence the
+// `host.docker.internal` callout.
+const OLLAMA_HINT_STEPS: WizardStepDef[] = [
+	{
+		key: "serve",
+		label: "Serve the model",
+		description:
+			"Run `ollama pull <model>` then `ollama serve` (or just `ollama run <model>` to do both) on the machine running Ollama.",
+	},
+	{
+		key: "host",
+		label: "Point at your machine",
+		description:
+			"Use http://host.docker.internal:11434/v1 as the Base URL below, not localhost — the agent runs inside a container, so localhost there means the container itself.",
+	},
+	{
+		key: "tag",
+		label: "Match the model tag",
+		description: "Use the exact tag from `ollama list` as the Model above.",
+	},
+];
 
 interface HiwStep {
 	icon: string;
@@ -201,7 +273,7 @@ function howItWorksSteps(flags: {
 		{
 			icon: "fa-floppy-disk",
 			label: "Save first",
-			desc: "Create the agent, then reopen it to finish sign-in.",
+			desc: "Create the agent — you'll land back here to finish sign-in.",
 		},
 		{
 			icon: "fa-right-to-bracket",
@@ -310,6 +382,7 @@ export function AgentFormPage() {
 	const isCodexAuth = type === "codex";
 	const isCodexApiKey = type === "codex_api";
 	const isClaudeApiKey = type === "claude_code_api";
+	const isOllama = type === "ollama";
 
 	const save = useMutation({
 		mutationFn: () => {
@@ -327,9 +400,13 @@ export function AgentFormPage() {
 				payload.oauth_token = form.oauth_token;
 			return isEdit ? updateAgent(id as string, payload) : createAgent(payload);
 		},
-		onSuccess: () => {
+		onSuccess: (agent) => {
 			queryClient.invalidateQueries({ queryKey: ["admin", "agents"] });
-			navigate("/admin/agents");
+			// Land on the new agent's edit screen instead of the list — the Codex
+			// subscription type needs a saved agent before its "Sign in to
+			// ChatGPT" panel can appear (see CodexDeviceLogin below), so this
+			// saves a manual "find it, click Edit" round trip.
+			navigate(isEdit ? "/admin/agents" : `/admin/agents/${agent.id}`);
 		},
 		onError: (err) => setError(apiErrorDetail(err, "Save failed.")),
 	});
@@ -359,13 +436,7 @@ export function AgentFormPage() {
 					(m?.categories ?? []).map((cat) => (
 						<div className="choice-section" key={cat.title}>
 							<h3 className="choice-section__title">{cat.title}</h3>
-							<p
-								className="text-sec text-sm"
-								style={{ margin: "0 0 var(--sm)" }}
-							>
-								{categoryHint(cat.title)}
-							</p>
-							<div className="choice-list">
+							<div className="choice-list choice-list--grid">
 								{cat.types.map((t) => (
 									<button
 										key={t.value}
@@ -373,11 +444,11 @@ export function AgentFormPage() {
 										className="choice-card"
 										onClick={() => setType(t.value)}
 									>
-										<i
-											className={`fa-solid ${categoryIcon(cat.title)} choice-card__icon`}
+										<AgentIconGlyph
+											icon={AGENT_TYPE_ICONS[t.value] ?? DEFAULT_AGENT_ICON}
 										/>
 										<div className="choice-card__body">
-											<h4>{t.label}</h4>
+											<h4>{cardLabel(t.label)}</h4>
 										</div>
 										<i className="fa-solid fa-chevron-right choice-card__chevron" />
 									</button>
@@ -402,12 +473,20 @@ export function AgentFormPage() {
 		? (existing.data?.agent_type_display ?? "")
 		: (m?.categories.flatMap((c) => c.types).find((t) => t.value === type)
 				?.label ?? type);
+	const modelHelp = MODEL_HELP[type] ?? DEFAULT_MODEL_HELP;
 
 	return (
 		<div>
 			<div className="page-header">
 				<div>
-					<h1>{isEdit ? `Edit ${form.name}` : "Add Agent"}</h1>
+					<h1>
+						<span className="title-icon-tag">
+							<AgentIconGlyph
+								icon={AGENT_TYPE_ICONS[type] ?? DEFAULT_AGENT_ICON}
+							/>
+							{isEdit ? `Edit ${form.name}` : "Add Agent"}
+						</span>
+					</h1>
 					<p>{typeLabel}</p>
 				</div>
 				<div className="form-actions">
@@ -507,9 +586,9 @@ export function AgentFormPage() {
 						/>
 					) : (
 						<p className="text-sec" style={{ margin: 0, lineHeight: 1.6 }}>
-							Save this agent first, then return to the edit screen and use{" "}
-							<strong>Sign in to ChatGPT</strong> to complete device-code login
-							from the browser.
+							Save this agent to continue — you'll land back here with a{" "}
+							<strong>Sign in to ChatGPT</strong> button to complete device-code
+							login from the browser.
 						</p>
 					)}
 				</div>
@@ -548,10 +627,11 @@ export function AgentFormPage() {
 										/>
 									</FormField>
 								)}
-								<FormField label="Model" help="Leave blank for the default.">
+								<FormField label="Model" help={modelHelp.help}>
 									<input
 										className="form-control"
 										value={form.model}
+										placeholder={modelHelp.placeholder}
 										onChange={(e) => set("model", e.target.value)}
 									/>
 								</FormField>
@@ -626,9 +706,24 @@ export function AgentFormPage() {
 										<input
 											className="form-control"
 											value={form.base_url}
-											placeholder="https://api.openai.com/v1"
+											placeholder={
+												isOllama
+													? "http://host.docker.internal:11434/v1"
+													: "https://api.openai.com/v1"
+											}
 											onChange={(e) => set("base_url", e.target.value)}
 										/>
+										{isOllama && (
+											<div className="hint-steps">
+												{OLLAMA_HINT_STEPS.map((step, i) => (
+													<WizardSectionHeading
+														key={step.key}
+														step={step}
+														index={i}
+													/>
+												))}
+											</div>
+										)}
 									</FormField>
 								)}
 								{!isApiKey && !isClaudeCode && !isDirect && (

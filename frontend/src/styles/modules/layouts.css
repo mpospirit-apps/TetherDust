@@ -159,6 +159,11 @@ form .card {
 	height: 1.25rem;
 	fill: currentColor;
 }
+.choice-card__icon--logo img {
+	width: 1.25rem;
+	height: 1.25rem;
+	object-fit: contain;
+}
 .choice-card__body {
 	flex: 1;
 	min-width: 0;

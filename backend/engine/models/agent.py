@@ -15,7 +15,7 @@ class AgentConfiguration(models.Model):
     class Meta:
         verbose_name = "agent configuration"
         verbose_name_plural = "agent configurations"
-        ordering = ["-is_active", "name"]
+        ordering = ["created_at"]
         constraints = [
             models.UniqueConstraint(fields=["name"], name="uq_%(class)s_name"),
         ]
