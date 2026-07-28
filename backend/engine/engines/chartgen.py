@@ -19,6 +19,7 @@ from typing import Any
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+from engine.agent_surfaces import AgentSurface, filter_surface_tools
 from engine.models import (
     AgentConfiguration,
     Chart,
@@ -45,10 +46,11 @@ def _enabled_tools() -> list[str]:
             "tool_name", flat=True
         )
     )
+    tools = filter_surface_tools(AgentSurface.DASHBOARD_GEN, enabled)
     for tool_name in ("create_dashboard", "add_chart"):
-        if tool_name not in enabled:
-            enabled.append(tool_name)
-    return enabled
+        if tool_name not in tools:
+            tools.append(tool_name)
+    return tools
 
 
 def _run_background(

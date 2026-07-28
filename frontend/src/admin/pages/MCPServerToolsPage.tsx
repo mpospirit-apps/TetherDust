@@ -71,27 +71,69 @@ const EMPTY_PROMPT: PromptForm = {
 	is_enabled: true,
 };
 
-// Same comments icon as the Chat nav tab, marking whether the chat agent can
-// invoke this tool. `chat_callable` is absent for custom-server tools (they're
-// all chat-callable), so undefined is treated as callable.
-function ChatCallableBadge({ tool }: { tool: MCPTool }) {
-	const callable = tool.chat_callable !== false;
-	const content = callable
-		? "Callable from chat — the assistant can invoke this tool during a conversation."
-		: "Not callable from chat — this tool is scoped to a dedicated feature surface (dashboards, tethers, docs, or the chart-edit panel) and stripped from regular chat.";
+// The agent surfaces a built-in tool can be invoked from, in display order.
+// Keys match engine.agent_surfaces.AgentSurface values; icons/colors reuse the
+// nav-tab / category language so the badges read consistently across the app.
+interface SurfaceMeta {
+	key: string;
+	label: string;
+	icon: string;
+	color: string;
+}
+const SURFACES: SurfaceMeta[] = [
+	{ key: "chat", label: "Chat", icon: "fa-comments", color: "var(--c-cyan)" },
+	{
+		key: "chart_edit",
+		label: "Chart editor",
+		icon: "fa-pen-to-square",
+		color: "var(--c-orange)",
+	},
+	{
+		key: "doc_gen",
+		label: "Doc generation",
+		icon: "fa-file-lines",
+		color: "var(--c-lime)",
+	},
+	{
+		key: "dashboard_gen",
+		label: "Dashboard generation",
+		icon: "fa-chart-simple",
+		color: "var(--c-red)",
+	},
+	{
+		key: "tether_gen",
+		label: "Tether generation",
+		icon: "fa-diagram-project",
+		color: "var(--c-pink)",
+	},
+];
+
+// A cluster of surface icons on a tool card: each surface lit (in its accent
+// color) when the tool is callable there, muted otherwise. `surfaces` is absent
+// for custom-server tools (never rendered here — the page is built-in only).
+function SurfaceBadges({ tool }: { tool: MCPTool }) {
+	const callable = new Set(tool.surfaces ?? []);
 	return (
-		<ActionTooltip content={content}>
-			<button
-				type="button"
-				className="tool-card__chat-btn"
-				aria-label={content}
-			>
-				<i
-					className={`fa-solid fa-comments tool-card__chat${callable ? " is-callable" : ""}`}
-					aria-hidden="true"
-				/>
-			</button>
-		</ActionTooltip>
+		<div className="tool-card__surfaces">
+			{SURFACES.map((s) => {
+				const on = callable.has(s.key);
+				const content = on
+					? `Callable while: ${s.label}`
+					: `Not available in: ${s.label}`;
+				return (
+					<ActionTooltip key={s.key} content={content}>
+						<button
+							type="button"
+							className={`tool-card__surface${on ? " is-callable" : ""}`}
+							style={on ? { color: s.color } : undefined}
+							aria-label={content}
+						>
+							<i className={`fa-solid ${s.icon}`} aria-hidden="true" />
+						</button>
+					</ActionTooltip>
+				);
+			})}
+		</div>
 	);
 }
 
@@ -277,7 +319,7 @@ export function MCPServerToolsPage() {
 									<div className="choice-card__body">
 										<div className="tool-card__head">
 											<h4>{t.display_name}</h4>
-											<ChatCallableBadge tool={t} />
+											<SurfaceBadges tool={t} />
 										</div>
 										<p className="text-mono" style={{ marginBottom: 2 }}>
 											{t.tool_name}

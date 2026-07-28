@@ -49,10 +49,9 @@ export interface MCPTool {
 	category_label: string;
 	is_enabled: boolean;
 	description: string;
-	// Whether the chat agent can invoke this tool. Built-in only — some tools
-	// (e.g. update_chart) are scoped to a feature surface and stripped from chat.
-	// Absent for custom servers; treat undefined as callable.
-	chat_callable?: boolean;
+	// Agent surfaces that may invoke this tool (e.g. ["chat","doc_gen"]).
+	// Built-in tools only; see engine.agent_surfaces. Absent for custom servers.
+	surfaces?: string[];
 	// Only present for built-in tools — introspected live from the real
 	// tdmcp function, not stored. Custom servers have no local function to
 	// introspect.

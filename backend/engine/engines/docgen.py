@@ -24,6 +24,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+from engine.agent_surfaces import AgentSurface, filter_surface_tools
 from engine.models import (
     AgentConfiguration,
     DocGenerationLog,
@@ -371,15 +372,17 @@ def _run_docgen_library_background(
 
 
 def _enabled_tools() -> list[str]:
-    """Enabled tool names across active MCP servers, plus create_documentation."""
+    """Tools for doc generation: the DOC_GEN surface allow-list intersected with
+    enabled tools (custom MCP tools pass through), plus create_documentation."""
     enabled = list(
         ToolConfiguration.objects.filter(is_enabled=True, mcp_server__is_active=True).values_list(
             "tool_name", flat=True
         )
     )
-    if "create_documentation" not in enabled:
-        enabled.append("create_documentation")
-    return enabled
+    tools = filter_surface_tools(AgentSurface.DOC_GEN, enabled)
+    if "create_documentation" not in tools:
+        tools.append("create_documentation")
+    return tools
 
 
 def build_single_generation_prompt(

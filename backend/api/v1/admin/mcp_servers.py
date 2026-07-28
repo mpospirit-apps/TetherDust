@@ -18,8 +18,8 @@ from typing import Any
 
 import httpx
 from django.db.models import Count, QuerySet
+from engine.agent_surfaces import callable_surfaces
 from engine.builtin_mcp import describe_builtin_tool_schemas
-from engine.chat_surfaces import ChatSurface, is_callable
 from engine.models import MCPServerConfiguration, PromptConfiguration, ToolConfiguration
 from engine.services import McpServerService, SystemConfigService, ToolService, get
 from rest_framework import serializers, status, viewsets
@@ -213,10 +213,9 @@ class MCPServerViewSet(viewsets.ModelViewSet[MCPServerConfiguration]):
         server = self.get_object()
         tool_service = get(ToolService)
         schemas = describe_builtin_tool_schemas() if server.is_builtin else {}
-        # The built-in universe for chat-callability gating: schemas is keyed by
-        # every built-in tool name (empty for custom servers, so their tools all
-        # report chat_callable=True). "chat_callable" reflects the main chat
-        # surface; see engine.chat_surfaces.
+        # The built-in universe for surface gating: schemas is keyed by every
+        # built-in tool name (empty for custom servers). "surfaces" lists the
+        # agent surfaces that may invoke each tool; see engine.agent_surfaces.
         builtin_names = set(schemas)
         return Response(
             {
@@ -229,9 +228,10 @@ class MCPServerViewSet(viewsets.ModelViewSet[MCPServerConfiguration]):
                         "category_label": tool_service.category_label(tool),
                         "is_enabled": tool.is_enabled,
                         "description": tool.description,
-                        "chat_callable": is_callable(
-                            ChatSurface.MAIN, tool.tool_name, builtin_names=builtin_names
-                        ),
+                        "surfaces": [
+                            s.value
+                            for s in callable_surfaces(tool.tool_name, builtin_names=builtin_names)
+                        ],
                         **schemas.get(tool.tool_name, {}),
                     }
                     for tool in ToolConfiguration.objects.filter(mcp_server=server)

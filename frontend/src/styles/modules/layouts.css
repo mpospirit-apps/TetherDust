@@ -174,32 +174,31 @@ form .card {
 	margin: 0;
 }
 
-/* Chat-callability badge on a built-in tool card's title row (see
-   MCPServerToolsPage.tsx). Same comments icon as the Chat nav tab: cyan when
-   the agent can invoke the tool in chat, muted when the tool is scoped to a
-   feature surface (e.g. the chart-edit panel) and stripped from chat. */
+/* Surface-availability badges on a built-in tool card's title row (see
+   MCPServerToolsPage.tsx). A cluster of surface icons — each lit in its accent
+   color when the tool is callable from that agent surface, muted otherwise. */
 .tool-card__head {
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: var(--sm);
 }
-.tool-card__chat-btn {
+.tool-card__surfaces {
+	display: flex;
+	gap: 6px;
 	flex-shrink: 0;
+}
+.tool-card__surface {
 	background: none;
 	border: none;
 	padding: 0;
 	line-height: 1;
 	cursor: help;
-	color: inherit;
-}
-.tool-card__chat {
 	font-size: var(--text-sm);
 	color: var(--text-muted);
-	opacity: 0.5;
+	opacity: 0.35;
 }
-.tool-card__chat.is-callable {
-	color: var(--c-cyan);
+.tool-card__surface.is-callable {
 	opacity: 1;
 }
 

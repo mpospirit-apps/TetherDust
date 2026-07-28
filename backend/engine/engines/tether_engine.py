@@ -329,6 +329,7 @@ def generate_tether(version: TetherVersion) -> None:
     detail page can poll for live status, then re-reads the version row to
     confirm the tool actually ran. Mirrors the docs/dashboard pattern.
     """
+    from ..agent_surfaces import AgentSurface, filter_surface_tools
     from ..agents import build_agent
     from ..models import AgentConfiguration, ToolConfiguration
 
@@ -359,12 +360,14 @@ def generate_tether(version: TetherVersion) -> None:
         agent_config_clone.api_key = agent_config.api_key
         agent = build_agent(agent_config_clone)
 
-        # Grant the agent every enabled MCP tool plus save_tether_graph.
-        enabled_tools = list(
+        # Grant the agent the TETHER_GEN surface allow-list intersected with
+        # enabled tools (custom MCP tools pass through), plus save_tether_graph.
+        enabled = list(
             ToolConfiguration.objects.filter(
                 is_enabled=True, mcp_server__is_active=True
             ).values_list("tool_name", flat=True)
         )
+        enabled_tools = filter_surface_tools(AgentSurface.TETHER_GEN, enabled)
         if "save_tether_graph" not in enabled_tools:
             enabled_tools.append("save_tether_graph")
         # Allow the database doc source plus the code side so the agent can drill

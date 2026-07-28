@@ -93,7 +93,7 @@ def iter_builtin_tools() -> list[tuple[str, str, str, str]]:
 def builtin_tool_names() -> set[str]:
     """The authoritative set of built-in tool names, read live from ``tdmcp``.
 
-    Used by ``engine.chat_surfaces`` to decide which tool names are subject to a
+    Used by ``engine.agent_surfaces`` to decide which tool names are subject to a
     surface's built-in allow-list (vs. custom MCP server tools, which are not)."""
     return {name for name, *_ in iter_builtin_tools()}
 
