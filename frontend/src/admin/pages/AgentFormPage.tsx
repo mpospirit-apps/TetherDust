@@ -7,7 +7,9 @@ import {
 	useRef,
 	useState,
 } from "react";
+import Markdown from "react-markdown";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import remarkGfm from "remark-gfm";
 import {
 	type AgentAuthInfo,
 	type AgentInput,
@@ -24,7 +26,7 @@ import { FormField } from "../components/forms";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
 // Create flow: identity first, the required gateway/model/credentials config
-// next, the optional system prompt last.
+// next, the system prompt (read-only) last.
 const STEPS: WizardStepDef[] = [
 	{
 		key: "identity",
@@ -37,9 +39,9 @@ const STEPS: WizardStepDef[] = [
 		description: "Set the gateway, model, and credentials.",
 	},
 	{
-		key: "optional",
-		label: "Optional Configurations",
-		description: "Optional — customize the system prompt sent to the agent.",
+		key: "system_prompt",
+		label: "System Prompt",
+		description: "Read-only — the instructions sent to the agent.",
 	},
 ];
 
@@ -81,11 +83,17 @@ interface HiwStep {
 
 // Per-method "How it works" steps. Each integration type is set up differently
 // (subscription device-login vs. pasted token vs. API key vs. in-process), so
-// the overview walks through that method's specific path.
+// the overview walks through that method's specific path. Every CLI-backed
+// method (Codex, Claude Code) also gets its own explicit "MCP tools only" step:
+// as of 0.7.0 the CLI's built-in tools (shell exec, file edits) are disabled/not
+// granted, so the model can only reach the built-in + custom MCP tools your
+// roles allow — see `features.shell_tool=false` in the Codex gateway and
+// `--allowedTools` in the Claude Code gateway.
 function howItWorksSteps(flags: {
 	isCodexAuth: boolean;
-	isClaudeCode: boolean;
-	isApiKey: boolean;
+	isCodexApiKey: boolean;
+	isClaudeCodeAuth: boolean;
+	isClaudeApiKey: boolean;
 	isDirect: boolean;
 }): HiwStep[] {
 	const nameIt: HiwStep = {
@@ -98,6 +106,11 @@ function howItWorksSteps(flags: {
 		label: "Set the model",
 		desc: "Choose the model (and reasoning effort for Codex), or leave blank for the default.",
 	};
+	const saveAndActivate: HiwStep = {
+		icon: "fa-floppy-disk",
+		label: "Save & activate",
+		desc: "Create the agent, then make it the active one.",
+	};
 	if (flags.isDirect) {
 		return [
 			nameIt,
@@ -107,40 +120,59 @@ function howItWorksSteps(flags: {
 				desc: "Set the OpenAI-compatible base URL and API key for the provider.",
 			},
 			setModel,
-			{
-				icon: "fa-floppy-disk",
-				label: "Save & activate",
-				desc: "Create the agent, then make it the active one.",
-			},
+			saveAndActivate,
 			{
 				icon: "fa-bolt",
 				label: "Runs in-process",
-				desc: "TetherDust drives the tool-call loop itself — no CLI container — calling only MCP tools.",
+				desc: "TetherDust drives the tool-call loop itself — no CLI, no shell or filesystem access — calling only MCP tools.",
 			},
 		];
 	}
-	if (flags.isApiKey) {
+	if (flags.isCodexApiKey) {
 		return [
 			nameIt,
 			{
 				icon: "fa-key",
 				label: "Paste the API key",
-				desc: "Provide the provider API key; usage is billed per token against that key.",
+				desc: "Provide the OpenAI API key; usage is billed per token against that key.",
 			},
 			setModel,
-			{
-				icon: "fa-floppy-disk",
-				label: "Save & activate",
-				desc: "Create the agent, then make it the active one.",
-			},
+			saveAndActivate,
 			{
 				icon: "fa-terminal",
-				label: "Chat routes to the CLI",
-				desc: "Questions run through the CLI gateway, scoped to the MCP tools your roles allow.",
+				label: "Chat routes to Codex",
+				desc: "Questions run through `codex exec` behind the gateway.",
+			},
+			{
+				icon: "fa-lock",
+				label: "MCP tools only",
+				desc: "Codex's built-in shell tool is disabled, so the model has no way to read container files or run commands — it can only call the MCP tools your roles allow.",
 			},
 		];
 	}
-	if (flags.isClaudeCode) {
+	if (flags.isClaudeApiKey) {
+		return [
+			nameIt,
+			{
+				icon: "fa-key",
+				label: "Paste the API key",
+				desc: "Provide the Anthropic API key; usage is billed per token against that key.",
+			},
+			setModel,
+			saveAndActivate,
+			{
+				icon: "fa-terminal",
+				label: "Chat routes to Claude Code",
+				desc: "Questions run through `claude -p` behind the gateway.",
+			},
+			{
+				icon: "fa-lock",
+				label: "MCP tools only",
+				desc: "Claude Code's own built-in tools (Bash, file edits) aren't granted — `--allowedTools` scopes it to only the MCP tools your roles allow.",
+			},
+		];
+	}
+	if (flags.isClaudeCodeAuth) {
 		return [
 			nameIt,
 			{
@@ -149,15 +181,16 @@ function howItWorksSteps(flags: {
 				desc: "Run `claude setup-token` locally and paste the sk-ant-oat… token here.",
 			},
 			setModel,
-			{
-				icon: "fa-floppy-disk",
-				label: "Save & activate",
-				desc: "Create the agent, then make it the active one.",
-			},
+			saveAndActivate,
 			{
 				icon: "fa-terminal",
 				label: "Chat routes to Claude Code",
-				desc: "Questions run through `claude -p` behind the gateway, scoped to MCP tools only.",
+				desc: "Questions run through `claude -p` behind the gateway.",
+			},
+			{
+				icon: "fa-lock",
+				label: "MCP tools only",
+				desc: "Claude Code's own built-in tools (Bash, file edits) aren't granted — `--allowedTools` scopes it to only the MCP tools your roles allow.",
 			},
 		];
 	}
@@ -178,7 +211,12 @@ function howItWorksSteps(flags: {
 		{
 			icon: "fa-terminal",
 			label: "Chat routes to Codex",
-			desc: "Once active, questions run through `codex exec` behind the gateway using MCP tools.",
+			desc: "Once active, questions run through `codex exec` behind the gateway.",
+		},
+		{
+			icon: "fa-lock",
+			label: "MCP tools only",
+			desc: "Codex's built-in shell tool is disabled, so the model has no way to read container files or run commands — it can only call the MCP tools your roles allow.",
 		},
 	];
 }
@@ -270,6 +308,8 @@ export function AgentFormPage() {
 	// Only the subscription Codex agent (not the API-key codex_api) uses the
 	// browser device-code sign-in.
 	const isCodexAuth = type === "codex";
+	const isCodexApiKey = type === "codex_api";
+	const isClaudeApiKey = type === "claude_code_api";
 
 	const save = useMutation({
 		mutationFn: () => {
@@ -423,8 +463,9 @@ export function AgentFormPage() {
 							<div className="doc-hiw">
 								{howItWorksSteps({
 									isCodexAuth,
-									isClaudeCode,
-									isApiKey,
+									isCodexApiKey,
+									isClaudeCodeAuth: isClaudeCode,
+									isClaudeApiKey,
 									isDirect,
 								}).map((step, i, steps) => (
 									<Fragment key={step.label}>
@@ -475,11 +516,11 @@ export function AgentFormPage() {
 			)}
 
 			<form id="agent-form" onSubmit={onSubmit}>
-				{isEdit ? (
-					<>
-						<div className="form-split">
+				<div className="form-split-col">
+					<div className="form-split">
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[0]} index={0} />
 							<div className="card">
-								<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
 								<FormField label="Name">
 									<input
 										className="form-control"
@@ -488,6 +529,12 @@ export function AgentFormPage() {
 										onChange={(e) => set("name", e.target.value)}
 									/>
 								</FormField>
+							</div>
+						</div>
+
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[1]} index={1} />
+							<div className="card">
 								{!isDirect && (
 									<FormField
 										label="Service URL"
@@ -523,15 +570,15 @@ export function AgentFormPage() {
 										</select>
 									</FormField>
 								)}
-							</div>
-
-							<div className="card">
-								<h3 style={{ margin: "0 0 var(--md)" }}>Credentials</h3>
 								{isApiKey && (
 									<FormField
 										label="API Key"
 										help={
-											hasKey ? "Leave blank to keep existing." : "Required."
+											isEdit
+												? hasKey
+													? "Leave blank to keep existing."
+													: "Required."
+												: "Required."
 										}
 									>
 										<input
@@ -539,7 +586,9 @@ export function AgentFormPage() {
 											type="password"
 											autoComplete="new-password"
 											placeholder={
-												hasKey ? "••••••••  (leave blank to keep)" : "sk-…"
+												isEdit && hasKey
+													? "••••••••  (leave blank to keep)"
+													: "sk-…"
 											}
 											value={form.api_key}
 											onChange={(e) => set("api_key", e.target.value)}
@@ -550,7 +599,7 @@ export function AgentFormPage() {
 									<FormField
 										label="OAuth Token"
 										help={
-											hasToken
+											isEdit && hasToken
 												? "Leave blank to keep existing."
 												: "From `claude setup-token`."
 										}
@@ -560,7 +609,7 @@ export function AgentFormPage() {
 											type="password"
 											autoComplete="new-password"
 											placeholder={
-												hasToken
+												isEdit && hasToken
 													? "••••••••  (leave blank to keep)"
 													: "sk-ant-oat…"
 											}
@@ -590,146 +639,25 @@ export function AgentFormPage() {
 								)}
 							</div>
 						</div>
+					</div>
 
-						<div className="card" style={{ marginTop: "var(--lg)" }}>
+					<div className="wizard-section">
+						<WizardSectionHeading step={STEPS[2]} index={2} />
+						<div className="card">
 							<FormField
 								label="System Prompt"
-								help="Sent to the agent (AGENTS.md). Pre-filled from the container default; edit to customise, or clear to fall back to the container default."
+								help="Read-only — the instructions sent to the agent (AGENTS.md / CLAUDE.md container default)."
 							>
-								<textarea
-									className="form-control"
-									rows={10}
-									value={form.system_prompt}
-									onChange={(e) => set("system_prompt", e.target.value)}
-								/>
+								<div className="doc-result-preview__content">
+									<Markdown remarkPlugins={[remarkGfm]}>
+										{form.system_prompt ||
+											(defaultPrompt.isLoading ? "_Loading…_" : "_(empty)_")}
+									</Markdown>
+								</div>
 							</FormField>
 						</div>
-					</>
-				) : (
-					<div className="form-split-col">
-						<div className="form-split">
-							<div className="wizard-section">
-								<WizardSectionHeading step={STEPS[0]} index={0} />
-								<div className="card">
-									<FormField label="Name">
-										<input
-											className="form-control"
-											value={form.name}
-											required
-											onChange={(e) => set("name", e.target.value)}
-										/>
-									</FormField>
-								</div>
-							</div>
-
-							<div className="wizard-section">
-								<WizardSectionHeading step={STEPS[1]} index={1} />
-								<div className="card">
-									{!isDirect && (
-										<FormField
-											label="Service URL"
-											help="Override the agent gateway URL. Blank = default."
-										>
-											<input
-												className="form-control"
-												value={form.service_url}
-												placeholder="http://codex:8002"
-												onChange={(e) => set("service_url", e.target.value)}
-											/>
-										</FormField>
-									)}
-									<FormField label="Model" help="Leave blank for the default.">
-										<input
-											className="form-control"
-											value={form.model}
-											onChange={(e) => set("model", e.target.value)}
-										/>
-									</FormField>
-									{isCodex && (
-										<FormField label="Reasoning Effort">
-											<select
-												className="form-control"
-												value={form.reasoning_effort}
-												onChange={(e) =>
-													set("reasoning_effort", e.target.value)
-												}
-											>
-												{(m?.reasoning_effort_choices ?? []).map((c) => (
-													<option key={c.value} value={c.value}>
-														{c.label}
-													</option>
-												))}
-											</select>
-										</FormField>
-									)}
-									{isApiKey && (
-										<FormField label="API Key" help="Required.">
-											<input
-												className="form-control"
-												type="password"
-												autoComplete="new-password"
-												placeholder="sk-…"
-												value={form.api_key}
-												onChange={(e) => set("api_key", e.target.value)}
-											/>
-										</FormField>
-									)}
-									{isClaudeCode && (
-										<FormField
-											label="OAuth Token"
-											help="From `claude setup-token`."
-										>
-											<input
-												className="form-control"
-												type="password"
-												autoComplete="new-password"
-												placeholder="sk-ant-oat…"
-												value={form.oauth_token}
-												onChange={(e) => set("oauth_token", e.target.value)}
-											/>
-										</FormField>
-									)}
-									{isDirect && (
-										<FormField
-											label="Base URL"
-											help="OpenAI-compatible API base URL."
-										>
-											<input
-												className="form-control"
-												value={form.base_url}
-												placeholder="https://api.openai.com/v1"
-												onChange={(e) => set("base_url", e.target.value)}
-											/>
-										</FormField>
-									)}
-									{!isApiKey && !isClaudeCode && !isDirect && (
-										<p className="text-sec text-sm" style={{ margin: 0 }}>
-											No additional credentials required
-											{isCodexAuth ? " — sign in above." : "."}
-										</p>
-									)}
-								</div>
-							</div>
-						</div>
-
-						<div className="wizard-section">
-							<WizardSectionHeading step={STEPS[2]} index={2} />
-							<div className="card">
-								<FormField
-									label="System Prompt"
-									help="Sent to the agent (AGENTS.md). Pre-filled from the container default; edit to customise, or clear to fall back to the container default."
-								>
-									<textarea
-										className="form-control"
-										rows={10}
-										value={form.system_prompt}
-										onChange={(e) => set("system_prompt", e.target.value)}
-									/>
-								</FormField>
-							</div>
-						</div>
 					</div>
-				)}
+				</div>
 			</form>
 		</div>
 	);
