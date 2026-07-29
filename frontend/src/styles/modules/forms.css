@@ -305,6 +305,11 @@ input[type="checkbox"]:focus-visible {
 .toggle-control input[type="checkbox"]:disabled + .toggle__track {
 	opacity: 0.6;
 }
+/* Active-agent toggle is disabled (can't deactivate directly) but should
+   still read as "on", not greyed out. */
+.toggle-control input[type="checkbox"]:checked:disabled + .toggle__track {
+	opacity: 1;
+}
 
 .toggle-row {
 	align-items: flex-start;
