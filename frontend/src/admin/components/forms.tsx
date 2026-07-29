@@ -56,19 +56,27 @@ export function FormCheckbox({
 
 // Rectangular toggle switch, used in place of a checkbox when the field
 // deserves its own labelled column (e.g. alongside a FormField) rather than an
-// inline "label beside the box".
+// inline "label beside the box". `bare` drops the 48px form-column height so
+// it can sit compactly in a table cell (see the Agents list Active column).
 export function Toggle({
 	checked,
 	onChange,
+	disabled,
+	title,
+	bare,
 }: {
 	checked: boolean;
 	onChange: (value: boolean) => void;
+	disabled?: boolean;
+	title?: string;
+	bare?: boolean;
 }) {
 	return (
-		<label className="toggle-control toggle">
+		<label className={`toggle-control${bare ? "" : " toggle"}`} title={title}>
 			<input
 				type="checkbox"
 				checked={checked}
+				disabled={disabled}
 				onChange={(event) => onChange(event.target.checked)}
 			/>
 			<span className="toggle__track">

@@ -46,6 +46,12 @@
 	display: flex;
 	align-items: center;
 }
+/* Entrance for a session that just appeared in the sidebar (new chat, or an
+   existing one bumped up after a reply) — reuses the `history-in` keyframe
+   defined in modules/chat.css. */
+.chat-session.animate-in {
+	animation: history-in 250ms var(--ease-out-quint) both;
+}
 .chat-session-name {
 	flex: 1;
 	min-width: 0;

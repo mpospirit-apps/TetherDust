@@ -63,7 +63,12 @@ def _default_system_prompt(agent_type: str) -> str:
         return ""
 
 
-_API_KEY_TYPES = {"codex_api", "claude_code_api"} | AgentConfiguration.DIRECT_API_AGENT_TYPES
+# "ollama" is deliberately excluded: OllamaAgent.REQUIRES_API_KEY is False
+# (a self-hosted Ollama server takes no auth), unlike every other Direct API
+# type, which all require a real provider key.
+_API_KEY_TYPES = {"codex_api", "claude_code_api"} | (
+    AgentConfiguration.DIRECT_API_AGENT_TYPES - {"ollama"}
+)
 _EXTRA_FIELDS = ("api_key", "oauth_token", "model", "base_url", "reasoning_effort")
 _REASONING_EFFORT = [
     {"value": "", "label": "Default"},
