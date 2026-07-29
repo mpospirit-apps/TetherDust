@@ -293,6 +293,12 @@ function howItWorksSteps(flags: {
 	];
 }
 
+// Deep-links straight to the repo's "Agent method request" issue template
+// (.github/ISSUE_TEMPLATE/agent_support.md) instead of the generic issues
+// list — mirrors GITHUB_DATABASE_REQUEST_URL on Add Database Connection.
+const GITHUB_AGENT_REQUEST_URL =
+	"https://github.com/mpospirit-apps/TetherDust/issues/new?template=agent_support.md";
+
 const EMPTY: AgentForm = {
 	name: "",
 	system_prompt: "",
@@ -457,6 +463,29 @@ export function AgentFormPage() {
 						</div>
 					))
 				)}
+				<div className="choice-section">
+					<h3 className="choice-section__title">
+						Not finding what you're looking for?
+					</h3>
+					<div className="choice-list choice-list--grid">
+						<a
+							href={GITHUB_AGENT_REQUEST_URL}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="choice-card"
+						>
+							<i className="fa-brands fa-github choice-card__icon" />
+							<div className="choice-card__body">
+								<h4>Request an agent method</h4>
+								<p>
+									Open a feature request on GitHub if your agent or gateway
+									isn't listed.
+								</p>
+							</div>
+							<i className="fa-solid fa-arrow-up-right-from-square choice-card__chevron" />
+						</a>
+					</div>
+				</div>
 			</div>
 		);
 	}

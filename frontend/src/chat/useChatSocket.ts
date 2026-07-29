@@ -55,6 +55,12 @@ interface Options {
 	sessionId: string | null;
 	connKey: number;
 	onSessionCreated: (id: string) => void;
+	// Fired after `stream_end`, once the backend has actually persisted the
+	// turn (and, for a new chat, derived the title) — the moment the session
+	// list endpoint's `message_count__gt=0` filter starts including this
+	// session. `session_info` fires too early (on connect, before any
+	// message exists) to be useful for keeping the sidebar in sync.
+	onTurnComplete: () => void;
 }
 
 // Drives a single chat WebSocket. A reconnect happens only when `connKey`
@@ -64,6 +70,7 @@ export function useChatSocket({
 	sessionId,
 	connKey,
 	onSessionCreated,
+	onTurnComplete,
 }: Options) {
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	const [streaming, setStreaming] = useState(false);
@@ -79,6 +86,8 @@ export function useChatSocket({
 	sessionIdRef.current = sessionId;
 	const onCreatedRef = useRef(onSessionCreated);
 	onCreatedRef.current = onSessionCreated;
+	const onTurnCompleteRef = useRef(onTurnComplete);
+	onTurnCompleteRef.current = onTurnComplete;
 	const connKeyRef = useRef(connKey);
 	connKeyRef.current = connKey;
 
@@ -163,6 +172,7 @@ export function useChatSocket({
 							true,
 						),
 					);
+					onTurnCompleteRef.current();
 					break;
 				case "stream_cancelled":
 					setStreaming(false);

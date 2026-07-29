@@ -67,6 +67,14 @@ export function ChatPage() {
 		},
 		[queryClient],
 	);
+	// A brand-new session has no messages yet when `onSessionCreated` fires
+	// (see useChatSocket), so the sidebar's list — which only shows sessions
+	// with at least one message — doesn't pick it up from that invalidation
+	// alone. Re-invalidate once the first turn actually finishes and gets
+	// persisted (also keeps existing sessions' title/ordering fresh).
+	const onTurnComplete = useCallback(() => {
+		queryClient.invalidateQueries({ queryKey: ["chat", "sessions"] });
+	}, [queryClient]);
 
 	const {
 		messages,
@@ -80,6 +88,7 @@ export function ChatPage() {
 		sessionId: selectedSessionId,
 		connKey,
 		onSessionCreated,
+		onTurnComplete,
 	});
 
 	function newChat() {
@@ -97,6 +106,32 @@ export function ChatPage() {
 		if (messages.length === 0 && !statusText) return;
 		scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
 	}, [messages, statusText]);
+
+	// Slide-in animation for sessions that just appeared in the sidebar (a
+	// brand-new chat's first entry, or one bumped in by onTurnComplete).
+	// `null` means "haven't seen a list yet" — skip the entrance animation for
+	// the whole list on first load, only animate ids that show up afterward.
+	const knownSessionIdsRef = useRef<Set<string> | null>(null);
+	const [enteringIds, setEnteringIds] = useState<Set<string>>(new Set());
+	useEffect(() => {
+		const sessions = sessionsQuery.data?.sessions;
+		if (!sessions) return;
+		const ids = new Set(sessions.map((s) => s.id));
+		const known = knownSessionIdsRef.current;
+		knownSessionIdsRef.current = ids;
+		if (known === null) return;
+		const added = [...ids].filter((id) => !known.has(id));
+		if (added.length === 0) return;
+		setEnteringIds((prev) => new Set([...prev, ...added]));
+		const timer = setTimeout(() => {
+			setEnteringIds((prev) => {
+				const next = new Set(prev);
+				for (const id of added) next.delete(id);
+				return next;
+			});
+		}, 300);
+		return () => clearTimeout(timer);
+	}, [sessionsQuery.data]);
 
 	const grouped = groupSessions(sessionsQuery.data?.sessions ?? []);
 	const agentName = agentQuery.data?.name ?? null;
@@ -125,7 +160,14 @@ export function ChatPage() {
 									{group}
 								</div>
 								{items.map((s) => (
-									<div key={s.id} className="chat-session">
+									<div
+										key={s.id}
+										className={
+											enteringIds.has(s.id)
+												? "chat-session animate-in"
+												: "chat-session"
+										}
+									>
 										<button
 											type="button"
 											className={

@@ -32,14 +32,15 @@ class AgentConfiguration(models.Model):
         ("openrouter", "OpenRouter (Gateway)"),
     ]
 
-    # Integration option categories, grouped by integration *mechanism*. The CLI
-    # categories wrap a CLI subprocess; "Direct API Agent" covers every type that
-    # runs the in-process OpenAICompatibleAgent loop (OpenAI, Anthropic's
-    # OpenAI-compatible endpoint, OpenRouter, a local Ollama, or any custom
-    # OpenAI-compatible endpoint) — they differ only by base URL / headers / key.
+    # Integration option categories, grouped by integration *mechanism*. The
+    # "Harness" categories wrap a CLI subprocess (Codex, Claude Code); "Direct
+    # API Agent" covers every type that runs the in-process OpenAICompatibleAgent
+    # loop (OpenAI, Anthropic's OpenAI-compatible endpoint, OpenRouter, a local
+    # Ollama, or any custom OpenAI-compatible endpoint) — they differ only by
+    # base URL / headers / key.
     AGENT_TYPE_CATEGORIES: ClassVar[list[tuple[str, list[str]]]] = [
-        ("CLI Tool with Auth Token", ["codex", "claude_code"]),
-        ("CLI Tool with API Key", ["codex_api", "claude_code_api"]),
+        ("Harness with Auth Token", ["codex", "claude_code"]),
+        ("Harness with API Key", ["codex_api", "claude_code_api"]),
         (
             "Direct API Agent",
             ["openai_platform", "claude_console", "openrouter", "ollama", "openai_api"],
