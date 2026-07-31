@@ -9,7 +9,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from datetime import time as dt_time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import sqlglot
 from django.contrib.auth.models import User
@@ -109,6 +109,30 @@ def validate_sql(sql: str, engine: str | None = None) -> str | None:
     return None
 
 
+def _run_capped_query(
+    sql: str, database: Any, max_rows_override: int | None
+) -> tuple[list[str], list[list[Any]]]:
+    """Wrap `sql` with a dialect-aware row cap (if given) and run it.
+
+    T-SQL has no LIMIT clause, so SQL Server gets TOP on the outer SELECT
+    instead of an appended LIMIT. Non-JSON-safe row values are converted to
+    strings. Shared by `execute_report` and `preview_adhoc_query` so the two
+    row-cap code paths can't drift apart again.
+    """
+    if max_rows_override:
+        if database.engine == "mssql":
+            sql = f"SELECT TOP {max_rows_override} * FROM ({sql}) AS _td_report"
+        else:
+            sql = f"SELECT * FROM ({sql}) AS _td_report LIMIT {max_rows_override}"
+
+    columns, rows = run_query(database, sql)
+    for i, row in enumerate(rows):
+        for j, val in enumerate(row):
+            if val is not None and not isinstance(val, (str, int, float, bool)):
+                rows[i][j] = str(val)
+    return columns, rows
+
+
 def execute_report(
     report_definition: ReportDefinition,
     triggered_by: User | None = None,
@@ -144,23 +168,11 @@ def execute_report(
         return execution
 
     db = report_definition.database
-
-    # Apply LIMIT only for admin preview (max_rows_override)
-    if max_rows_override:
-        sql = f"SELECT * FROM ({sql}) AS _td_report LIMIT {max_rows_override}"
-
     start_time = time.monotonic()
 
     try:
-        columns, rows = run_query(db, sql)
-
+        columns, rows = _run_capped_query(sql, db, max_rows_override)
         elapsed_ms = int((time.monotonic() - start_time) * 1000)
-
-        # Convert non-serializable values to strings
-        for i, row in enumerate(rows):
-            for j, val in enumerate(row):
-                if val is not None and not isinstance(val, (str, int, float, bool)):
-                    rows[i][j] = str(val)
 
         from .result_storage import save_results
 
@@ -187,6 +199,65 @@ def execute_report(
         report_definition.save(update_fields=["next_run_at"])
 
     return execution
+
+
+def preview_adhoc_query(database: Any, sql_query: str, max_rows: int = 10) -> dict[str, Any]:
+    """Validate and run an ad-hoc read-only query with a row cap.
+
+    Doesn't persist a ReportDefinition or ReportExecution — used by the
+    report-creation UI to preview a query before the report has been saved
+    for the first time (once saved, `execute_report`'s `preview` path is used
+    instead, since it can attach real download/email actions to the result).
+    """
+    sql = sql_query.strip().rstrip(";")
+    started_at = timezone.now()
+
+    error = validate_sql(sql, engine=database.engine)
+    if error:
+        return {
+            "id": "",
+            "status": "failed",
+            "row_count": None,
+            "execution_time_ms": None,
+            "started_at": started_at.isoformat(),
+            "completed_at": timezone.now().isoformat(),
+            "error_message": error,
+            "column_names": [],
+            "rows": [],
+            "preview_limit": max_rows,
+        }
+
+    start_time = time.monotonic()
+    try:
+        columns, rows = _run_capped_query(sql, database, max_rows)
+        elapsed_ms = int((time.monotonic() - start_time) * 1000)
+        return {
+            "id": "",
+            "status": "success",
+            "row_count": len(rows),
+            "execution_time_ms": elapsed_ms,
+            "started_at": started_at.isoformat(),
+            "completed_at": timezone.now().isoformat(),
+            "error_message": "",
+            "column_names": columns,
+            "rows": rows,
+            "preview_limit": max_rows,
+        }
+    except (SQLAlchemyError, Exception) as e:
+        elapsed_ms = int((time.monotonic() - start_time) * 1000)
+        logger.error("Ad-hoc preview query failed: %s", e)
+        return {
+            "id": "",
+            "status": "failed",
+            "row_count": None,
+            "execution_time_ms": elapsed_ms,
+            "started_at": started_at.isoformat(),
+            "completed_at": timezone.now().isoformat(),
+            "error_message": str(e),
+            "column_names": [],
+            "rows": [],
+            "preview_limit": max_rows,
+        }
 
 
 def compute_next_run(report_definition: ReportDefinition) -> datetime | None:

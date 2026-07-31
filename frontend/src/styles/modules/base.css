@@ -14,3 +14,20 @@ body {
 	color: var(--text);
 	background: var(--bg);
 }
+
+/* ── Links ── */
+/* Scoped to unclassed anchors only — plain content links like "View
+   results →" — so it doesn't touch classed interactive elements (.btn,
+   nav links, sidebar items, etc.), which already define their own hover
+   styles and don't want an underline. a:hover has higher specificity than
+   a single class (element + pseudo-class beats one class), so without this
+   :not([class]) scope this rule would win over e.g. .btn's hover state and
+   underline every button-styled link in the app on hover. */
+a:not([class]) {
+	color: var(--c-cyan);
+	text-decoration: none;
+}
+
+a:not([class]):hover {
+	text-decoration: underline;
+}

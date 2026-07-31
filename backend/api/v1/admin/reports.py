@@ -12,7 +12,7 @@ from typing import Any, cast
 
 from django.contrib.auth.models import User
 from django.db.models import QuerySet
-from engine.models import ReportDefinition, ReportExecution
+from engine.models import DatabaseConnection, ReportDefinition, ReportExecution
 from engine.services import ReportService, get
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
@@ -117,6 +117,11 @@ class ReportDefinitionSerializer(serializers.ModelSerializer[ReportDefinition]):
         return instance
 
 
+class ReportPreviewQuerySerializer(serializers.Serializer[Any]):
+    database = serializers.PrimaryKeyRelatedField(queryset=DatabaseConnection.objects.all())
+    sql_query = serializers.CharField()
+
+
 class ReportDefinitionViewSet(viewsets.ModelViewSet[ReportDefinition]):
     """Staff CRUD for report definitions, plus run / preview / toggle."""
 
@@ -160,6 +165,19 @@ class ReportDefinitionViewSet(viewsets.ModelViewSet[ReportDefinition]):
             report, triggered_by=cast(User, request.user), max_rows_override=10
         )
         return Response(_execution_payload(execution))
+
+    @action(detail=False, methods=["post"])
+    def preview_query(self, request: Request) -> Response:
+        """Preview an ad-hoc query before the report has been saved."""
+        from engine.engines.report_engine import preview_adhoc_query
+
+        serializer = ReportPreviewQuerySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = preview_adhoc_query(
+            serializer.validated_data["database"],
+            serializer.validated_data["sql_query"],
+        )
+        return Response(result)
 
     @action(detail=True, methods=["post"])
     def toggle(self, request: Request, pk: str | None = None) -> Response:

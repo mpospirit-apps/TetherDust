@@ -72,6 +72,8 @@
 	margin-bottom: var(--sm);
 	font-size: var(--text-sm);
 	border: 1px solid transparent;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
 }
 .flash-error {
 	background: rgba(242, 56, 71, 0.1);
