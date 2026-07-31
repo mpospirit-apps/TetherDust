@@ -443,6 +443,16 @@ input[type="checkbox"]:focus-visible {
 	gap: var(--lg);
 }
 
+/* Grid/flex items default to a min-width that fits their content, so a wide
+   table or long unbroken error line inside a card can force its column
+   wider than the row next to it. min-width: 0 lets the item shrink to the
+   grid track's width so nested overflow-x:auto containers actually scroll
+   instead of stretching the card. */
+.form-split > .wizard-section,
+.form-split > .form-split-col {
+	min-width: 0;
+}
+
 /* When a .wizard-section (heading + card) sits directly in a .form-split row,
    stretch its card to match the taller column instead of leaving it short. */
 .form-split > .wizard-section {
@@ -451,6 +461,7 @@ input[type="checkbox"]:focus-visible {
 }
 .form-split > .wizard-section .card {
 	flex: 1;
+	min-width: 0;
 }
 
 /* Makes a card fill its row height and expands its textarea to fill */
@@ -534,6 +545,9 @@ input[type="checkbox"]:focus-visible {
 	display: flex;
 	gap: var(--sm);
 	align-items: center;
+}
+.mt-sm {
+	margin-top: var(--sm);
 }
 .mt-md {
 	margin-top: var(--md);

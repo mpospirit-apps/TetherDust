@@ -833,6 +833,21 @@ tr.clickable-row td {
 	transform: scale(0.97) translateY(0);
 }
 
+.btn-warning {
+	background: var(--c-lime);
+	color: #fff;
+	box-shadow: var(--rim-light);
+}
+
+.btn-warning:hover {
+	box-shadow: 0 0 16px rgba(211, 217, 59, 0.3);
+	transform: translateY(-1px);
+}
+
+.btn-warning:active {
+	transform: scale(0.97) translateY(0);
+}
+
 .btn-secondary {
 	background: transparent;
 	border: 2px solid var(--c-cyan);

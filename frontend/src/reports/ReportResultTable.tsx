@@ -61,12 +61,16 @@ export function ReportResultTable({
 	execution,
 	emailEnabled = false,
 	isPreview = false,
+	downloadable = true,
 	onShowHistory,
 }: {
 	report: ReportMeta;
 	execution: ExecutionResult;
 	emailEnabled?: boolean;
 	isPreview?: boolean;
+	// False for an ad-hoc preview run before the report has ever been saved —
+	// there's no persisted execution id to download/email from.
+	downloadable?: boolean;
 	onShowHistory?: () => void;
 }) {
 	const hasData =
@@ -86,7 +90,7 @@ export function ReportResultTable({
 			<div className="report-meta">
 				<div className="report-title-row">
 					<h2 className="docs-title">{report.name}</h2>
-					{hasData && (
+					{hasData && downloadable && (
 						<div className="report-download-btns">
 							<a
 								className="btn btn-ghost btn-sm"
@@ -147,19 +151,7 @@ export function ReportResultTable({
 			</div>
 
 			{execution.error_message && (
-				<div style={{ marginTop: "var(--md)" }}>
-					<pre
-						style={{
-							color: "var(--danger)",
-							background: "var(--bg-warm)",
-							padding: "var(--md)",
-							borderRadius: "8px",
-							overflowX: "auto",
-						}}
-					>
-						{execution.error_message}
-					</pre>
-				</div>
+				<div className="flash flash-error mt-md">{execution.error_message}</div>
 			)}
 
 			{hasData ? (

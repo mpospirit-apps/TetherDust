@@ -8,13 +8,19 @@ import {
 	type DeliveryMethod,
 	type ExecutionResult,
 	getReportDefinition,
+	previewAdhocQuery,
 	previewReport,
 	type ReportDefinitionInput,
 	type ScheduleType,
 	updateReport,
 } from "../../api/reports";
 import { ReportResultTable } from "../../reports/ReportResultTable";
-import { CheckboxGroup, FormField, ToggleField } from "../components/forms";
+import {
+	CheckboxGroup,
+	CustomSelect,
+	FormField,
+	ToggleField,
+} from "../components/forms";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
 const SCHEDULE_TYPES: { value: ScheduleType; label: string }[] = [
@@ -51,8 +57,8 @@ const DELIVERY_METHODS: { value: DeliveryMethod; label: string }[] = [
 	{ value: "email", label: "Email" },
 ];
 
-// Create flow: identity first, the required query config next,
-// optional/advanced fields (scheduling, delivery, access) last.
+// Identity first, the required query config next, optional/advanced fields
+// (scheduling, delivery, access) last — same step order for create and edit.
 const STEPS: WizardStepDef[] = [
 	{
 		key: "identity",
@@ -61,12 +67,12 @@ const STEPS: WizardStepDef[] = [
 	},
 	{
 		key: "configuration",
-		label: "Configuration",
+		label: "Query",
 		description: "Pick a database and write the read-only query.",
 	},
 	{
 		key: "optional",
-		label: "Optional Configurations",
+		label: "Configuration",
 		description: "Optional — scheduling, delivery, and role-based access.",
 	},
 ];
@@ -207,7 +213,10 @@ export function ReportFormPage() {
 	});
 
 	const runPreview = useMutation({
-		mutationFn: () => previewReport(id as string),
+		mutationFn: () =>
+			isEdit
+				? previewReport(id as string)
+				: previewAdhocQuery(form.database, form.sql_query),
 		onSuccess: (execution) => setPreview(execution),
 		onError: (err) => window.alert(apiErrorDetail(err, "Preview failed.")),
 	});
@@ -243,16 +252,6 @@ export function ReportFormPage() {
 					<Link to="/admin/reports" className="btn btn-ghost">
 						Cancel
 					</Link>
-					{isEdit && (
-						<button
-							type="button"
-							className="btn btn-secondary"
-							disabled={runPreview.isPending}
-							onClick={() => runPreview.mutate()}
-						>
-							{runPreview.isPending ? "Running…" : "Preview (10 rows)"}
-						</button>
-					)}
 					<button
 						type="submit"
 						form="report-form"
@@ -350,282 +349,45 @@ export function ReportFormPage() {
 					</div>
 				)}
 
-				{isEdit ? (
-					<div className="form-split">
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
-							<FormField label="Name">
-								<input
-									className="form-control"
-									value={form.name}
-									required
-									onChange={(e) => set("name", e.target.value)}
-								/>
-							</FormField>
-							<FormField label="Description">
-								<textarea
-									className="form-control"
-									rows={2}
-									value={form.description}
-									onChange={(e) => set("description", e.target.value)}
-								/>
-							</FormField>
-							<ToggleField
-								label="Is active"
-								description="The schedule only runs while the report is active."
-								checked={form.is_active}
-								onChange={(v) => set("is_active", v)}
-							/>
-						</div>
-
-						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Configuration</h3>
-							<FormField label="Database">
-								<select
-									className="form-control"
-									value={form.database}
-									required
-									onChange={(e) => set("database", e.target.value)}
-								>
-									<option value="">— Select —</option>
-									{dbOptions.map((d) => (
-										<option key={d.id} value={d.id}>
-											{d.name}
-										</option>
-									))}
-								</select>
-							</FormField>
-							<FormField
-								label="SQL query"
-								help="Read-only SELECT or WITH query."
-							>
-								<textarea
-									className="form-control"
-									rows={12}
-									style={{ fontFamily: "var(--font)", fontSize: "13px" }}
-									value={form.sql_query}
-									required
-									onChange={(e) => set("sql_query", e.target.value)}
-									placeholder={
-										"SELECT column1, column2\nFROM table_name\nWHERE condition"
-									}
-								/>
-							</FormField>
-
-							<FormField label="Schedule">
-								<select
-									className="form-control"
-									value={form.schedule_type}
-									onChange={(e) =>
-										set("schedule_type", e.target.value as ScheduleType)
-									}
-								>
-									{SCHEDULE_TYPES.map((s) => (
-										<option key={s.value} value={s.value}>
-											{s.label}
-										</option>
-									))}
-								</select>
-							</FormField>
-
-							{form.schedule_type === "interval" && (
-								<FormField label="Run interval">
-									<select
-										className="form-control"
-										value={form.schedule_interval_minutes}
-										onChange={(e) =>
-											set("schedule_interval_minutes", e.target.value)
-										}
-									>
-										<option value="">— Select —</option>
-										{INTERVALS.map((i) => (
-											<option key={i.value} value={i.value}>
-												{i.label}
-											</option>
-										))}
-									</select>
-								</FormField>
-							)}
-
-							{(form.schedule_type === "daily" ||
-								form.schedule_type === "weekly" ||
-								form.schedule_type === "monthly") && (
-								<FormField label="Time of day (UTC)">
+				<div className="form-split">
+					<div className="form-split-col">
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[0]} index={0} />
+							<div className="card">
+								<FormField label="Name">
 									<input
-										type="time"
 										className="form-control"
-										value={form.schedule_time}
-										onChange={(e) => set("schedule_time", e.target.value)}
+										value={form.name}
+										required
+										onChange={(e) => set("name", e.target.value)}
 									/>
 								</FormField>
-							)}
-
-							{form.schedule_type === "weekly" && (
-								<FormField label="Day of week">
-									<select
-										className="form-control"
-										value={form.schedule_day_of_week}
-										onChange={(e) =>
-											set("schedule_day_of_week", e.target.value)
-										}
-									>
-										<option value="">— Select —</option>
-										{WEEKDAYS.map((d) => (
-											<option key={d.value} value={d.value}>
-												{d.label}
-											</option>
-										))}
-									</select>
-								</FormField>
-							)}
-
-							{form.schedule_type === "monthly" && (
-								<FormField label="Day of month" help="1–28.">
-									<select
-										className="form-control"
-										value={form.schedule_day_of_month}
-										onChange={(e) =>
-											set("schedule_day_of_month", e.target.value)
-										}
-									>
-										<option value="">— Select —</option>
-										{Array.from({ length: 28 }, (_, i) => String(i + 1)).map(
-											(d) => (
-												<option key={d} value={d}>
-													{d}
-												</option>
-											),
-										)}
-									</select>
-								</FormField>
-							)}
-
-							<FormField label="Delivery">
-								<select
-									className="form-control"
-									value={form.delivery_method}
-									onChange={(e) =>
-										set("delivery_method", e.target.value as DeliveryMethod)
-									}
-								>
-									{DELIVERY_METHODS.map((d) => (
-										<option key={d.value} value={d.value}>
-											{d.label}
-										</option>
-									))}
-								</select>
-							</FormField>
-
-							{form.delivery_method === "email" && (
-								<FormField
-									label="Email recipients"
-									help="One address per line. Recipients receive the report on each scheduled run."
-								>
+								<FormField label="Description">
 									<textarea
 										className="form-control"
-										rows={3}
-										value={form.email_recipients}
-										onChange={(e) => set("email_recipients", e.target.value)}
-										placeholder={"one@example.com\ntwo@example.com"}
+										rows={2}
+										value={form.description}
+										onChange={(e) => set("description", e.target.value)}
 									/>
 								</FormField>
-							)}
-
-							<CheckboxGroup
-								label="Allowed roles"
-								help="Roles that can view this report's results (staff always can)."
-								options={roleOptions}
-								selected={form.allowed_roles}
-								onChange={(ids) => set("allowed_roles", ids)}
-							/>
-						</div>
-					</div>
-				) : (
-					<div className="form-split-col">
-						<div className="form-split">
-							<div className="wizard-section">
-								<WizardSectionHeading step={STEPS[0]} index={0} />
-								<div className="card">
-									<FormField label="Name">
-										<input
-											className="form-control"
-											value={form.name}
-											required
-											onChange={(e) => set("name", e.target.value)}
-										/>
-									</FormField>
-									<FormField label="Description">
-										<textarea
-											className="form-control"
-											rows={2}
-											value={form.description}
-											onChange={(e) => set("description", e.target.value)}
-										/>
-									</FormField>
-									<ToggleField
-										label="Is active"
-										description="The schedule only runs while the report is active."
-										checked={form.is_active}
-										onChange={(v) => set("is_active", v)}
-									/>
-								</div>
-							</div>
-
-							<div className="wizard-section">
-								<WizardSectionHeading step={STEPS[1]} index={1} />
-								<div className="card">
-									<FormField label="Database">
-										<select
-											className="form-control"
-											value={form.database}
-											required
-											onChange={(e) => set("database", e.target.value)}
-										>
-											<option value="">— Select —</option>
-											{dbOptions.map((d) => (
-												<option key={d.id} value={d.id}>
-													{d.name}
-												</option>
-											))}
-										</select>
-									</FormField>
-									<FormField
-										label="SQL query"
-										help="Read-only SELECT or WITH query."
-									>
-										<textarea
-											className="form-control"
-											rows={12}
-											style={{ fontFamily: "var(--font)", fontSize: "13px" }}
-											value={form.sql_query}
-											required
-											onChange={(e) => set("sql_query", e.target.value)}
-											placeholder={
-												"SELECT column1, column2\nFROM table_name\nWHERE condition"
-											}
-										/>
-									</FormField>
-								</div>
+								<ToggleField
+									label="Is active"
+									description="The schedule only runs while the report is active."
+									checked={form.is_active}
+									onChange={(v) => set("is_active", v)}
+								/>
 							</div>
 						</div>
 
 						<div className="wizard-section">
-							<WizardSectionHeading step={STEPS[2]} index={2} />
+							<WizardSectionHeading step={STEPS[2]} index={1} />
 							<div className="card">
 								<FormField label="Schedule">
-									<select
-										className="form-control"
+									<CustomSelect
 										value={form.schedule_type}
-										onChange={(e) =>
-											set("schedule_type", e.target.value as ScheduleType)
-										}
-									>
-										{SCHEDULE_TYPES.map((s) => (
-											<option key={s.value} value={s.value}>
-												{s.label}
-											</option>
-										))}
-									</select>
+										onChange={(v) => set("schedule_type", v as ScheduleType)}
+										options={SCHEDULE_TYPES}
+									/>
 								</FormField>
 
 								{form.schedule_type === "interval" && (
@@ -701,19 +463,13 @@ export function ReportFormPage() {
 								)}
 
 								<FormField label="Delivery">
-									<select
-										className="form-control"
+									<CustomSelect
 										value={form.delivery_method}
-										onChange={(e) =>
-											set("delivery_method", e.target.value as DeliveryMethod)
+										onChange={(v) =>
+											set("delivery_method", v as DeliveryMethod)
 										}
-									>
-										{DELIVERY_METHODS.map((d) => (
-											<option key={d.value} value={d.value}>
-												{d.label}
-											</option>
-										))}
-									</select>
+										options={DELIVERY_METHODS}
+									/>
 								</FormField>
 
 								{form.delivery_method === "email" && (
@@ -741,18 +497,69 @@ export function ReportFormPage() {
 							</div>
 						</div>
 					</div>
-				)}
-			</form>
 
-			{preview && (
-				<div className="card" style={{ marginTop: "var(--md)" }}>
-					<ReportResultTable
-						report={{ name: form.name, description: "" }}
-						execution={preview}
-						isPreview
-					/>
+					<div className="wizard-section">
+						<WizardSectionHeading step={STEPS[1]} index={2} />
+						<div className="card">
+							<FormField label="Database">
+								<CustomSelect
+									value={form.database}
+									onChange={(v) => set("database", v)}
+									options={dbOptions.map((d) => ({
+										value: d.id,
+										label: d.name,
+									}))}
+								/>
+							</FormField>
+							<FormField
+								label="SQL query"
+								help="Read-only SELECT or WITH query."
+							>
+								<textarea
+									className="form-control"
+									rows={12}
+									style={{ fontFamily: "var(--font)", fontSize: "13px" }}
+									value={form.sql_query}
+									required
+									onChange={(e) => set("sql_query", e.target.value)}
+									placeholder={
+										"SELECT column1, column2\nFROM table_name\nWHERE condition"
+									}
+								/>
+							</FormField>
+
+							<div
+								className="mt-sm"
+								style={{ display: "flex", justifyContent: "flex-end" }}
+							>
+								<button
+									type="button"
+									className="btn btn-warning"
+									disabled={
+										runPreview.isPending ||
+										!form.database ||
+										!form.sql_query.trim()
+									}
+									onClick={() => runPreview.mutate()}
+								>
+									{runPreview.isPending ? "Running…" : "Preview (10 rows)"}
+								</button>
+							</div>
+
+							{preview && (
+								<div className="mt-lg">
+									<ReportResultTable
+										report={{ name: form.name, description: "" }}
+										execution={preview}
+										isPreview
+										downloadable={isEdit}
+									/>
+								</div>
+							)}
+						</div>
+					</div>
 				</div>
-			)}
+			</form>
 		</div>
 	);
 }

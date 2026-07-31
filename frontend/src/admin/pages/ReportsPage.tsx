@@ -1,15 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { apiErrorDetail } from "../../api/client";
 import {
 	deleteReport,
+	type ExecutionResult,
 	listReports,
 	type ReportDefinition,
 	runReport,
 	toggleReport,
 } from "../../api/reports";
+import { Toggle } from "../components/forms";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const TABLE_COLUMNS = 6;
 
 export function scheduleLabel(r: ReportDefinition): string {
 	switch (r.schedule_type) {
@@ -32,9 +36,133 @@ export function scheduleLabel(r: ReportDefinition): string {
 	}
 }
 
+function ReportRow({
+	report: r,
+	onToggle,
+	onDelete,
+	onRan,
+}: {
+	report: ReportDefinition;
+	onToggle: (id: string) => void;
+	onDelete: (r: ReportDefinition) => void;
+	onRan: () => void;
+}) {
+	const [result, setResult] = useState<ExecutionResult | null>(null);
+	const [runError, setRunError] = useState<string | null>(null);
+
+	const run = useMutation({
+		mutationFn: () => runReport(r.id),
+		onSuccess: (execution) => {
+			setRunError(null);
+			setResult(execution);
+			onRan();
+		},
+		onError: (err) => {
+			setResult(null);
+			setRunError(apiErrorDetail(err, "Run failed."));
+		},
+	});
+
+	return (
+		<>
+			<tr>
+				<td>
+					<strong>{r.name}</strong>
+					{r.description && (
+						<div className="text-sm text-sec truncate">{r.description}</div>
+					)}
+				</td>
+				<td>{r.database_name}</td>
+				<td>{scheduleLabel(r)}</td>
+				<td>
+					{r.latest_run ? (
+						<span className="text-sm text-sec">
+							{new Date(r.latest_run.started_at).toLocaleString()}
+						</span>
+					) : (
+						<span className="text-sm text-sec">—</span>
+					)}
+				</td>
+				<td>
+					<Toggle
+						bare
+						checked={r.is_active}
+						title={r.is_active ? "Deactivate report" : "Activate report"}
+						onChange={() => onToggle(r.id)}
+					/>
+				</td>
+				<td>
+					<div className="flex-gap">
+						<button
+							type="button"
+							className="btn btn-ghost btn-sm"
+							disabled={run.isPending}
+							onClick={() => {
+								setResult(null);
+								setRunError(null);
+								run.mutate();
+							}}
+						>
+							{run.isPending ? (
+								<i className="fa-solid fa-spinner fa-spin" />
+							) : (
+								<>
+									<i className="fa-solid fa-play" /> Run
+								</>
+							)}
+						</button>
+						<Link
+							to={`/admin/reports/${r.id}`}
+							className="btn btn-ghost btn-sm"
+						>
+							<i className="fa-solid fa-pen" /> Edit
+						</Link>
+						<button
+							type="button"
+							className="btn btn-ghost btn-sm"
+							style={{ color: "var(--danger)" }}
+							onClick={() => onDelete(r)}
+						>
+							<i className="fa-solid fa-trash" /> Delete
+						</button>
+					</div>
+				</td>
+			</tr>
+			{(result || runError) && (
+				<tr>
+					<td colSpan={TABLE_COLUMNS} className="db-test-result-cell">
+						<div
+							className={
+								result?.status === "success"
+									? "flash flash-success"
+									: "flash flash-error"
+							}
+						>
+							{result?.status === "success" ? (
+								<>
+									Ran successfully ({result.row_count ?? 0} rows).{" "}
+									<Link to={`/admin/report-runs/${result.id}`}>
+										View results →
+									</Link>
+								</>
+							) : result?.status === "failed" ? (
+								<>
+									Failed: {result.error_message || "Unknown error"}.{" "}
+									<Link to={`/admin/report-runs/${result.id}`}>View run →</Link>
+								</>
+							) : (
+								`Failed: ${runError}`
+							)}
+						</div>
+					</td>
+				</tr>
+			)}
+		</>
+	);
+}
+
 export function AdminReportsPage() {
 	const queryClient = useQueryClient();
-	const navigate = useNavigate();
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ["admin", "reports"],
 		queryFn: listReports,
@@ -53,14 +181,6 @@ export function AdminReportsPage() {
 		mutationFn: toggleReport,
 		onSuccess: invalidate,
 		onError: (err) => window.alert(apiErrorDetail(err, "Toggle failed.")),
-	});
-	const run = useMutation({
-		mutationFn: runReport,
-		onSuccess: (execution) => {
-			invalidate();
-			navigate(`/admin/report-runs/${execution.id}`);
-		},
-		onError: (err) => window.alert(apiErrorDetail(err, "Run failed.")),
 	});
 
 	const reports = data?.results ?? [];
@@ -107,79 +227,22 @@ export function AdminReportsPage() {
 									<th>Database</th>
 									<th>Schedule</th>
 									<th>Latest Run</th>
-									<th>Status</th>
+									<th>Active</th>
 									<th>Actions</th>
 								</tr>
 							</thead>
 							<tbody>
 								{reports.map((r) => (
-									<tr key={r.id}>
-										<td>
-											<strong>{r.name}</strong>
-											{r.description && (
-												<div className="text-sm text-sec truncate">
-													{r.description}
-												</div>
-											)}
-										</td>
-										<td>{r.database_name}</td>
-										<td>{scheduleLabel(r)}</td>
-										<td>
-											{r.latest_run ? (
-												<span className="text-sm text-sec">
-													{new Date(r.latest_run.started_at).toLocaleString()}
-												</span>
-											) : (
-												<span className="text-sm text-sec">—</span>
-											)}
-										</td>
-										<td>
-											{r.is_active ? (
-												<span className="badge badge-success">ACTIVE</span>
-											) : (
-												<span className="badge badge-muted">INACTIVE</span>
-											)}
-										</td>
-										<td>
-											<div className="flex-gap">
-												<button
-													type="button"
-													className="btn btn-ghost btn-sm"
-													onClick={() => run.mutate(r.id)}
-													disabled={run.isPending}
-												>
-													<i className="fa-solid fa-play" /> Run
-												</button>
-												<button
-													type="button"
-													className="btn btn-ghost btn-sm"
-													onClick={() => toggle.mutate(r.id)}
-												>
-													<i
-														className={`fa-solid ${r.is_active ? "fa-toggle-off" : "fa-toggle-on"}`}
-													/>{" "}
-													{r.is_active ? "Deactivate" : "Activate"}
-												</button>
-												<Link
-													to={`/admin/reports/${r.id}`}
-													className="btn btn-ghost btn-sm"
-												>
-													<i className="fa-solid fa-pen" /> Edit
-												</Link>
-												<button
-													type="button"
-													className="btn btn-ghost btn-sm"
-													style={{ color: "var(--danger)" }}
-													onClick={() => {
-														if (window.confirm(`Delete report "${r.name}"?`))
-															remove.mutate(r.id);
-													}}
-												>
-													<i className="fa-solid fa-trash" /> Delete
-												</button>
-											</div>
-										</td>
-									</tr>
+									<ReportRow
+										key={r.id}
+										report={r}
+										onToggle={(id) => toggle.mutate(id)}
+										onRan={invalidate}
+										onDelete={(report) => {
+											if (window.confirm(`Delete report "${report.name}"?`))
+												remove.mutate(report.id);
+										}}
+									/>
 								))}
 							</tbody>
 						</table>

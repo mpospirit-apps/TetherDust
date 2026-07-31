@@ -172,6 +172,17 @@ export function runReport(id: string): Promise<ExecutionResult> {
 export function previewReport(id: string): Promise<ExecutionResult> {
 	return apiFetch(`${RPT_BASE}${id}/preview/`, { method: "POST" });
 }
+// Preview an ad-hoc query before the report has been saved for the first
+// time — no execution is persisted, so the result has no download/email id.
+export function previewAdhocQuery(
+	database: string,
+	sqlQuery: string,
+): Promise<ExecutionResult> {
+	return apiFetch(`${RPT_BASE}preview_query/`, {
+		method: "POST",
+		body: JSON.stringify({ database, sql_query: sqlQuery }),
+	});
+}
 export function toggleReport(id: string): Promise<{ is_active: boolean }> {
 	return apiFetch(`${RPT_BASE}${id}/toggle/`, { method: "POST" });
 }
