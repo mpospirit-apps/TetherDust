@@ -14,7 +14,7 @@ import logging
 import os
 import threading
 import time
-from typing import Any
+from typing import Any, NamedTuple
 
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -148,6 +148,135 @@ def _run_background(
     log_entry.save()
 
 
+class PromptSegment(NamedTuple):
+    """A run of prompt text, tagged with whether it's driven by the
+    Configuration step (Instructions / Source material) so the preview UI can
+    highlight it."""
+
+    text: str
+    is_configuration: bool
+
+
+def build_generation_prompt_segments(
+    *,
+    dashboard_name: str,
+    dashboard_type: str,
+    prompt_override: str,
+    db_names: list[str],
+    doc_names: list[str],
+    codebase_names: list[str],
+) -> list[PromptSegment]:
+    """Build the exact prompt dashboard generation will send to the agent, as
+    (text, is_configuration) segments.
+
+    Pure (no DB writes) so it can also back a preview endpoint.
+    """
+    if dashboard_type == "custom":
+        base_prompt = prompt_override.strip()
+    else:
+        base_prompt = DASHBOARD_TEMPLATES.get(dashboard_type, DASHBOARD_TEMPLATES["overview"])
+
+    segments = [PromptSegment(base_prompt, True)]
+
+    segments.append(
+        PromptSegment(
+            f"\n\nIMPORTANT: You MUST use the create_dashboard tool first to create "
+            f'a dashboard named "{dashboard_name}", then use the add_chart tool '
+            f"to add charts to it.\n\n"
+            f"Chart design guidelines:\n"
+            f"- Match chart type to the question: bar for comparisons/rankings "
+            f"(horizontal bars read better for long category names), line or area "
+            f"for trends over time, scatter for correlations, pie only for "
+            f"breakdowns with 5 or fewer categories\n"
+            f"- A single headline number needs context — pair it with a comparison "
+            f"(vs. prior period or target) or a trend, not a bare value\n"
+            f"- Aim for 5-8 charts: the most important metrics first, supporting "
+            f"detail after. More charts isn't better if they're redundant or "
+            f"low-signal\n"
+            f"- Color sub-elements within a chart distinctly, not the chart as a "
+            f"whole: each bar/line/slice/category gets its own color from "
+            f"theme.colors (d3.scaleOrdinal().range(theme.colors)) instead of one "
+            f"flat color for the whole series. Single-value KPI cards have "
+            f"nothing to alternate — keep those in theme.accent or "
+            f"theme.colors[0], not a rotating color, or they'll look "
+            f"inconsistent card to card\n"
+            f"- Where a value has a clear direction, use color to signal it, not "
+            f"just to decorate: theme.colors[2] (lime) for increase/positive/good, "
+            f"theme.colors[0] (red) for decrease/negative/bad — e.g. a KPI's "
+            f"trend arrow or %-change badge, or bars/cells that cross a good/bad "
+            f"threshold. Keep this to values that are genuinely directional; a "
+            f"KPI card's own base color still stays consistent per the rule "
+            f"above, not swapped to red/lime\n\n"
+            f"For each chart, provide:\n"
+            f"- A descriptive title\n"
+            f"- A SQL SELECT query that produces the chart data\n"
+            f"- Raw d3.js code that renders the chart. The code receives three arguments:\n"
+            f"  - data: array of row objects from the SQL query\n"
+            f"  - container: DOM element to render into\n"
+            f"  - d3: the d3 library\n"
+            f"  Use d3.select(container) as the root. Set width from container.clientWidth "
+            f"and height from container.clientHeight.\n"
+            f"- The database name to run the query against\n"
+            f"- width: grid column span (3=quarter, 4=third, 6=half, 8=two-thirds, 12=full)\n\n",
+            False,
+        )
+    )
+    if db_names:
+        segments.append(PromptSegment(f"Available databases: {db_names}\n", True))
+    if doc_names:
+        segments.append(
+            PromptSegment(
+                f"Available documentation sources: {doc_names}\n"
+                f"Use search_docs and get_table_schema to understand the data before "
+                f"writing queries.\n",
+                True,
+            )
+        )
+    if codebase_names:
+        segments.append(
+            PromptSegment(
+                f"Available codebases: {codebase_names}\n"
+                f"Use list_codebases, get_codebase_tree, read_codebase_file, and search_codebase "
+                f"to understand the code behind the data.\n",
+                True,
+            )
+        )
+    segments.append(
+        PromptSegment(
+            "\nUse list_tables and get_table_schema to explore database structure. "
+            "Use query_database to test queries before creating charts.\n"
+            "Do NOT output the dashboard as a chat response. Use the tools to create it.",
+            False,
+        )
+    )
+
+    return segments
+
+
+def build_generation_prompt(
+    *,
+    dashboard_name: str,
+    dashboard_type: str,
+    prompt_override: str,
+    db_names: list[str],
+    doc_names: list[str],
+    codebase_names: list[str],
+) -> str:
+    """Build the exact prompt dashboard generation will send to the agent.
+
+    Pure (no DB writes) so it can also back a preview endpoint.
+    """
+    segments = build_generation_prompt_segments(
+        dashboard_name=dashboard_name,
+        dashboard_type=dashboard_type,
+        prompt_override=prompt_override,
+        db_names=db_names,
+        doc_names=doc_names,
+        codebase_names=codebase_names,
+    )
+    return "".join(segment.text for segment in segments)
+
+
 def start_generation(
     *,
     user: User,
@@ -160,47 +289,14 @@ def start_generation(
     codebase_names: list[str],
 ) -> ChartGenerationLog:
     """Build the prompt, create the log, and start dashboard generation."""
-    if prompt_override.strip():
-        base_prompt = prompt_override.strip()
-    else:
-        base_prompt = DASHBOARD_TEMPLATES.get(dashboard_type, DASHBOARD_TEMPLATES["overview"])
-
-    tool_instruction = (
-        f"\n\nIMPORTANT: You MUST use the create_dashboard tool first to create "
-        f'a dashboard named "{dashboard_name}", then use the add_chart tool '
-        f"to add charts to it.\n\n"
-        f"For each chart, provide:\n"
-        f"- A descriptive title\n"
-        f"- A SQL SELECT query that produces the chart data\n"
-        f"- Raw d3.js code that renders the chart. The code receives three arguments:\n"
-        f"  - data: array of row objects from the SQL query\n"
-        f"  - container: DOM element to render into\n"
-        f"  - d3: the d3 library\n"
-        f"  Use d3.select(container) as the root. Set width from container.clientWidth "
-        f"and height from container.clientHeight.\n"
-        f"- The database name to run the query against\n"
-        f"- width: grid column span (3=quarter, 4=third, 6=half, 8=two-thirds, 12=full)\n\n"
+    prompt = build_generation_prompt(
+        dashboard_name=dashboard_name,
+        dashboard_type=dashboard_type,
+        prompt_override=prompt_override,
+        db_names=db_names,
+        doc_names=doc_names,
+        codebase_names=codebase_names,
     )
-    if db_names:
-        tool_instruction += f"Available databases: {db_names}\n"
-    if doc_names:
-        tool_instruction += (
-            f"Available documentation sources: {doc_names}\n"
-            f"Use search_docs and get_table_schema to understand the data before writing queries.\n"
-        )
-    if codebase_names:
-        tool_instruction += (
-            f"Available codebases: {codebase_names}\n"
-            f"Use list_codebases, get_codebase_tree, read_codebase_file, and search_codebase "
-            f"to understand the code behind the data.\n"
-        )
-    tool_instruction += (
-        "\nUse list_tables and get_table_schema to explore database structure. "
-        "Use query_database to test queries before creating charts.\n"
-        "Do NOT output the dashboard as a chat response. Use the tools to create it."
-    )
-
-    prompt = base_prompt + tool_instruction
 
     log_entry = ChartGenerationLog.objects.create(
         user=user,

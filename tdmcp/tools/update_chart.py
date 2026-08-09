@@ -64,7 +64,26 @@ async def update_chart(
                 "  • Accent highlight:   .attr('stroke', theme.accent)\n"
                 "  • Sequential scale:   d3.scaleLinear()"  # noqa: E501
                 ".range([theme.colors[1], theme.colors[0]])\n"
-                "  • Axis text:          .attr('fill', theme.textSec)\n\n"
+                "  • Axis text:          .attr('fill', theme.textSec)\n"
+                "  • Directional value:  red=decrease/bad, lime=increase/good"  # noqa: E501
+                " (theme.colors[0] / theme.colors[2])\n\n"
+                "COLOR WITH MEANING: Where a value has a clear direction, use color "
+                "to signal it rather than just to decorate — theme.colors[2] (lime) "
+                "for increase/positive/good, theme.colors[0] (red) for "
+                "decrease/negative/bad. E.g. a trend arrow, a %-change badge, or "
+                "bars/cells that cross a good/bad threshold. Only apply this to "
+                "values that are genuinely directional, and only if the user's edit "
+                "actually calls for it — don't repaint the whole chart to chase this.\n\n"
+                "IF THE USER ASKS FOR A LITERAL/NAMED COLOR (e.g. 'make it yellow', "
+                "'#ffcc00', 'blue'): you still MUST NOT hard-code it. Pick the closest "
+                "matching color already available on the 'theme' argument (usually one "
+                "of the theme.colors entries) and use that instead. You MUST then say so "
+                "explicitly in your reply — name the literal color they asked for, name "
+                "the theme color you used instead, and say briefly why (the chart must "
+                "stay theme-consistent across light/dark). Never report the change as a "
+                "plain, unqualified success when you substituted a different color than "
+                "what was asked for — that reads as if their exact request was honored "
+                "when it wasn't.\n\n"
                 "Do NOT set explicit text/axis colors if you can omit them — SVG text "
                 "and axis lines inherit theme-aware defaults from the host page "
                 "(currentColor / --border). Omit fill/stroke on text elements unless "
@@ -88,7 +107,10 @@ palette exposed via the 'theme' argument (theme.colors, theme.accent, \
 theme.text, theme.textSec, theme.textMuted, theme.border, theme.surface). \
 Hard-coded colors (hex, rgb, named) and d3's built-in color schemes with \
 hard-coded values are NOT allowed. See the d3_code field description for \
-details and examples.
+details and examples. If the user names a literal color you can't use \
+(e.g. "yellow"), substitute the closest theme color and say so plainly in \
+your reply — do not report an unqualified success as if their exact color \
+was applied.
 
 IMPORTANT — BORDER RADIUS: Do NOT use rx/ry attributes or CSS border-radius \
 on chart shapes unless the user explicitly asks for rounded corners."""

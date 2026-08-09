@@ -8,27 +8,29 @@ context.
 
 DASHBOARD_TEMPLATES = {
     "overview": (
-        "Create a dashboard showing key metrics and KPIs for the selected databases. "
-        "Include charts for:\n"
-        "- Summary counts and totals\n"
-        "- Status distributions (pie or bar charts)\n"
-        "- Recent activity trends (line or area charts)\n\n"
-        "Each chart should tell a clear data story."
+        "Create a dashboard giving an executive-level snapshot of the selected data: "
+        "the 3-5 metrics that matter most, plus enough supporting detail to explain "
+        "them.\n"
+        "- Lead with KPI cards for the top metrics — each with a comparison (vs. "
+        "prior period or target), not a bare number\n"
+        "- Follow with status/composition breakdowns and recent activity trends\n\n"
+        "Each chart should answer one clear question about the state of the data."
     ),
     "time_series": (
-        "Create a dashboard with charts tracking trends and changes over time. "
-        "Focus on:\n"
-        "- Time-based aggregations (daily, weekly, monthly)\n"
-        "- Growth or decline patterns\n"
-        "- Comparisons across time periods\n\n"
-        "Use line and area charts where appropriate."
+        "Create a dashboard focused on how metrics change over time.\n"
+        "- Use time-based aggregation (daily/weekly/monthly — match the data's "
+        "granularity) and make period-over-period comparisons explicit (this month "
+        "vs. last, this year vs. last), not something the viewer has to infer\n"
+        "- Keep each trend chart to a handful of series — split or aggregate rather "
+        "than overlaying a dozen-plus lines\n\n"
+        "Favor charts where direction (up/down) and rate of change are obvious at a "
+        "glance."
     ),
     "comparison": (
-        "Create a dashboard comparing metrics across categories or dimensions. "
-        "Include:\n"
-        "- Side-by-side comparisons (grouped bar charts)\n"
-        "- Distribution breakdowns (pie or stacked bar charts)\n"
-        "- Ranking visualizations\n\n"
-        "Focus on making differences and patterns visually clear."
+        "Create a dashboard comparing metrics across categories or dimensions.\n"
+        "- Rank categories highest-to-lowest rather than alphabetically, so the "
+        "differences the dashboard exists to show are visible at a glance\n"
+        "- Use grouped or stacked bars for side-by-side and composition breakdowns\n\n"
+        "Focus on making differences and patterns visually clear, not just present."
     ),
 }

@@ -321,6 +321,13 @@ input[type="checkbox"]:focus-visible {
 .toggle-row + .toggle-row {
 	margin-top: var(--md);
 }
+/* .toggle-row carries no margin-bottom of its own (unlike .form-group), so a
+   field conditionally shown right after it (e.g. "Refresh interval" under
+   "Auto refresh") would sit crowded against the toggle's own label/description
+   with no visual separation between the two fields. */
+.toggle-row + .form-group {
+	margin-top: var(--md);
+}
 .toggle-row__body {
 	display: flex;
 	flex-direction: column;

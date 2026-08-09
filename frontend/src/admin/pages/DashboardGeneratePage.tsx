@@ -1,24 +1,23 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
+import Markdown from "react-markdown";
 import { Link } from "react-router-dom";
+import remarkGfm from "remark-gfm";
+import { getAgentStatus } from "../../api/chat";
 import { apiErrorDetail } from "../../api/client";
 import {
 	getDashboardGenerateOptions,
 	getDashboardGenStatus,
+	previewDashboardGenerate,
 	startDashboardGenerate,
 } from "../../api/dashboards";
-import { FormField } from "../components/forms";
+import { CustomSelect, FormField } from "../components/forms";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
-import {
-	AgentSelect,
-	SourceSelect,
-	type SourceSelection,
-} from "./DocGenShared";
+import { SourceSelect, type SourceSelection } from "./DocGenShared";
 
 const NO_SOURCES: SourceSelection = { databases: [], docs: [], codebases: [] };
 
-// Identity first, the required generation config next, optional/advanced
-// fields last.
+// Identity first, the required generation config next, then the prompt preview.
 const STEPS: WizardStepDef[] = [
 	{
 		key: "identity",
@@ -28,12 +27,13 @@ const STEPS: WizardStepDef[] = [
 	{
 		key: "configuration",
 		label: "Configuration",
-		description: "Pick a style, agent, and source material to generate from.",
+		description:
+			"Write instructions and pick source material to generate from.",
 	},
 	{
-		key: "optional",
-		label: "Optional Configurations",
-		description: "Optional — replace the default prompt for the chosen style.",
+		key: "prompt",
+		label: "Prompt",
+		description: "Preview the exact prompt that will be sent to the agent.",
 	},
 ];
 
@@ -47,21 +47,48 @@ export function DashboardGeneratePage() {
 		queryFn: getDashboardGenerateOptions,
 	});
 
+	const agentStatus = useQuery({
+		queryKey: ["agent-status"],
+		queryFn: getAgentStatus,
+	});
+
 	const [name, setName] = useState("");
-	const [dashboardType, setDashboardType] = useState("overview");
+	const [dashboardType, setDashboardType] = useState("custom");
 	const [promptOverride, setPromptOverride] = useState("");
-	const [agent, setAgent] = useState("");
 	const [sources, setSources] = useState<SourceSelection>(NO_SOURCES);
 	const [error, setError] = useState<string | null>(null);
 	const [logId, setLogId] = useState<string | null>(null);
 	const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
+	// Debounce the Prompt step's live preview so it doesn't refetch on every
+	// keystroke — settles 400ms after the last change to any input it depends on.
+	const [previewInputs, setPreviewInputs] = useState({
+		dashboard_name: name,
+		dashboard_type: dashboardType,
+		prompt_override: promptOverride,
+		source_db: sources.databases,
+		source_doc: sources.docs,
+		source_codebase: sources.codebases,
+	});
 	useEffect(() => {
-		if (!agent && options.data) {
-			const active = options.data.agents.find((a) => a.is_active);
-			if (active) setAgent(active.id);
-		}
-	}, [options.data, agent]);
+		const timer = setTimeout(() => {
+			setPreviewInputs({
+				dashboard_name: name,
+				dashboard_type: dashboardType,
+				prompt_override: promptOverride,
+				source_db: sources.databases,
+				source_doc: sources.docs,
+				source_codebase: sources.codebases,
+			});
+		}, 400);
+		return () => clearTimeout(timer);
+	}, [name, dashboardType, promptOverride, sources]);
+
+	const preview = useQuery({
+		queryKey: ["dashboard-gen-preview", previewInputs],
+		queryFn: () => previewDashboardGenerate(previewInputs),
+		placeholderData: keepPreviousData,
+	});
 
 	const status = useQuery({
 		queryKey: ["dashboard-gen-status", logId],
@@ -85,7 +112,6 @@ export function DashboardGeneratePage() {
 			dashboard_name: name,
 			dashboard_type: dashboardType,
 			prompt_override: promptOverride,
-			agent,
 			source_db: sources.databases,
 			source_doc: sources.docs,
 			source_codebase: sources.codebases,
@@ -94,6 +120,7 @@ export function DashboardGeneratePage() {
 
 	const opts = options.data;
 	const s = status.data;
+	const noActiveAgent = agentStatus.data ? !agentStatus.data.name : false;
 
 	return (
 		<div>
@@ -113,7 +140,7 @@ export function DashboardGeneratePage() {
 							type="submit"
 							form="dashboard-generate-form"
 							className="btn btn-primary"
-							disabled={start.isPending}
+							disabled={start.isPending || noActiveAgent}
 						>
 							{start.isPending ? "Starting…" : "Generate Dashboard"}
 						</button>
@@ -174,6 +201,15 @@ export function DashboardGeneratePage() {
 							{error}
 						</div>
 					)}
+					{noActiveAgent && (
+						<div
+							className="flash flash-error"
+							style={{ marginBottom: "var(--md)" }}
+						>
+							No active agent configured. Set one active under Agents before
+							generating.
+						</div>
+					)}
 
 					<div className="card doc-hiw-card">
 						<button
@@ -200,8 +236,8 @@ export function DashboardGeneratePage() {
 										</div>
 										<div className="doc-hiw-label">Configure</div>
 										<div className="doc-hiw-desc">
-											Name the dashboard, pick a style, and select your data
-											sources
+											Name the dashboard, write instructions (or pick a preset),
+											and select your data sources
 										</div>
 									</div>
 									<div className="doc-hiw-arrow">
@@ -266,18 +302,31 @@ export function DashboardGeneratePage() {
 							<div className="wizard-section">
 								<WizardSectionHeading step={STEPS[1]} index={1} />
 								<div className="card">
-									<FormField label="Style">
-										<select
-											className="form-control"
+									<FormField
+										label="Instructions"
+										help={
+											dashboardType === "custom"
+												? "Write what you want generated."
+												: undefined
+										}
+									>
+										<CustomSelect
 											value={dashboardType}
-											onChange={(e) => setDashboardType(e.target.value)}
-										>
-											{(opts?.dashboard_types ?? ["overview"]).map((t) => (
-												<option key={t} value={t}>
-													{titleCase(t)}
-												</option>
-											))}
-										</select>
+											onChange={setDashboardType}
+											options={(opts?.dashboard_types ?? ["custom"]).map(
+												(t) => ({ value: t, label: titleCase(t) }),
+											)}
+										/>
+										{dashboardType === "custom" && (
+											<textarea
+												className="form-control"
+												style={{ marginTop: "var(--sm)" }}
+												rows={3}
+												value={promptOverride}
+												required
+												onChange={(e) => setPromptOverride(e.target.value)}
+											/>
+										)}
 									</FormField>
 
 									<div className="doc-section">
@@ -292,21 +341,6 @@ export function DashboardGeneratePage() {
 											<p className="text-sec">Loading…</p>
 										)}
 									</div>
-
-									<FormField
-										label="Agent"
-										help="Generation runs on the active agent."
-									>
-										{opts ? (
-											<AgentSelect
-												options={opts}
-												value={agent}
-												onChange={setAgent}
-											/>
-										) : (
-											<p className="text-sec">Loading…</p>
-										)}
-									</FormField>
 								</div>
 							</div>
 						</div>
@@ -315,15 +349,34 @@ export function DashboardGeneratePage() {
 							<WizardSectionHeading step={STEPS[2]} index={2} />
 							<div className="card">
 								<FormField
-									label="Custom instructions"
-									help="Optional — replaces the default prompt for the chosen style."
+									label="Prompt"
+									help="Read-only — updates automatically as the fields above change. Text in accent lime comes from the Configuration step."
 								>
-									<textarea
-										className="form-control"
-										rows={3}
-										value={promptOverride}
-										onChange={(e) => setPromptOverride(e.target.value)}
-									/>
+									<div className="doc-result-preview__content">
+										{preview.isLoading ? (
+											<Markdown remarkPlugins={[remarkGfm]}>
+												_Loading preview…_
+											</Markdown>
+										) : preview.data?.segments.length ? (
+											preview.data.segments.map((seg, i) => (
+												<div
+													// biome-ignore lint/suspicious/noArrayIndexKey: segments are a stable, ordered structure with no natural id
+													key={i}
+													className={
+														seg.is_configuration
+															? "prompt-preview__config"
+															: undefined
+													}
+												>
+													<Markdown remarkPlugins={[remarkGfm]}>
+														{seg.text}
+													</Markdown>
+												</div>
+											))
+										) : (
+											<Markdown remarkPlugins={[remarkGfm]}>_(empty)_</Markdown>
+										)}
+									</div>
 								</FormField>
 							</div>
 						</div>

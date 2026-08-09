@@ -9,7 +9,12 @@ import {
 	getAdminDashboard,
 	updateDashboard,
 } from "../../api/dashboards";
-import { CheckboxGroup, FormField, ToggleField } from "../components/forms";
+import {
+	CheckboxGroup,
+	CustomSelect,
+	FormField,
+	ToggleField,
+} from "../components/forms";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
 const REFRESH_INTERVALS: { value: string; label: string }[] = [
@@ -50,8 +55,8 @@ const STEPS: WizardStepDef[] = [
 	},
 	{
 		key: "optional",
-		label: "Optional Configurations",
-		description: "Optional — auto-refresh schedule and role-based access.",
+		label: "Schedule and Access",
+		description: "Auto-refresh schedule and role-based access.",
 	},
 ];
 
@@ -238,10 +243,10 @@ export function AdminDashboardFormPage() {
 					</div>
 				)}
 
-				{isEdit ? (
-					<div className="form-split">
+				<div className="form-split">
+					<div className="wizard-section">
+						<WizardSectionHeading step={STEPS[0]} index={0} />
 						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Identity</h3>
 							<FormField label="Name">
 								<input
 									className="form-control"
@@ -265,9 +270,11 @@ export function AdminDashboardFormPage() {
 								onChange={(v) => set("is_active", v)}
 							/>
 						</div>
+					</div>
 
+					<div className="wizard-section">
+						<WizardSectionHeading step={STEPS[1]} index={1} />
 						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>Refresh & access</h3>
 							<ToggleField
 								label="Auto refresh"
 								description="Refresh chart data automatically at the interval below."
@@ -276,18 +283,11 @@ export function AdminDashboardFormPage() {
 							/>
 							{form.auto_refresh && (
 								<FormField label="Refresh interval">
-									<select
-										className="form-control"
+									<CustomSelect
 										value={form.refresh_interval}
-										onChange={(e) => set("refresh_interval", e.target.value)}
-									>
-										<option value="">— Select —</option>
-										{REFRESH_INTERVALS.map((r) => (
-											<option key={r.value} value={r.value}>
-												{r.label}
-											</option>
-										))}
-									</select>
+										onChange={(v) => set("refresh_interval", v)}
+										options={REFRESH_INTERVALS}
+									/>
 								</FormField>
 							)}
 							<CheckboxGroup
@@ -299,72 +299,7 @@ export function AdminDashboardFormPage() {
 							/>
 						</div>
 					</div>
-				) : (
-					<div className="form-split">
-						<div className="wizard-section">
-							<WizardSectionHeading step={STEPS[0]} index={0} />
-							<div className="card">
-								<FormField label="Name">
-									<input
-										className="form-control"
-										value={form.name}
-										required
-										onChange={(e) => set("name", e.target.value)}
-									/>
-								</FormField>
-								<FormField label="Description">
-									<textarea
-										className="form-control"
-										rows={3}
-										value={form.description}
-										onChange={(e) => set("description", e.target.value)}
-									/>
-								</FormField>
-								<ToggleField
-									label="Is active"
-									description="The dashboard is only viewable while active."
-									checked={form.is_active}
-									onChange={(v) => set("is_active", v)}
-								/>
-							</div>
-						</div>
-
-						<div className="wizard-section">
-							<WizardSectionHeading step={STEPS[1]} index={1} />
-							<div className="card">
-								<ToggleField
-									label="Auto refresh"
-									description="Refresh chart data automatically at the interval below."
-									checked={form.auto_refresh}
-									onChange={(v) => set("auto_refresh", v)}
-								/>
-								{form.auto_refresh && (
-									<FormField label="Refresh interval">
-										<select
-											className="form-control"
-											value={form.refresh_interval}
-											onChange={(e) => set("refresh_interval", e.target.value)}
-										>
-											<option value="">— Select —</option>
-											{REFRESH_INTERVALS.map((r) => (
-												<option key={r.value} value={r.value}>
-													{r.label}
-												</option>
-											))}
-										</select>
-									</FormField>
-								)}
-								<CheckboxGroup
-									label="Allowed roles"
-									help="Roles that can view this dashboard (staff always can)."
-									options={roleOptions}
-									selected={form.allowed_roles}
-									onChange={(ids) => set("allowed_roles", ids)}
-								/>
-							</div>
-						</div>
-					</div>
-				)}
+				</div>
 			</form>
 		</div>
 	);

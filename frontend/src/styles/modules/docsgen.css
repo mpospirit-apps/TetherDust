@@ -424,6 +424,12 @@
 [data-theme="dark"] .doc-result-preview__content {
 	background: rgba(0, 0, 0, 0.15);
 }
+/* Dashboard-generation prompt preview: segments driven by the Configuration
+   step (Style / Source material / Custom instructions) render in accent lime
+   so it's clear which part of the prompt changes when those fields change. */
+.prompt-preview__config {
+	color: var(--c-lime);
+}
 .doc-result-preview__content h1 {
 	font-size: 1.3rem;
 	margin: 0 0 var(--sm);

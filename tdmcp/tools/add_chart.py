@@ -60,7 +60,23 @@ async def add_chart(
                 "  • Accent highlight:   .attr('stroke', theme.accent)\n"
                 "  • Sequential scale:   d3.scaleLinear()"  # noqa: E501
                 ".range([theme.colors[1], theme.colors[0]])\n"
-                "  • Axis text:          .attr('fill', theme.textSec)\n\n"
+                "  • Axis text:          .attr('fill', theme.textSec)\n"
+                "  • Directional value:  red=decrease/bad, lime=increase/good"  # noqa: E501
+                " (theme.colors[0] / theme.colors[2])\n\n"
+                "VISUAL VARIETY WITHIN A CHART: When a chart has multiple bars, "
+                "lines, or slices — one per category — color each one distinctly via "
+                "d3.scaleOrdinal().range(theme.colors), not one flat color for the "
+                "whole series. For a single-value KPI-style card (nothing to "
+                "categorize), keep it in theme.accent or theme.colors[0] instead — "
+                "don't rotate colors chart-to-chart on a dashboard, that just looks "
+                "inconsistent from card to card.\n\n"
+                "COLOR WITH MEANING: Where a value has a clear direction, use color "
+                "to signal it rather than just to decorate — theme.colors[2] (lime) "
+                "for increase/positive/good, theme.colors[0] (red) for "
+                "decrease/negative/bad. E.g. a KPI's trend arrow or %-change badge, "
+                "or bars/cells that cross a good/bad threshold. Only apply this to "
+                "values that are genuinely directional; don't repaint a KPI card's "
+                "own base color for this — that stays consistent, see above.\n\n"
                 "Do NOT set explicit text/axis colors if you can omit them — SVG text and axis "
                 "lines inherit theme-aware defaults from the host page (currentColor / --border). "
                 "Omit fill/stroke on text elements unless you need a non-default color, and in "
@@ -103,7 +119,9 @@ exposed via the 'theme' argument (theme.colors, theme.accent, theme.text, \
 theme.textSec, theme.textMuted, theme.border, theme.surface). Hard-coded \
 colors (hex, rgb, named) and d3's built-in color schemes with hard-coded \
 values are NOT allowed. See the d3_code field description for details and \
-examples.
+examples. Color a chart's bars/lines/slices per-category via theme.colors, \
+not one flat color for the series — but keep single-value KPI cards in one \
+consistent color rather than rotating.
 
 IMPORTANT — BORDER RADIUS: Do NOT use rx/ry attributes or CSS border-radius \
 on chart shapes unless the user explicitly asks for rounded corners."""

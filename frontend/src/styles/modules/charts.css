@@ -135,12 +135,19 @@
 }
 .chart-preview-card,
 .chart-aichat-card {
-	background: var(--surface);
-	border: 1px solid var(--border);
+	background: rgba(245, 243, 238, 0.75);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid rgba(26, 26, 26, 0.08);
 	border-radius: 0;
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
+}
+[data-theme="dark"] .chart-preview-card,
+[data-theme="dark"] .chart-aichat-card {
+	background: rgba(15, 15, 13, 0.4);
+	border-color: rgba(255, 255, 255, 0.1);
 }
 .chart-preview-card__header,
 .chart-aichat-card__header {
