@@ -14,14 +14,13 @@ import {
 import { buildTheme, runChartCode } from "../../charts/render";
 import { useChartEditSocket } from "../../charts/useChartEditSocket";
 import { useTheme } from "../../hooks/useTheme";
-import { FormField, ToggleField } from "../components/forms";
+import { CustomSelect, FormField, ToggleField } from "../components/forms";
 import { WizardSectionHeading, type WizardStepDef } from "../components/wizard";
 
 const MONO = { fontFamily: "var(--font-mono, monospace)", fontSize: 13 };
 
-// Identity first, the required query/render config next, optional layout
-// sizing last. Stacked (not paired side by side) since the sticky preview +
-// AI editor sidebar already takes the other half of the page.
+// Identity first, the required query/render config next, layout sizing,
+// then a final preview step to check the rendered result before saving.
 const STEPS: WizardStepDef[] = [
 	{
 		key: "identity",
@@ -34,9 +33,14 @@ const STEPS: WizardStepDef[] = [
 		description: "Pick a database, write the query, and render it with d3.",
 	},
 	{
-		key: "optional",
-		label: "Optional Configurations",
-		description: "Optional — layout sizing and grid position.",
+		key: "layout",
+		label: "Layout and Position",
+		description: "Layout sizing and grid position.",
+	},
+	{
+		key: "preview",
+		label: "Preview",
+		description: "Run the query and watch the chart render before saving.",
 	},
 ];
 const WIDTHS = [
@@ -386,19 +390,15 @@ export function ChartFormPage() {
 							<WizardSectionHeading step={STEPS[1]} index={1} />
 							<div className="card">
 								<FormField label="Database">
-									<select
-										className="form-control"
+									<CustomSelect
 										value={form.database}
-										required
-										onChange={(e) => set("database", e.target.value)}
-									>
-										<option value="">— Select a database —</option>
-										{dbOptions.map((d) => (
-											<option key={d.id} value={d.id}>
-												{d.name}
-											</option>
-										))}
-									</select>
+										onChange={(v) => set("database", v)}
+										placeholder="— Select a database —"
+										options={dbOptions.map((d) => ({
+											value: d.id,
+											label: d.name,
+										}))}
+									/>
 								</FormField>
 								<FormField
 									label="SQL query"
@@ -435,17 +435,14 @@ export function ChartFormPage() {
 							<div className="card">
 								<div className="form-grid">
 									<FormField label="Width">
-										<select
-											className="form-control"
-											value={form.width}
-											onChange={(e) => set("width", Number(e.target.value))}
-										>
-											{WIDTHS.map((w) => (
-												<option key={w.value} value={w.value}>
-													{w.label} ({w.value}/12)
-												</option>
-											))}
-										</select>
+										<CustomSelect
+											value={String(form.width)}
+											onChange={(v) => set("width", Number(v))}
+											options={WIDTHS.map((w) => ({
+												value: String(w.value),
+												label: `${w.label} (${w.value}/12)`,
+											}))}
+										/>
 									</FormField>
 									<FormField label="Height (px)">
 										<input
@@ -469,32 +466,34 @@ export function ChartFormPage() {
 					</div>
 
 					<div className="chart-edit-sidebar">
-						<div className="chart-preview-card">
-							<div className="chart-preview-card__header">
-								<strong>Preview</strong>
-								<div className="chart-preview-card__meta">
-									<span>{previewStatus}</span>
-									<button
-										type="button"
-										className="btn btn-secondary btn-sm"
-										disabled={runQuery.isPending}
-										onClick={onRunQuery}
-									>
-										{runQuery.isPending ? "Running…" : "Run Query"}
-									</button>
-								</div>
-							</div>
-							<div className="chart-preview-card__body">
-								<div
-									className="chart-preview-container"
-									ref={previewRef}
-									style={{ height: `${form.height}px` }}
-								/>
-								{previewError && (
-									<div className="chart-preview-error is-visible">
-										{previewError}
+						<div className="wizard-section">
+							<WizardSectionHeading step={STEPS[3]} index={3} />
+							<div className="chart-preview-card">
+								<div className="chart-preview-card__header">
+									<strong>{previewStatus || "No data yet"}</strong>
+									<div className="chart-preview-card__meta">
+										<button
+											type="button"
+											className="btn btn-secondary btn-sm"
+											disabled={runQuery.isPending}
+											onClick={onRunQuery}
+										>
+											{runQuery.isPending ? "Running…" : "Run Query"}
+										</button>
 									</div>
-								)}
+								</div>
+								<div className="chart-preview-card__body">
+									<div
+										className="chart-preview-container"
+										ref={previewRef}
+										style={{ height: `${form.height}px` }}
+									/>
+									{previewError && (
+										<div className="chart-preview-error is-visible">
+											{previewError}
+										</div>
+									)}
+								</div>
 							</div>
 						</div>
 
@@ -529,8 +528,7 @@ function ChartAiPanel({
 		if (el) el.scrollTop = el.scrollHeight;
 	}, [messages, statusText]);
 
-	function onSubmit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
+	function onSend() {
 		if (!input.trim() || streaming) return;
 		send(input);
 		setInput("");
@@ -578,22 +576,33 @@ function ChartAiPanel({
 					</div>
 				)}
 			</div>
-			<form className="chart-aichat-form" onSubmit={onSubmit}>
+			{/* A <div>, not a <form> — this panel sits inside the chart form
+			    (id="chart-form"), and nested <form> elements are invalid HTML;
+			    browsers can fall back to a full page navigation instead of
+			    calling our handler when the inner one is submitted. */}
+			<div className="chart-aichat-form">
 				<input
 					className="form-control"
 					placeholder="Ask the AI to edit this chart…"
 					value={input}
 					disabled={streaming}
 					onChange={(e) => setInput(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === "Enter") {
+							e.preventDefault();
+							onSend();
+						}
+					}}
 				/>
 				<button
-					type="submit"
+					type="button"
 					className="btn btn-primary btn-sm"
 					disabled={streaming || !connected}
+					onClick={onSend}
 				>
 					Send
 				</button>
-			</form>
+			</div>
 		</div>
 	);
 }

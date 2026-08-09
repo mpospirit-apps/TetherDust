@@ -18,7 +18,10 @@ classifiers = [
 ]
 
 dependencies = [
-    "mcp>=1.6.0",
+    # mcp 2.0 is a breaking rewrite of mcp.server (fastmcp is gone, replaced by
+    # a new MCPServer/runner API) — pin below it until tdmcp/server.py and
+    # tdmcp/tools/__init__.py are ported to the new API.
+    "mcp>=1.6.0,<2.0.0",
     "python-dotenv>=1.0.0",
     "sqlalchemy>=2.0.0",
     "sqlglot>=25.0.0",  # AST-based read-only SQL validation (replaces regex)

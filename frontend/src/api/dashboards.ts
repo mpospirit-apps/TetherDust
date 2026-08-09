@@ -189,7 +189,6 @@ export interface DashboardGenOptions {
 	databases: { id: string; name: string }[];
 	doc_sources: { id: string; name: string }[];
 	codebases: { id: string; name: string }[];
-	agents: { id: string; name: string; is_active: boolean }[];
 	dashboard_types: string[];
 }
 
@@ -197,7 +196,6 @@ export interface DashboardGenerateRequest {
 	dashboard_name: string;
 	dashboard_type: string;
 	prompt_override?: string;
-	agent: string;
 	source_db?: string[];
 	source_doc?: string[];
 	source_codebase?: string[];
@@ -242,6 +240,19 @@ export function startDashboardGenerate(
 	data: DashboardGenerateRequest,
 ): Promise<{ log_id: string }> {
 	return apiFetch(`${DASH_BASE}generate/`, {
+		method: "POST",
+		body: JSON.stringify(data),
+	});
+}
+export interface PromptSegment {
+	text: string;
+	is_configuration: boolean;
+}
+
+export function previewDashboardGenerate(
+	data: DashboardGenerateRequest,
+): Promise<{ segments: PromptSegment[] }> {
+	return apiFetch(`${DASH_BASE}generate-preview/`, {
 		method: "POST",
 		body: JSON.stringify(data),
 	});

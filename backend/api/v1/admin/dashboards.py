@@ -84,11 +84,10 @@ class DashboardViewSet(viewsets.ModelViewSet[Dashboard]):
                 "codebases": [
                     {"id": c.pk, "name": c.name} for c in Codebase.objects.filter(is_active=True)
                 ],
-                "agents": [
-                    {"id": a.pk, "name": a.name, "is_active": a.is_active}
-                    for a in AgentConfiguration.objects.all()
-                ],
-                "dashboard_types": sorted(DASHBOARD_TEMPLATES),
+                # "custom" isn't a DASHBOARD_TEMPLATES entry — it signals the
+                # prompt comes entirely from the Custom instructions field. It's
+                # the default and listed first; the canned styles are presets.
+                "dashboard_types": ["custom", *sorted(DASHBOARD_TEMPLATES)],
             }
         )
 
@@ -96,26 +95,34 @@ class DashboardViewSet(viewsets.ModelViewSet[Dashboard]):
     def generate(self, request: Request) -> Response:
         data = request.data
         dashboard_name = (data.get("dashboard_name") or "").strip()
-        agent_id = data.get("agent")
-        if not all([dashboard_name, agent_id]):
+        dashboard_type = data.get("dashboard_type", "custom")
+        prompt_override = data.get("prompt_override", "")
+        if not dashboard_name:
             return Response(
                 {"detail": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if dashboard_type == "custom" and not prompt_override.strip():
+            return Response(
+                {"detail": "Custom instructions are required when Instructions is set to Custom."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         if Dashboard.objects.filter(name=dashboard_name).exists():
             return Response(
                 {"detail": f"A dashboard named '{dashboard_name}' already exists."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        agent_config = AgentConfiguration.objects.filter(pk=agent_id).first()
+        agent_config = AgentConfiguration.objects.filter(is_active=True).first()
         if agent_config is None:
-            return Response({"detail": "Agent not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "No active agent configured."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         log = chartgen.start_generation(
             user=cast(User, request.user),
             agent_config=agent_config,
             dashboard_name=dashboard_name,
-            dashboard_type=data.get("dashboard_type", "overview"),
-            prompt_override=data.get("prompt_override", ""),
+            dashboard_type=dashboard_type,
+            prompt_override=prompt_override,
             db_names=_resolve_names(DatabaseConnection, "name", data.get("source_db", [])),
             doc_names=_resolve_names(
                 DocumentationSource, "folder_name", data.get("source_doc", [])
@@ -123,6 +130,30 @@ class DashboardViewSet(viewsets.ModelViewSet[Dashboard]):
             codebase_names=_resolve_names(Codebase, "name", data.get("source_codebase", [])),
         )
         return Response({"log_id": log.pk}, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=False, methods=["post"], url_path="generate-preview")
+    def generate_preview(self, request: Request) -> Response:
+        """Return the exact prompt generation would send (no side effects), as
+        segments tagged by whether the Configuration step (Instructions /
+        Source material) drove that text."""
+        data = request.data
+        segments = chartgen.build_generation_prompt_segments(
+            dashboard_name=(data.get("dashboard_name") or "").strip(),
+            dashboard_type=data.get("dashboard_type", "custom"),
+            prompt_override=data.get("prompt_override", ""),
+            db_names=_resolve_names(DatabaseConnection, "name", data.get("source_db", [])),
+            doc_names=_resolve_names(
+                DocumentationSource, "folder_name", data.get("source_doc", [])
+            ),
+            codebase_names=_resolve_names(Codebase, "name", data.get("source_codebase", [])),
+        )
+        return Response(
+            {
+                "segments": [
+                    {"text": s.text, "is_configuration": s.is_configuration} for s in segments
+                ]
+            }
+        )
 
 
 class ChartSerializer(serializers.ModelSerializer[Chart]):

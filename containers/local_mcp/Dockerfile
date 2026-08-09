@@ -16,10 +16,13 @@ ENV PATH="/root/.local/bin:${PATH}"
 
 # Create isolated venv for the proxy service
 RUN python3 -m venv /opt/local-mcp
+# mcp is pinned below 2.0 — that release is a breaking rewrite of mcp.server
+# (see pyproject.toml's tdmcp dependency for details); this proxy only uses
+# client-side APIs (ClientSession, stdio_client) but pin it for consistency.
 RUN /opt/local-mcp/bin/pip install --no-cache-dir \
     "fastapi>=0.111.0" \
     "uvicorn[standard]>=0.27.0" \
-    "mcp>=1.0.0" \
+    "mcp>=1.0.0,<2.0.0" \
     "psycopg2-binary>=2.9.0" \
     "cryptography>=41.0.0"
 

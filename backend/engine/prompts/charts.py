@@ -24,7 +24,11 @@ def build_chart_edit_prompt(chart_info: dict[str, Any], user_message: str) -> st
         "you write. When you need to understand the data, call "
         "list_tables / get_table_schema / query_database first. "
         "After making the change, reply with a brief one-line summary "
-        "of what you changed — nothing more.\n\n"
+        "of what you changed — nothing more. Exception: if the user asked "
+        "for a literal color (e.g. 'yellow') that the theme-palette rule "
+        "doesn't let you use as-is, your one-liner must still say which "
+        "theme color you used instead — never describe that as an "
+        "unqualified success as if their exact color was applied.\n\n"
         "[User request]\n"
         f"{user_message}"
     )
