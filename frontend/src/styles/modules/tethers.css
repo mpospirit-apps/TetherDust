@@ -511,6 +511,130 @@ svg.city.spinning {
 	outline-offset: 2px;
 }
 
+/* ── search and filters ── */
+.city-tools {
+	position: absolute;
+	top: var(--md);
+	left: var(--md);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	max-width: calc(100% - 120px);
+}
+.city-search {
+	width: 250px;
+	padding: 7px 10px;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--text);
+	background: var(--city-panel);
+	border: 1px solid var(--border);
+}
+.city-search:focus-visible {
+	outline: 2px solid var(--c-cyan);
+	outline-offset: -1px;
+}
+.city-search__count {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	color: var(--text-muted);
+}
+.city-chips {
+	display: flex;
+	gap: 4px;
+}
+.chip {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	padding: 5px 9px;
+	background: var(--city-panel);
+	border: 1px solid var(--border);
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: var(--transition);
+}
+.chip:hover {
+	color: var(--text-sec);
+}
+.chip.is-on {
+	color: var(--text);
+}
+.chip--reads.is-on {
+	border-color: var(--reads);
+	box-shadow: inset 0 -2px 0 var(--reads);
+}
+.chip--writes.is-on {
+	border-color: var(--writes);
+	box-shadow: inset 0 -2px 0 var(--writes);
+}
+.chip--references.is-on {
+	border-color: var(--refs);
+	box-shadow: inset 0 -2px 0 var(--refs);
+}
+.chip--maps-to.is-on {
+	border-color: var(--maps);
+	box-shadow: inset 0 -2px 0 var(--maps);
+}
+.city-btn.is-on {
+	color: var(--text);
+	border-color: var(--text-muted);
+}
+
+/* a cord vanishes only when nothing it carries passes the filter */
+.city .arc-g.off,
+.city .cord.off {
+	display: none;
+}
+/* a search dims the city down to what matched, rather than hiding the rest —
+   where a match sits in the city is part of the answer */
+.city.searching .bld:not(.hit) {
+	opacity: 0.16;
+}
+.city.searching .bld {
+	transition: opacity 0.2s ease;
+}
+
+/* ── info ── */
+.city-info {
+	position: absolute;
+	top: 60px;
+	right: var(--md);
+	width: 320px;
+	max-height: calc(100% - 80px);
+	overflow-y: auto;
+	background: var(--city-panel);
+	border: 1px solid var(--border);
+	padding: var(--md);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.city-info h3 {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+	margin: 8px 0 0;
+}
+.city-info h3:first-child {
+	margin-top: 0;
+}
+.city-info p {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.55;
+	color: var(--text-sec);
+}
+.city-info__note {
+	color: var(--text-muted);
+	font-size: 11px;
+	border-top: 1px solid var(--border);
+	padding-top: 8px;
+	margin-top: 8px;
+}
+
 /* ── legend ── */
 .city-legend {
 	position: absolute;
@@ -531,36 +655,6 @@ svg.city.spinning {
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
 	color: var(--text-muted);
-}
-.city-legend .rels {
-	display: flex;
-	gap: 14px;
-	flex-wrap: wrap;
-}
-.city-legend .rel {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	font-family: var(--font-mono);
-	font-size: 10.5px;
-	color: var(--text-sec);
-}
-.city-legend .sw {
-	width: 16px;
-	height: 3px;
-	display: block;
-}
-.city-legend .sw-reads {
-	background: var(--reads);
-}
-.city-legend .sw-writes {
-	background: var(--writes);
-}
-.city-legend .sw-references {
-	background: var(--refs);
-}
-.city-legend .sw-maps-to {
-	background: var(--maps);
 }
 .city-legend .note {
 	font-size: 10.5px;

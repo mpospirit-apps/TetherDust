@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CityInspector } from "./CityInspector";
+import type { Rel } from "./city/plan";
 import { planCity } from "./city/plan";
 import { createCityScene, type SceneHandle } from "./city/scene";
 import type { TetherGraph } from "./types";
@@ -8,6 +9,8 @@ import type { TetherGraph } from "./types";
 // on the order of a thousand attributes per frame, and reconciling that through
 // React would cost far more than the arithmetic it is drawing. Same division the
 // old canvas controller used, for the same reason.
+const ALL_RELS: Rel[] = ["reads", "writes", "references", "maps-to"];
+
 export function TetherCity({
 	graph,
 	codeLabel,
@@ -25,6 +28,10 @@ export function TetherCity({
 
 	const sceneRef = useRef<SceneHandle | null>(null);
 	const [selected, setSelected] = useState<string | null>(null);
+	const [rels, setRels] = useState<ReadonlySet<Rel>>(() => new Set(ALL_RELS));
+	const [query, setQuery] = useState("");
+	const [hits, setHits] = useState(0);
+	const [info, setInfo] = useState(false);
 
 	useEffect(() => {
 		const host = svgRef.current;
@@ -48,6 +55,24 @@ export function TetherCity({
 	// a graph change rebuilds the scene, which starts with nothing open
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on new city
 	useEffect(() => setSelected(null), [city]);
+
+	// the scene is rebuilt on a new graph, so the chrome has to re-apply itself
+	useEffect(() => {
+		sceneRef.current?.setFilter(rels);
+	}, [rels]);
+	useEffect(() => {
+		setHits(sceneRef.current?.setSearch(query) ?? 0);
+	}, [query]);
+
+	const toggleRel = useCallback((rel: Rel) => {
+		setRels((prev) => {
+			const next = new Set(prev);
+			if (next.has(rel)) next.delete(rel);
+			else next.add(rel);
+			// turning the last one off would empty the canvas; treat it as a reset
+			return next.size ? next : new Set(ALL_RELS);
+		});
+	}, []);
 
 	const snap = useCallback((dir: 1 | -1) => sceneRef.current?.snap(dir), []);
 	const close = useCallback(() => sceneRef.current?.select(null), []);
@@ -91,30 +116,71 @@ export function TetherCity({
 				>
 					<i className="fa-solid fa-expand" />
 				</button>
+				<button
+					type="button"
+					className={info ? "city-btn is-on" : "city-btn"}
+					title="About this graph"
+					onClick={() => setInfo((v) => !v)}
+				>
+					<i className="fa-solid fa-circle-info" />
+				</button>
 			</div>
+			<div className="city-tools">
+				<input
+					className="city-search"
+					value={query}
+					onChange={(e) => setQuery(e.target.value)}
+					placeholder="Find a file, table, symbol or column…"
+					aria-label="Search the city"
+				/>
+				{query ? (
+					<span className="city-search__count">
+						{hits} {hits === 1 ? "building" : "buildings"}
+					</span>
+				) : null}
+				<div className="city-chips">
+					{ALL_RELS.map((rel) => (
+						<button
+							key={rel}
+							type="button"
+							className={`chip chip--${rel}${rels.has(rel) ? " is-on" : ""}`}
+							onClick={() => toggleRel(rel)}
+						>
+							{rel}
+						</button>
+					))}
+				</div>
+			</div>
+
+			{info ? (
+				<div className="city-info">
+					<h3>Codebase</h3>
+					<p>{city.codebaseSummary || "No summary was generated."}</p>
+					<h3>Database</h3>
+					<p>{city.databaseSummary || "No summary was generated."}</p>
+					<h3>Graph</h3>
+					<p>
+						{city.buildings.length} buildings ·{" "}
+						{city.buildings.reduce((s, b) => s + b.h, 0)} storeys ·{" "}
+						{city.bundles.reduce((s, b) => s + b.strands.length, 0)} tethers in{" "}
+						{city.bundles.length} cords
+						{city.dropped
+							? ` · ${city.dropped} edge${city.dropped === 1 ? "" : "s"} joined a building to itself and could not be drawn`
+							: ""}
+					</p>
+					<p className="city-info__note">
+						A cord carries every tether between one pair of buildings and takes
+						the colour most of them share. Open a building to separate them onto
+						the storeys they land on.
+					</p>
+				</div>
+			) : null}
+
 			{selected ? (
 				<CityInspector city={city} id={selected} onClose={close} />
 			) : null}
 			<div className="city-legend">
 				<span className="ttl">Tethers</span>
-				<div className="rels">
-					<span className="rel">
-						<i className="sw sw-reads" />
-						reads
-					</span>
-					<span className="rel">
-						<i className="sw sw-writes" />
-						writes
-					</span>
-					<span className="rel">
-						<i className="sw sw-references" />
-						references
-					</span>
-					<span className="rel">
-						<i className="sw sw-maps-to" />
-						maps-to
-					</span>
-				</div>
 				<span className="note">
 					drag to pan · <kbd>shift</kbd>-drag or right-drag to turn · scroll to
 					zoom

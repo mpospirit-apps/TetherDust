@@ -51,6 +51,7 @@ import {
 	FLOOR_BASE,
 	FLOOR_FONT,
 	FLOOR_PAD,
+	type Rel,
 	ROOF_FONT,
 	ROOF_PAD,
 	ROOF_PAD_V,
@@ -173,6 +174,10 @@ export interface SceneHandle {
 	/** open a building, or pass null to close whatever is open */
 	select(id: string | null): void;
 	selected(): string | null;
+	/** show only tethers carrying one of these relationships */
+	setFilter(rels: ReadonlySet<Rel>): void;
+	/** dim everything that does not match; returns how many buildings do */
+	setSearch(query: string): number;
 }
 
 // ── opening a building ───────────────────────────────────────────────────────
@@ -948,6 +953,43 @@ export function createCityScene(
 		onSelect?.(id);
 	}
 
+	/**
+	 * A cord is hidden only when NOTHING it carries passes the filter. A bundle
+	 * is coloured by the relationship most of its strands agree on, so filtering
+	 * on that colour alone would hide the reads travelling inside a mostly-writes
+	 * cord. Split strands each answer for themselves.
+	 */
+	function setFilter(rels: ReadonlySet<Rel>): void {
+		for (const a of arcRefs) {
+			a.g.classList.toggle("off", !a.bu.strands.some((t) => rels.has(t.rel)));
+			if (a.strands) {
+				a.strands.forEach((c, i) => {
+					c.g.classList.toggle("off", !rels.has(a.bu.strands[i].rel));
+				});
+			}
+		}
+	}
+
+	/** matches a building's own name or any of its storeys */
+	function setSearch(query: string): number {
+		const q = query.trim().toLowerCase();
+		host.classList.toggle("searching", q.length > 0);
+		if (!q) {
+			for (const r of bldRefs) r.g.classList.remove("hit");
+			return 0;
+		}
+		let n = 0;
+		for (const r of bldRefs) {
+			const hit =
+				r.b.label.toLowerCase().includes(q) ||
+				r.b.name.toLowerCase().includes(q) ||
+				r.b.rows.some((row) => row.name.toLowerCase().includes(q));
+			r.g.classList.toggle("hit", hit);
+			if (hit) n++;
+		}
+		return n;
+	}
+
 	const camera: Camera = createCamera({
 		host,
 		cam,
@@ -1007,6 +1049,8 @@ export function createCityScene(
 		},
 		select,
 		selected: () => selected,
+		setFilter,
+		setSearch,
 		fit: () => camera.fit(),
 		snap: (dir) => camera.snap(dir),
 		nudge: (r) => camera.nudge(r),
