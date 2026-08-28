@@ -23,13 +23,13 @@ export const textWorld = (s: string, font: number): number =>
  * `chart_generation_log` cut from the right is `chart_gene…`, which could be
  * anything, while cut from the middle it is `chart_…_log`.
  */
-export function fit(s: string, maxChars: number): string {
+export function trimMid(s: string, maxChars: number): string {
 	if (maxChars >= s.length) return s;
 	if (maxChars <= 1) return "…";
 	const keep = maxChars - 1;
 	const head = Math.ceil(keep / 2);
 	const tail = keep - head;
-	return s.slice(0, head) + "…" + (tail ? s.slice(-tail) : "");
+	return `${s.slice(0, head)}…${tail ? s.slice(-tail) : ""}`;
 }
 
 // ── wrapping a name around a drum ────────────────────────────────────────────

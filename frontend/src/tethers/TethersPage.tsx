@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { NavLink, useParams } from "react-router-dom";
 import { getTether, getTetherGraph, getTethers } from "../api/tethers";
-import { TetherCanvas } from "./TetherCanvas";
+import { TetherCity } from "./TetherCity";
 
 function TetherViewer({ id }: { id: string }) {
 	const detail = useQuery({
@@ -53,7 +53,11 @@ function TetherViewer({ id }: { id: string }) {
 			) : graph.isError || !graph.data ? (
 				<p className="text-sec">Failed to load the graph.</p>
 			) : (
-				<TetherCanvas graph={graph.data} />
+				<TetherCity
+					graph={graph.data}
+					codeLabel={t.source_name}
+					dataLabel={t.database_name}
+				/>
 			)}
 		</div>
 	);
