@@ -27,14 +27,30 @@
 	--db-face-r: #8c8d88;
 
 	--city-panel: rgba(255, 253, 249, 0.95);
-	--tether-core: #ffffff;
+
+	/* On a cream ground a tether cannot glow: there is nothing for light to add
+	   to. So the spine goes dark and dense rather than white-hot, the sheath
+	   carries the colour, and every alpha steps up — the same cord read as ink
+	   instead of as light. The dark theme keeps the emissive version below. */
+	--tether-core: #22303a;
+	--tt-a3: 0.07;
+	--tt-a2: 0.1;
+	--tt-a1: 0.14;
+	--tt-a0: 0.2;
+	--tt-sheath-a: 0.5;
+	--tt-core-a: 0.82;
+	--tt-node-a: 0.75;
+	--tt-ghost-a: 0.5;
+
 	--reads: #2596b0;
 	--writes: #d92f80;
 	--refs: #97a012;
 	--maps: #dd7a1e;
 
 	position: relative;
-	height: calc(100vh - 190px);
+	/* derived from the navbar token rather than a magic number, so it tracks if
+	   the chrome above it changes: navbar + the viewer's own padding and header */
+	height: calc(100vh - var(--navbar-h) - 124px);
 	min-height: 520px;
 	background: var(--void);
 	border: 1px solid var(--border);
@@ -58,7 +74,17 @@
 	--db-face-r: #1b1d1e;
 
 	--city-panel: rgba(20, 20, 17, 0.95);
+
 	--tether-core: #eaf9ff;
+	--tt-a3: 0.035;
+	--tt-a2: 0.055;
+	--tt-a1: 0.085;
+	--tt-a0: 0.13;
+	--tt-sheath-a: 0.34;
+	--tt-core-a: 0.8;
+	--tt-node-a: 0.55;
+	--tt-ghost-a: 0.45;
+
 	--reads: var(--c-cyan);
 	--writes: var(--c-pink);
 	--refs: var(--c-lime);
@@ -255,38 +281,38 @@ svg.city.spinning {
 	stroke-linejoin: round;
 }
 .tt-g3 {
-	stroke-opacity: 0.035;
+	stroke-opacity: var(--tt-a3);
 }
 .tt-g2 {
-	stroke-opacity: 0.055;
+	stroke-opacity: var(--tt-a2);
 }
 .tt-g1 {
-	stroke-opacity: 0.085;
+	stroke-opacity: var(--tt-a1);
 }
 .tt-g0 {
-	stroke-opacity: 0.13;
+	stroke-opacity: var(--tt-a0);
 }
 /* the two body layers are filled ribbons, not strokes: their width is a
    function of how far along the run they are */
 .tt-sheath {
-	fill-opacity: 0.34;
+	fill-opacity: var(--tt-sheath-a);
 	stroke: none;
 }
 .tt-core {
 	fill: var(--tether-core);
-	fill-opacity: 0.8;
+	fill-opacity: var(--tt-core-a);
 	stroke: none;
 }
 .tt-node {
 	fill: var(--tether-core);
-	fill-opacity: 0.55;
+	fill-opacity: var(--tt-node-a);
 }
 /* the stretch behind the skyline: a trail of soft dots rather than dashes,
    which were the hardest-edged thing on the canvas */
 .arc.arc-ghost {
 	stroke-dasharray: 0.1 5.5;
 	stroke-linecap: round;
-	stroke-opacity: 0.45;
+	stroke-opacity: var(--tt-ghost-a);
 }
 /* the relationship colour is set once on the group and inherits down, as both
    stroke (the falloff) and fill (the ribbons); the hot core overrides it, and
@@ -346,10 +372,10 @@ svg.city.spinning {
 	opacity: 0.08;
 }
 .city.has-sel .arc-g.rel .tt-g0 {
-	stroke-opacity: 0.3;
+	stroke-opacity: var(--tt-a0);
 }
 .city.has-sel .arc-g.rel .tt-g1 {
-	stroke-opacity: 0.2;
+	stroke-opacity: var(--tt-a1);
 }
 .city.has-sel .arc-g.rel .tt-core {
 	fill-opacity: 1;
@@ -363,12 +389,11 @@ svg.city.spinning {
 
 /* ── inspector ── */
 .city-inspector {
-	position: absolute;
-	top: var(--md);
-	left: var(--md);
-	width: 300px;
-	max-height: calc(100% - var(--xl));
+	grid-area: inspector;
+	align-self: start;
+	max-height: 100%;
 	overflow-y: auto;
+	position: relative;
 	background: var(--city-panel);
 	border: 1px solid var(--border);
 	padding: var(--md);
@@ -481,11 +506,30 @@ svg.city.spinning {
 	transition: opacity 0.6s ease 0.35s;
 }
 
-/* ── controls ── */
-.city-rail {
+/* ── chrome ──
+   One grid over the canvas rather than four absolutely-positioned panels: the
+   search and the inspector both want the top left, and the info panel and the
+   rail both want the top right, so hand-placed offsets would be a standing
+   collision. The container ignores the pointer; each panel takes it back. */
+.city-overlay {
 	position: absolute;
-	top: var(--md);
-	right: var(--md);
+	inset: var(--md);
+	display: grid;
+	grid-template-columns: 300px minmax(0, 1fr) 320px;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	grid-template-areas:
+		"tools tools rail"
+		"inspector . info"
+		"legend . .";
+	gap: var(--sm);
+	pointer-events: none;
+}
+.city-overlay > * {
+	pointer-events: auto;
+}
+.city-rail {
+	grid-area: rail;
+	justify-self: end;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
@@ -513,14 +557,12 @@ svg.city.spinning {
 
 /* ── search and filters ── */
 .city-tools {
-	position: absolute;
-	top: var(--md);
-	left: var(--md);
+	grid-area: tools;
+	align-self: start;
 	display: flex;
 	align-items: center;
 	gap: 8px;
 	flex-wrap: wrap;
-	max-width: calc(100% - 120px);
 }
 .city-search {
 	width: 250px;
@@ -560,6 +602,10 @@ svg.city.spinning {
 .chip.is-on {
 	color: var(--text);
 }
+.chip:focus-visible {
+	outline: 2px solid var(--c-cyan);
+	outline-offset: 2px;
+}
 .chip--reads.is-on {
 	border-color: var(--reads);
 	box-shadow: inset 0 -2px 0 var(--reads);
@@ -597,11 +643,9 @@ svg.city.spinning {
 
 /* ── info ── */
 .city-info {
-	position: absolute;
-	top: 60px;
-	right: var(--md);
-	width: 320px;
-	max-height: calc(100% - 80px);
+	grid-area: info;
+	align-self: start;
+	max-height: 100%;
 	overflow-y: auto;
 	background: var(--city-panel);
 	border: 1px solid var(--border);
@@ -637,9 +681,8 @@ svg.city.spinning {
 
 /* ── legend ── */
 .city-legend {
-	position: absolute;
-	left: var(--md);
-	bottom: var(--md);
+	grid-area: legend;
+	align-self: end;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
