@@ -81,6 +81,9 @@ export interface Storey {
 
 /** one graph edge, once both its ends have been resolved to a storey */
 export interface Strand {
+	/** stable identity: the graph permits several edges between the same pair,
+	 *  so the endpoints alone do not distinguish them */
+	key: string;
 	edge: GraphEdge;
 	rel: Rel;
 	conf: number;
@@ -337,6 +340,7 @@ export function planCity(graph: TetherGraph, opts: PlanOptions = {}): City {
 			dst.bundles.push(bundle);
 		}
 		bundle.strands.push({
+			key: `${e.source_id}\u2192${e.target_id}#${bundle.strands.length}`,
 			edge: e,
 			rel,
 			conf,

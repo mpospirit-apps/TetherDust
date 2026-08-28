@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CityInspector } from "./CityInspector";
 import { planCity } from "./city/plan";
 import { createCityScene, type SceneHandle } from "./city/scene";
 import type { TetherGraph } from "./types";
@@ -23,16 +24,18 @@ export function TetherCity({
 	);
 
 	const sceneRef = useRef<SceneHandle | null>(null);
+	const [selected, setSelected] = useState<string | null>(null);
 
 	useEffect(() => {
 		const host = svgRef.current;
 		if (!host) return;
-		const scene = createCityScene(host, city);
+		const scene = createCityScene(host, city, setSelected);
 		sceneRef.current = scene;
 		const onKey = (ev: KeyboardEvent) => {
 			if (ev.target instanceof HTMLInputElement) return;
 			if (ev.key === "[") scene.nudge((-5 * Math.PI) / 180);
 			else if (ev.key === "]") scene.nudge((5 * Math.PI) / 180);
+			else if (ev.key === "Escape") scene.select(null);
 		};
 		addEventListener("keydown", onKey);
 		return () => {
@@ -42,7 +45,12 @@ export function TetherCity({
 		};
 	}, [city]);
 
+	// a graph change rebuilds the scene, which starts with nothing open
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on new city
+	useEffect(() => setSelected(null), [city]);
+
 	const snap = useCallback((dir: 1 | -1) => sceneRef.current?.snap(dir), []);
+	const close = useCallback(() => sceneRef.current?.select(null), []);
 	const fit = useCallback(() => sceneRef.current?.fit(), []);
 
 	if (city.buildings.length === 0) {
@@ -84,6 +92,9 @@ export function TetherCity({
 					<i className="fa-solid fa-expand" />
 				</button>
 			</div>
+			{selected ? (
+				<CityInspector city={city} id={selected} onClose={close} />
+			) : null}
 			<div className="city-legend">
 				<span className="ttl">Tethers</span>
 				<div className="rels">

@@ -43,6 +43,7 @@ import {
 } from "./occlude";
 import {
 	type Building,
+	type Bundle,
 	CAP_FONT,
 	type City,
 	capRoom,
@@ -81,6 +82,15 @@ function mk<K extends keyof SVGElementTagNameMap>(
 	return e;
 }
 
+interface SlabRef {
+	f: number;
+	rel?: string;
+	ws?: SVGPolygonElement[];
+	roof?: SVGPolygonElement;
+	side?: SVGPathElement;
+	cap?: SVGEllipseElement;
+}
+
 interface WallSlot {
 	wg: SVGGElement;
 	poly: SVGPolygonElement;
@@ -93,8 +103,9 @@ interface BuildingRef {
 	g: SVGGElement;
 	solid: SVGGElement;
 	slabG: SVGGElement;
-	/** how far the stack is opened, in storey heights. Part 4 animates this. */
+	/** how far the stack is opened, in storey heights */
 	spread: number;
+	slabs?: SlabRef[];
 	floorLift: number | null;
 	occ: Occluder;
 	depth: number;
@@ -115,25 +126,36 @@ interface BuildingRef {
 	sign?: SVGGElement;
 }
 
-interface ArcRef {
-	id: string;
-	src: string;
-	dst: string;
-	si: number;
-	di: number;
+/** One drawn tether: the falloff, the hidden stretch, the ribbons, the ends. */
+interface Cord {
 	g: SVGGElement;
-	g3: SVGPathElement;
-	g2: SVGPathElement;
-	g1: SVGPathElement;
-	g0: SVGPathElement;
+	layers: SVGPathElement[];
 	ghost: SVGPathElement;
 	sheath: SVGPathElement;
 	core: SVGPathElement;
 	nodes: [SVGCircleElement, SVGCircleElement];
 	hw: number;
 	phase: number;
+	si: number;
+	di: number;
 	route: Route | null;
 	run: Run | null;
+}
+
+/**
+ * A bundle draws as one cord at rest and as its individual strands once either
+ * end is opened — the same thing the explode does for storeys, one level up.
+ * The strands are built the first time they are needed and kept afterwards.
+ */
+interface ArcRef {
+	bu: Bundle;
+	src: string;
+	dst: string;
+	g: SVGGElement;
+	cord: Cord;
+	strandG: SVGGElement;
+	strands: Cord[] | null;
+	split: boolean;
 }
 
 export interface SceneHandle {
@@ -148,13 +170,37 @@ export interface SceneHandle {
 	/** turn to the next quarter from wherever the camera was left */
 	snap(dir: 1 | -1): void;
 	nudge(radians: number): void;
+	/** open a building, or pass null to close whatever is open */
+	select(id: string | null): void;
+	selected(): string | null;
 }
 
-/** where storey f sits once the stack is opened by `spread` (part 4) */
+// ── opening a building ───────────────────────────────────────────────────────
+//
+// Clicking lifts a building's storeys apart so the stack can be read a floor at
+// a time. The bottom storey never moves: the city keeps its footprint and the
+// skyline keeps its base, and everything above opens upward.
+//
+// How far it opens is capped by the headroom the frame has. The viewBox was
+// fitted to the closed city, so a tall stack gets a narrower gap than a short
+// one and both stay inside it.
+/** storey heights of daylight between floors */
+const EXPLODE_GAP = 0.72;
+/** z units the tallest stack may grow by */
+const EXPLODE_RISE = 4.6;
+const EXPLODE_MS = 420;
+const explodeOf = (h: number): number =>
+	Math.min(EXPLODE_GAP, EXPLODE_RISE / Math.max(1, h - 1));
+
+/** where storey f sits once the stack is opened by `spread` */
 const floorZ = (r: BuildingRef, f: number): number => f * (1 + r.spread);
 const topZ = (r: BuildingRef): number => (r.b.h - 1) * (1 + r.spread) + 1;
 
-export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
+export function createCityScene(
+	host: SVGSVGElement,
+	city: City,
+	onSelect?: (id: string | null) => void,
+): SceneHandle {
 	const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 	while (host.firstChild) host.removeChild(host.firstChild);
@@ -349,15 +395,23 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 
 	// Six strokes and two nodes make one tether. The order inside the group IS
 	// the depth order: bloom outward, then the sheath, then the hot core.
-	const arcRefs: ArcRef[] = city.bundles.map((bu, i) => {
-		const w = 0.9 + Math.min(1, bu.conf) * 2.1;
-		const g = mk("g", `arc-g arc-${bu.rel}`, lArcs);
-		g.dataset.t = bu.id;
+	function makeCord(
+		parent: SVGGElement,
+		rel: string,
+		conf: number,
+		phase: number,
+		si: number,
+		di: number,
+	): Cord {
+		const w = 0.9 + Math.min(1, Math.max(0, conf)) * 2.1;
+		const g = mk("g", `cord arc-${rel}`, parent);
 		const part = (cls: string, sw: number): SVGPathElement => {
 			const e = mk("path", `arc ${cls}`, g);
 			e.setAttribute("stroke-width", sw.toFixed(2));
 			return e;
 		};
+		// the order inside the group IS the depth order: bloom outward first,
+		// then the sheath, then the hot core over the top
 		const g3 = part("tt-g3", w * 9 + 15);
 		const g2 = part("tt-g2", w * 5.4 + 8);
 		const g1 = part("tt-g1", w * 3.1 + 4);
@@ -369,26 +423,75 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 		const n1c = mk("circle", "tt-node", g);
 		for (const c of [n0, n1c]) c.setAttribute("r", (1.6 + w * 0.6).toFixed(2));
 		return {
-			id: bu.id,
-			src: bu.src,
-			dst: bu.dst,
-			si: bu.si,
-			di: bu.di,
 			g,
-			g3,
-			g2,
-			g1,
-			g0,
+			layers: [g0, g1, g2, g3],
 			ghost,
 			sheath,
 			core,
 			nodes: [n0, n1c],
 			hw: 0.55 + w * 0.6,
-			phase: (i * 0.37) % 1,
+			phase,
+			si,
+			di,
 			route: null,
 			run: null,
 		};
+	}
+
+	const arcRefs: ArcRef[] = city.bundles.map((bu, i) => {
+		const g = mk("g", "arc-g", lArcs);
+		g.dataset.t = bu.id;
+		const cord = makeCord(g, bu.rel, bu.conf, (i * 0.37) % 1, bu.si, bu.di);
+		const strandG = mk("g", "strands", g);
+		strandG.style.display = "none";
+		return {
+			bu,
+			src: bu.src,
+			dst: bu.dst,
+			g,
+			cord,
+			strandG,
+			strands: null,
+			split: false,
+		};
 	});
+
+	/**
+	 * The per-storey geometry, built the first time a building is opened and kept
+	 * afterwards. Every building carrying its own storeys from the start would
+	 * cost more per frame than the whole rest of the scene, and most of it would
+	 * never be looked at.
+	 */
+	function buildSlabs(r: BuildingRef): void {
+		if (r.slabs) return;
+		const b = r.b;
+		r.slabs = b.rows.map((_row, f) => {
+			const rel = b.lit.get(f);
+			const g = mk("g", null, r.slabG);
+			// a storey a tether lands on keeps reading as lit, so the whole slab
+			// takes the relationship colour instead of carrying a band across it
+			if (b.kind === "db") {
+				const side = mk("path", rel ? `lit lit-${rel}` : "disk-side", g);
+				if (!rel) side.setAttribute("fill", `url(#${gradId})`);
+				return { f, rel, side, cap: mk("ellipse", "disk-cap", g) };
+			}
+			return {
+				f,
+				rel,
+				ws: [0, 1, 2, 3].map(() => mk("polygon", "wall", g)),
+				roof: mk("polygon", "roof", g),
+			};
+		});
+	}
+
+	/** the individual edges of a bundle, built the first time they are shown */
+	function buildStrands(a: ArcRef): Cord[] {
+		if (a.strands) return a.strands;
+		a.strands = a.bu.strands.map((t, i) =>
+			makeCord(a.strandG, t.rel, t.conf, (i * 0.29) % 1, t.si, t.di),
+		);
+		return a.strands;
+	}
 
 	const distRefs = city.districts.map((d) => ({
 		d,
@@ -409,6 +512,9 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 		for (const r of bldRefs) {
 			const b = r.b;
 			const cw = rotPt(bg, b.cx, b.cy);
+			const open = r.spread > 1e-4;
+			r.solid.style.display = open ? "none" : "";
+			r.slabG.style.display = open ? "" : "none";
 			const hTop = topZ(r);
 			let topY: number;
 
@@ -420,6 +526,17 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 				r.seams?.setAttribute("d", sd);
 				for (const band of r.bands ?? [])
 					band.el.setAttribute("d", cylinder(cw, b.r, band.f, band.f + 1));
+				if (open && r.slabs) {
+					for (const sl of r.slabs) {
+						const z0 = floorZ(r, sl.f);
+						sl.side?.setAttribute("d", cylinder(cw, b.r, z0, z0 + 1));
+						const c = P(cw[0], cw[1], z0 + 1);
+						sl.cap?.setAttribute("cx", n1(c[0]));
+						sl.cap?.setAttribute("cy", n1(c[1]));
+						sl.cap?.setAttribute("rx", n1(diskScreenRx(b.r)));
+						sl.cap?.setAttribute("ry", n1(diskScreenRy(b.r)));
+					}
+				}
 				const cap = P(cw[0], cw[1], hTop);
 				r.cap?.setAttribute("cx", n1(cap[0]));
 				r.cap?.setAttribute("cy", n1(cap[1]));
@@ -516,6 +633,37 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 						),
 					),
 				);
+				if (open && r.slabs) {
+					for (const sl of r.slabs) {
+						const z0 = floorZ(r, sl.f);
+						const z1 = z0 + 1;
+						ws.forEach((w, i) => {
+							const el = (sl.ws as SVGPolygonElement[])[i];
+							if (w.facing <= 0.001) {
+								el.style.display = "none";
+								return;
+							}
+							el.style.display = "";
+							el.setAttribute(
+								"points",
+								poly([
+									P(w.a[0], w.a[1], z1),
+									P(w.b[0], w.b[1], z1),
+									P(w.b[0], w.b[1], z0),
+									P(w.a[0], w.a[1], z0),
+								]),
+							);
+							el.setAttribute(
+								"class",
+								sl.rel ? `lit lit-${sl.rel}` : `wall ${shadeClass(w.shade)}`,
+							);
+						});
+						sl.roof?.setAttribute(
+							"points",
+							poly(cs.map((c) => P(c[0], c[1], z1))),
+						);
+					}
+				}
 				topY = P(cw[0], cw[1], hTop)[1];
 			}
 
@@ -574,40 +722,10 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 		for (const a of arcRefs) {
 			const s = refById.get(a.src) as BuildingRef;
 			const d = refById.get(a.dst) as BuildingRef;
-			// mid-storey, and mid-storey of an open stack is wherever that storey has
-			// risen to — so a run that lands on floor 9 follows floor 9 up
-			const zs = floorZ(s, a.si) + 0.5;
-			const zd = floorZ(d, a.di) + 0.5;
 			const cs = centre.get(s.b.id) as Pt;
 			const cd = centre.get(d.b.id) as Pt;
-			const w0 = anchor(s.b, zs, cd, zd);
-			const w1 = anchor(d.b, zd, cs, zs);
-			const want = planRoute(bg, index, w0, w1, s.b.id, d.b.id);
-			if (!a.route || reduced) a.route = want;
-			else if (
-				Math.abs(want.lift - a.route.lift) < 0.02 &&
-				Math.abs(want.lean - a.route.lean) < 0.02
-			) {
-				a.route = want;
-			} else {
-				a.route = {
-					lift: a.route.lift + (want.lift - a.route.lift) * ROUTE_EASE,
-					lean: a.route.lean + (want.lean - a.route.lean) * ROUTE_EASE,
-				};
-				easing = true;
-			}
-			const run = buildRun(bg, index, w0, w1, a.route, a.hw);
-			a.run = run;
-			for (const e of [a.g0, a.g1, a.g2, a.g3]) e.setAttribute("d", run.solid);
-			a.ghost.setAttribute("d", run.ghost);
-			const last = run.pts.length - 1;
-			a.nodes[0].setAttribute("cx", n1(run.pts[0][0]));
-			a.nodes[0].setAttribute("cy", n1(run.pts[0][1]));
-			a.nodes[1].setAttribute("cx", n1(run.pts[last][0]));
-			a.nodes[1].setAttribute("cy", n1(run.pts[last][1]));
-			a.nodes[0].style.visibility = run.hid[0] ? "hidden" : "";
-			a.nodes[1].style.visibility = run.hid[last] ? "hidden" : "";
-			paint(a, flowT);
+			const cords = a.split && a.strands ? a.strands : [a.cord];
+			for (const c of cords) if (routeCord(c, s, d, cs, cd)) easing = true;
 		}
 		if (easing && !settleReq && alive) {
 			settleReq = requestAnimationFrame(() => {
@@ -617,11 +735,55 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 		}
 	}
 
-	function paint(a: ArcRef, time: number): void {
-		if (!a.run) return;
-		const rib = flow(a.run, time, a.phase);
-		a.core.setAttribute("d", rib.core);
-		a.sheath.setAttribute("d", rib.sheath);
+	/** returns true while the cord is still easing onto a newly chosen route */
+	function routeCord(
+		c: Cord,
+		s: BuildingRef,
+		d: BuildingRef,
+		cs: Pt,
+		cd: Pt,
+	): boolean {
+		// mid-storey, and mid-storey of an open stack is wherever that storey has
+		// risen to — so a run that lands on floor 9 follows floor 9 up
+		const zs = floorZ(s, c.si) + 0.5;
+		const zd = floorZ(d, c.di) + 0.5;
+		const w0 = anchor(s.b, zs, cd, zd);
+		const w1 = anchor(d.b, zd, cs, zs);
+		const want = planRoute(bg, index, w0, w1, s.b.id, d.b.id);
+		let easing = false;
+		if (!c.route || reduced) c.route = want;
+		else if (
+			Math.abs(want.lift - c.route.lift) < 0.02 &&
+			Math.abs(want.lean - c.route.lean) < 0.02
+		) {
+			c.route = want;
+		} else {
+			c.route = {
+				lift: c.route.lift + (want.lift - c.route.lift) * ROUTE_EASE,
+				lean: c.route.lean + (want.lean - c.route.lean) * ROUTE_EASE,
+			};
+			easing = true;
+		}
+		const run = buildRun(bg, index, w0, w1, c.route, c.hw);
+		c.run = run;
+		for (const e of c.layers) e.setAttribute("d", run.solid);
+		c.ghost.setAttribute("d", run.ghost);
+		const last = run.pts.length - 1;
+		c.nodes[0].setAttribute("cx", n1(run.pts[0][0]));
+		c.nodes[0].setAttribute("cy", n1(run.pts[0][1]));
+		c.nodes[1].setAttribute("cx", n1(run.pts[last][0]));
+		c.nodes[1].setAttribute("cy", n1(run.pts[last][1]));
+		c.nodes[0].style.visibility = run.hid[0] ? "hidden" : "";
+		c.nodes[1].style.visibility = run.hid[last] ? "hidden" : "";
+		paint(c, flowT);
+		return easing;
+	}
+
+	function paint(c: Cord, time: number): void {
+		if (!c.run) return;
+		const rib = flow(c.run, time, c.phase);
+		c.core.setAttribute("d", rib.core);
+		c.sheath.setAttribute("d", rib.sheath);
 	}
 
 	/**
@@ -715,6 +877,77 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 		host.classList.toggle("detail", scale * FLOOR_FONT >= FLOOR_MIN_PX);
 	}
 
+	// ── selection ────────────────────────────────────────────────────────────
+	//
+	// One building is open at a time. Opening it splits every bundle it carries
+	// into the individual edges, which then land on the storeys that have just
+	// risen apart — the bundle collapses exactly when the view gains the room to
+	// show what is inside it.
+	const opening = new Map<
+		BuildingRef,
+		{ from: number; to: number; t0: number }
+	>();
+	let openRAF = 0;
+	let selected: string | null = null;
+
+	function spreadTo(r: BuildingRef, to: number): void {
+		if (to > 0) buildSlabs(r);
+		if (reduced) {
+			r.spread = to;
+			opening.delete(r);
+			layout();
+			return;
+		}
+		if (Math.abs(r.spread - to) < 1e-4) {
+			opening.delete(r);
+			return;
+		}
+		opening.set(r, { from: r.spread, to, t0: performance.now() });
+		if (!openRAF) openRAF = requestAnimationFrame(openFrame);
+	}
+
+	function openFrame(now: number): void {
+		openRAF = 0;
+		if (!alive) return;
+		for (const [r, a] of opening) {
+			const u = Math.min(1, (now - a.t0) / EXPLODE_MS);
+			r.spread = a.from + (a.to - a.from) * (1 - (1 - u) ** 3);
+			if (u >= 1) {
+				r.spread = a.to;
+				opening.delete(r);
+			}
+		}
+		layout();
+		if (opening.size) openRAF = requestAnimationFrame(openFrame);
+	}
+
+	function setSplit(a: ArcRef, split: boolean): void {
+		if (a.split === split) return;
+		a.split = split;
+		if (split) buildStrands(a);
+		a.cord.g.style.display = split ? "none" : "";
+		a.strandG.style.display = split ? "" : "none";
+	}
+
+	function select(id: string | null): void {
+		selected = id;
+		for (const r of bldRefs) {
+			const on = r.b.id === id;
+			r.g.classList.toggle("sel", on);
+			if (!on && (r.spread > 0 || opening.has(r))) spreadTo(r, 0);
+		}
+		for (const a of arcRefs) {
+			const rel = id !== null && (a.src === id || a.dst === id);
+			a.g.classList.toggle("rel", rel);
+			setSplit(a, rel);
+		}
+		host.classList.toggle("has-sel", id !== null);
+		const r = id ? refById.get(id) : undefined;
+		if (r) spreadTo(r, explodeOf(r.b.h));
+		else layout();
+		onSelect?.(id);
+	}
+
 	const camera: Camera = createCamera({
 		host,
 		cam,
@@ -725,8 +958,9 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 			layout();
 		},
 		onScale: detail,
-		onPick() {
-			// selection lands in part 4b
+		onPick(target) {
+			const g = target?.closest(".bld");
+			select(g instanceof SVGElement ? (g.dataset.id ?? null) : null);
 		},
 	});
 	// a resize changes the apparent scale without any gesture having happened
@@ -742,7 +976,10 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 	if (!reduced) {
 		frameReq = requestAnimationFrame(function frame(now) {
 			flowT = now / 1000;
-			for (const a of arcRefs) paint(a, flowT);
+			for (const a of arcRefs) {
+				if (a.split && a.strands) for (const c of a.strands) paint(c, flowT);
+				else paint(a.cord, flowT);
+			}
 			frameReq = requestAnimationFrame(frame);
 		});
 	}
@@ -750,6 +987,7 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 	return {
 		destroy() {
 			alive = false;
+			if (openRAF) cancelAnimationFrame(openRAF);
 			camera.destroy();
 			ro.disconnect();
 			if (frameReq) cancelAnimationFrame(frameReq);
@@ -767,6 +1005,8 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 		viewBox() {
 			return vb;
 		},
+		select,
+		selected: () => selected,
 		fit: () => camera.fit(),
 		snap: (dir) => camera.snap(dir),
 		nudge: (r) => camera.nudge(r),

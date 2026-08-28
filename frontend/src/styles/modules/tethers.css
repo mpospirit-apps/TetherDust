@@ -308,6 +308,162 @@ svg.city.spinning {
 	fill: var(--maps);
 }
 
+.city .bld {
+	cursor: pointer;
+}
+
+/* ── hover and selection ──
+   A selected tether lights up rather than fattens: the layering is the look. */
+.city .bld:hover .wall,
+.city .bld:hover .roof,
+.city .bld:hover .disk-side,
+.city .bld:hover .disk-cap {
+	stroke: var(--text);
+	stroke-width: 1.3;
+}
+.city .bld.sel .wall,
+.city .bld.sel .roof,
+.city .bld.sel .disk-side,
+.city .bld.sel .disk-cap {
+	stroke: var(--text);
+	stroke-width: 1.4;
+}
+.city .bld.sel .roof-label {
+	fill: var(--text);
+}
+.city .bld:hover .sign-board,
+.city .bld.sel .sign-board {
+	stroke: var(--text);
+}
+.city.has-sel .bld,
+.city.has-sel .arc-g {
+	transition: opacity 0.22s ease;
+}
+.city.has-sel .bld:not(.sel) {
+	opacity: 0.28;
+}
+.city.has-sel .arc-g:not(.rel) {
+	opacity: 0.08;
+}
+.city.has-sel .arc-g.rel .tt-g0 {
+	stroke-opacity: 0.3;
+}
+.city.has-sel .arc-g.rel .tt-g1 {
+	stroke-opacity: 0.2;
+}
+.city.has-sel .arc-g.rel .tt-core {
+	fill-opacity: 1;
+}
+.city.has-sel .arc-g.rel .tt-sheath {
+	fill-opacity: 0.5;
+}
+.city.has-sel .arc-g.rel .arc-ghost {
+	stroke-opacity: 0.45;
+}
+
+/* ── inspector ── */
+.city-inspector {
+	position: absolute;
+	top: var(--md);
+	left: var(--md);
+	width: 300px;
+	max-height: calc(100% - var(--xl));
+	overflow-y: auto;
+	background: var(--city-panel);
+	border: 1px solid var(--border);
+	padding: var(--md);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.city-inspector__kind {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+.city-inspector h2 {
+	font-family: var(--font-mono);
+	font-size: 14px;
+	margin: 0;
+	word-break: break-word;
+}
+.city-inspector p {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.5;
+	color: var(--text-sec);
+}
+.city-inspector h3 {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+	margin: 6px 0 0;
+	border-top: 1px solid var(--border);
+	padding-top: 8px;
+}
+.city-inspector ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+.city-inspector li {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--text-sec);
+}
+.city-inspector li.hot {
+	color: var(--text);
+}
+.city-inspector .nm {
+	flex: 1;
+	word-break: break-word;
+}
+.city-inspector .ty {
+	color: var(--text-muted);
+	font-size: 10px;
+}
+.city-inspector .fg {
+	font-size: 9px;
+	padding: 0 4px;
+	border: 1px solid var(--border);
+	color: var(--text-muted);
+}
+.city-inspector .rl-reads {
+	color: var(--reads);
+}
+.city-inspector .rl-writes {
+	color: var(--writes);
+}
+.city-inspector .rl-references {
+	color: var(--refs);
+}
+.city-inspector .rl-maps-to {
+	color: var(--maps);
+}
+.city-inspector__close {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	background: none;
+	border: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	font-size: 12px;
+}
+.city-inspector__close:hover {
+	color: var(--text);
+}
+
 /* ── entrance ──
    Gated on .anim, which the scene adds only when motion is allowed. Under
    prefers-reduced-motion the class never appears, so there is nothing to
