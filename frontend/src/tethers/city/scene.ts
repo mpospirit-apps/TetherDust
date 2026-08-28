@@ -9,6 +9,7 @@
 // animation frame. The two meet at createCityScene()'s return value and nowhere
 // else.
 
+import { type Camera, createCamera } from "./camera";
 import {
 	type Bearing,
 	bearing,
@@ -142,6 +143,11 @@ export interface SceneHandle {
 	setTheta(theta: number): void;
 	theta(): number;
 	viewBox(): { x: number; y: number; w: number; h: number };
+	/** back to the fitted view */
+	fit(): void;
+	/** turn to the next quarter from wherever the camera was left */
+	snap(dir: 1 | -1): void;
+	nudge(radians: number): void;
 }
 
 /** where storey f sits once the stack is opened by `spread` (part 4) */
@@ -705,15 +711,30 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 	// of them. Gating the whole stack with display:none — rather than opacity on
 	// each name — keeps every glyph out of the raster until it can be read.
 	const FLOOR_MIN_PX = 5.4;
-	function detail(): void {
-		const scale = host.clientWidth ? host.clientWidth / vb.w : 0;
+	function detail(scale: number): void {
 		host.classList.toggle("detail", scale * FLOOR_FONT >= FLOOR_MIN_PX);
 	}
-	const ro = new ResizeObserver(detail);
+
+	const camera: Camera = createCamera({
+		host,
+		cam,
+		viewBox: vb,
+		reduced,
+		onTheta(t) {
+			bg = bearing(t, city.cx, city.cy);
+			layout();
+		},
+		onScale: detail,
+		onPick() {
+			// selection lands in part 4b
+		},
+	});
+	// a resize changes the apparent scale without any gesture having happened
+	const ro = new ResizeObserver(() => detail(camera.scale()));
 	ro.observe(host);
 
 	layout();
-	detail();
+	detail(camera.scale());
 	requestAnimationFrame(() => {
 		if (alive) host.classList.add("ready");
 	});
@@ -729,6 +750,7 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 	return {
 		destroy() {
 			alive = false;
+			camera.destroy();
 			ro.disconnect();
 			if (frameReq) cancelAnimationFrame(frameReq);
 			if (settleReq) cancelAnimationFrame(settleReq);
@@ -745,5 +767,8 @@ export function createCityScene(host: SVGSVGElement, city: City): SceneHandle {
 		viewBox() {
 			return vb;
 		},
+		fit: () => camera.fit(),
+		snap: (dir) => camera.snap(dir),
+		nudge: (r) => camera.nudge(r),
 	};
 }

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { planCity } from "./city/plan";
-import { createCityScene } from "./city/scene";
+import { createCityScene, type SceneHandle } from "./city/scene";
 import type { TetherGraph } from "./types";
 
 // React provides the host <svg> and nothing else inside it: the scene rewrites
@@ -22,12 +22,28 @@ export function TetherCity({
 		[graph, codeLabel, dataLabel],
 	);
 
+	const sceneRef = useRef<SceneHandle | null>(null);
+
 	useEffect(() => {
 		const host = svgRef.current;
 		if (!host) return;
 		const scene = createCityScene(host, city);
-		return () => scene.destroy();
+		sceneRef.current = scene;
+		const onKey = (ev: KeyboardEvent) => {
+			if (ev.target instanceof HTMLInputElement) return;
+			if (ev.key === "[") scene.nudge((-5 * Math.PI) / 180);
+			else if (ev.key === "]") scene.nudge((5 * Math.PI) / 180);
+		};
+		addEventListener("keydown", onKey);
+		return () => {
+			removeEventListener("keydown", onKey);
+			sceneRef.current = null;
+			scene.destroy();
+		};
 	}, [city]);
+
+	const snap = useCallback((dir: 1 | -1) => sceneRef.current?.snap(dir), []);
+	const fit = useCallback(() => sceneRef.current?.fit(), []);
 
 	if (city.buildings.length === 0) {
 		return (
@@ -42,6 +58,32 @@ export function TetherCity({
 	return (
 		<div className="city-wrap">
 			<svg ref={svgRef} className="city" />
+			<div className="city-rail">
+				<button
+					type="button"
+					className="city-btn"
+					title="Turn anticlockwise"
+					onClick={() => snap(-1)}
+				>
+					<i className="fa-solid fa-rotate-left" />
+				</button>
+				<button
+					type="button"
+					className="city-btn"
+					title="Turn clockwise"
+					onClick={() => snap(1)}
+				>
+					<i className="fa-solid fa-rotate-right" />
+				</button>
+				<button
+					type="button"
+					className="city-btn"
+					title="Fit view"
+					onClick={fit}
+				>
+					<i className="fa-solid fa-expand" />
+				</button>
+			</div>
 			<div className="city-legend">
 				<span className="ttl">Tethers</span>
 				<div className="rels">
@@ -62,6 +104,10 @@ export function TetherCity({
 						maps-to
 					</span>
 				</div>
+				<span className="note">
+					drag to pan · <kbd>shift</kbd>-drag or right-drag to turn · scroll to
+					zoom
+				</span>
 				<span className="note">
 					{city.buildings.length} buildings · storeys are symbols and columns ·{" "}
 					{city.bundles.length} cords carrying{" "}
