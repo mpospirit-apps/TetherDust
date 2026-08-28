@@ -385,9 +385,7 @@ svg.city.spinning {
 
 /* ── inspector ── */
 .city-inspector {
-	grid-area: inspector;
-	align-self: start;
-	max-height: 100%;
+	min-height: 0;
 	overflow-y: auto;
 	position: relative;
 	background: var(--city-panel);
@@ -511,23 +509,30 @@ svg.city.spinning {
 	position: absolute;
 	inset: var(--md);
 	display: grid;
-	grid-template-columns: 300px minmax(0, 1fr) 320px;
+	grid-template-columns: auto minmax(0, 1fr) 30%;
 	grid-template-rows: auto minmax(0, 1fr) auto;
 	grid-template-areas:
-		"title tools rail"
-		"inspector . info"
-		"legend . .";
+		"title    tools panels"
+		".        .     panels"
+		"controls .     panels";
 	gap: var(--sm);
 	pointer-events: none;
 }
 .city-overlay > * {
 	pointer-events: auto;
 }
-.city-rail {
-	grid-area: rail;
-	justify-self: end;
+/* the controls sit with the hints they belong to, out of the way of both the
+   title and the panel that opens on the right */
+.city-controls {
+	grid-area: controls;
+	align-self: end;
 	display: flex;
 	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--sm);
+}
+.city-rail {
+	display: flex;
 	gap: 6px;
 }
 .city-btn {
@@ -638,10 +643,20 @@ svg.city.spinning {
 }
 
 /* ── info ── */
+/* one column on the right holding whichever panels are open */
+.city-panels {
+	grid-area: panels;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sm);
+	min-height: 0;
+	pointer-events: none;
+}
+.city-panels > * {
+	pointer-events: auto;
+}
 .city-info {
-	grid-area: info;
-	align-self: start;
-	max-height: 100%;
+	min-height: 0;
 	overflow-y: auto;
 	background: var(--city-panel);
 	border: 1px solid var(--border);
@@ -677,8 +692,6 @@ svg.city.spinning {
 
 /* ── legend ── */
 .city-legend {
-	grid-area: legend;
-	align-self: end;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;

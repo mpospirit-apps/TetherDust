@@ -934,6 +934,22 @@ export function createCityScene(
 		a.strandG.style.display = split ? "" : "none";
 	}
 
+	/**
+	 * Frame a building: its own screen box, taken from the closed silhouette so
+	 * the camera does not chase the stack as it opens. Zoom enough that the
+	 * building fills a good part of the frame, and at least enough that the
+	 * storey names it just revealed are actually legible.
+	 */
+	function focusOn(r: BuildingRef): { x: number; y: number; k: number } {
+		const o = r.occ;
+		const h = Math.max(1, o.y1 - o.y0);
+		return {
+			x: (o.x0 + o.x1) / 2,
+			y: (o.y0 + o.y1) / 2,
+			k: Math.max(1.2, Math.min(3.2, (0.55 * vb.h) / h)),
+		};
+	}
+
 	function select(id: string | null): void {
 		selected = id;
 		for (const r of bldRefs) {
@@ -950,6 +966,8 @@ export function createCityScene(
 		const r = id ? refById.get(id) : undefined;
 		if (r) spreadTo(r, explodeOf(r.b.h));
 		else layout();
+		// fly to what was opened, and back to the whole city when it is closed
+		camera.flyTo(r ? focusOn(r) : null);
 		onSelect?.(id);
 	}
 

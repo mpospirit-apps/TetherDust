@@ -25,6 +25,8 @@ export interface Camera {
 	/** snap to the next quarter turn from wherever it was left */
 	snap(dir: 1 | -1): void;
 	nudge(delta: number): void;
+	/** ease the view onto a point at a given zoom, or back to the fitted view */
+	flyTo(target: { x: number; y: number; k: number } | null, dur?: number): void;
 	theta(): number;
 	scale(): number;
 }
@@ -43,6 +45,7 @@ export function createCamera(o: CameraOpts): Camera {
 	let spinning = false;
 	let suppressPick = false;
 	let raf = 0;
+	let flyRaf = 0;
 	let alive = true;
 
 	const baseScale = () =>
@@ -77,6 +80,10 @@ export function createCamera(o: CameraOpts): Camera {
 
 	const onWheel = (ev: WheelEvent): void => {
 		ev.preventDefault();
+		if (flyRaf) {
+			cancelAnimationFrame(flyRaf);
+			flyRaf = 0;
+		}
 		const p = toLocal(ev);
 		const k2 = Math.max(
 			K_MIN,
@@ -95,6 +102,11 @@ export function createCamera(o: CameraOpts): Camera {
 	// the canvas without that side effect.
 	const onDown = (ev: PointerEvent): void => {
 		if (spinning) return;
+		// a hand on the canvas wins over a flight already in progress
+		if (flyRaf) {
+			cancelAnimationFrame(flyRaf);
+			flyRaf = 0;
+		}
 		suppressPick = false;
 		if (ev.shiftKey || ev.button === 2) {
 			spin = { x: ev.clientX, theta };
@@ -169,7 +181,7 @@ export function createCamera(o: CameraOpts): Camera {
 			u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2;
 		raf = requestAnimationFrame(function step(now) {
 			if (!alive) return;
-			const u = Math.min(1, (now - t0) / dur);
+			const u = Math.max(0, Math.min(1, (now - t0) / dur));
 			setTheta(from + (to - from) * ease(u));
 			if (u < 1) {
 				raf = requestAnimationFrame(step);
@@ -181,12 +193,58 @@ export function createCamera(o: CameraOpts): Camera {
 		});
 	}
 
+	/**
+	 * Under `translate(t) scale(k)` a local point p lands at t + k·p, so putting p
+	 * in the middle of the frame is just t = centre − k·p. The frame's middle in
+	 * local units is the viewBox's own centre, because that is exactly what an
+	 * untransformed view shows.
+	 */
+	function flyTo(
+		target: { x: number; y: number; k: number } | null,
+		dur = 520,
+	): void {
+		const cx = o.viewBox.x + o.viewBox.w / 2;
+		const cy = o.viewBox.y + o.viewBox.h / 2;
+		const to = target
+			? {
+					tx: cx - target.k * target.x,
+					ty: cy - target.k * target.y,
+					k: target.k,
+				}
+			: { tx: 0, ty: 0, k: 1 };
+		if (flyRaf) cancelAnimationFrame(flyRaf);
+		if (o.reduced || dur === 0) {
+			view = to;
+			applyCam();
+			return;
+		}
+		const from = { ...view };
+		const t0 = performance.now();
+		const ease = (u: number): number => 1 - (1 - u) ** 3;
+		flyRaf = requestAnimationFrame(function step(now) {
+			if (!alive) return;
+			// clamped at both ends: an easing curve fed a negative u runs backwards
+			// past its own start, and there is no clock we control here
+			const u = Math.max(0, Math.min(1, (now - t0) / dur));
+			const e = ease(u);
+			view = {
+				tx: from.tx + (to.tx - from.tx) * e,
+				ty: from.ty + (to.ty - from.ty) * e,
+				k: from.k + (to.k - from.k) * e,
+			};
+			applyCam();
+			if (u < 1) flyRaf = requestAnimationFrame(step);
+			else flyRaf = 0;
+		});
+	}
+
 	applyCam();
 
 	return {
 		destroy() {
 			alive = false;
 			if (raf) cancelAnimationFrame(raf);
+			if (flyRaf) cancelAnimationFrame(flyRaf);
 			host.removeEventListener("wheel", onWheel);
 			host.removeEventListener("pointerdown", onDown);
 			host.removeEventListener("click", onClick);
@@ -197,9 +255,9 @@ export function createCamera(o: CameraOpts): Camera {
 			removeEventListener("pointercancel", onUp);
 		},
 		fit() {
-			view = { tx: 0, ty: 0, k: 1 };
-			applyCam();
+			flyTo(null);
 		},
+		flyTo,
 		// the buttons re-align to the next quarter turn from wherever you left it
 		snap(dir) {
 			const q = theta / QUARTER;

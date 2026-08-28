@@ -102,40 +102,6 @@ export function TetherCity({
 						{subtitle ? <p>{subtitle}</p> : null}
 					</div>
 				) : null}
-				<div className="city-rail">
-					<button
-						type="button"
-						className="city-btn"
-						title="Turn anticlockwise"
-						onClick={() => snap(-1)}
-					>
-						<i className="fa-solid fa-rotate-left" />
-					</button>
-					<button
-						type="button"
-						className="city-btn"
-						title="Turn clockwise"
-						onClick={() => snap(1)}
-					>
-						<i className="fa-solid fa-rotate-right" />
-					</button>
-					<button
-						type="button"
-						className="city-btn"
-						title="Fit view"
-						onClick={fit}
-					>
-						<i className="fa-solid fa-expand" />
-					</button>
-					<button
-						type="button"
-						className={info ? "city-btn is-on" : "city-btn"}
-						title="About this graph"
-						onClick={() => setInfo((v) => !v)}
-					>
-						<i className="fa-solid fa-circle-info" />
-					</button>
-				</div>
 				<div className="city-tools">
 					<input
 						className="city-search"
@@ -163,43 +129,80 @@ export function TetherCity({
 					</div>
 				</div>
 
-				{info ? (
-					<div className="city-info">
-						<h3>Codebase</h3>
-						<p>{city.codebaseSummary || "No summary was generated."}</p>
-						<h3>Database</h3>
-						<p>{city.databaseSummary || "No summary was generated."}</p>
-						<h3>Graph</h3>
-						<p>
-							{city.buildings.length} buildings ·{" "}
-							{city.buildings.reduce((s, b) => s + b.h, 0)} storeys ·{" "}
+				<div className="city-panels">
+					{info ? (
+						<div className="city-info">
+							<h3>Codebase</h3>
+							<p>{city.codebaseSummary || "No summary was generated."}</p>
+							<h3>Database</h3>
+							<p>{city.databaseSummary || "No summary was generated."}</p>
+							<h3>Graph</h3>
+							<p>
+								{city.buildings.length} buildings ·{" "}
+								{city.buildings.reduce((s, b) => s + b.h, 0)} storeys ·{" "}
+								{city.bundles.reduce((s, b) => s + b.strands.length, 0)} tethers
+								in {city.bundles.length} cords
+								{city.dropped
+									? ` · ${city.dropped} edge${city.dropped === 1 ? "" : "s"} joined a building to itself and could not be drawn`
+									: ""}
+							</p>
+							<p className="city-info__note">
+								A cord carries every tether between one pair of buildings and
+								takes the colour most of them share. Open a building to separate
+								them onto the storeys they land on.
+							</p>
+						</div>
+					) : null}
+					{selected ? (
+						<CityInspector city={city} id={selected} onClose={close} />
+					) : null}
+				</div>
+				<div className="city-controls">
+					<div className="city-legend">
+						<span className="note">
+							drag to pan · <kbd>shift</kbd>-drag or right-drag to turn · scroll
+							to zoom
+						</span>
+						<span className="note">
+							{city.buildings.length} buildings · storeys are symbols and
+							columns · {city.bundles.length} cords carrying{" "}
 							{city.bundles.reduce((s, b) => s + b.strands.length, 0)} tethers
-							in {city.bundles.length} cords
-							{city.dropped
-								? ` · ${city.dropped} edge${city.dropped === 1 ? "" : "s"} joined a building to itself and could not be drawn`
-								: ""}
-						</p>
-						<p className="city-info__note">
-							A cord carries every tether between one pair of buildings and
-							takes the colour most of them share. Open a building to separate
-							them onto the storeys they land on.
-						</p>
+						</span>
 					</div>
-				) : null}
-
-				{selected ? (
-					<CityInspector city={city} id={selected} onClose={close} />
-				) : null}
-				<div className="city-legend">
-					<span className="note">
-						drag to pan · <kbd>shift</kbd>-drag or right-drag to turn · scroll
-						to zoom
-					</span>
-					<span className="note">
-						{city.buildings.length} buildings · storeys are symbols and columns
-						· {city.bundles.length} cords carrying{" "}
-						{city.bundles.reduce((s, b) => s + b.strands.length, 0)} tethers
-					</span>
+					<div className="city-rail">
+						<button
+							type="button"
+							className="city-btn"
+							title="Turn anticlockwise"
+							onClick={() => snap(-1)}
+						>
+							<i className="fa-solid fa-rotate-left" />
+						</button>
+						<button
+							type="button"
+							className="city-btn"
+							title="Turn clockwise"
+							onClick={() => snap(1)}
+						>
+							<i className="fa-solid fa-rotate-right" />
+						</button>
+						<button
+							type="button"
+							className="city-btn"
+							title="Fit view"
+							onClick={fit}
+						>
+							<i className="fa-solid fa-expand" />
+						</button>
+						<button
+							type="button"
+							className={info ? "city-btn is-on" : "city-btn"}
+							title="About this graph"
+							onClick={() => setInfo((v) => !v)}
+						>
+							<i className="fa-solid fa-circle-info" />
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
