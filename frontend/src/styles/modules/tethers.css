@@ -9,8 +9,6 @@
    are illegible on cream. Everything is scoped to .city-wrap, so nothing here
    can reach the rest of the SPA. */
 .city-wrap {
-	--void: var(--bg);
-
 	--roof: #cfc9bd;
 	--roof-in: #ded9cf;
 	--roof-ink: #4d483d;
@@ -47,13 +45,11 @@
 	--refs: #97a012;
 	--maps: #dd7a1e;
 
-	position: relative;
-	/* derived from the navbar token rather than a magic number, so it tracks if
-	   the chrome above it changes: navbar + the viewer's own padding and header */
-	height: calc(100vh - var(--navbar-h) - 124px);
-	min-height: 520px;
-	background: var(--void);
-	border: 1px solid var(--border);
+	/* No frame and no ground of its own: the city fills the page below the
+	   navbar and sits on whatever the app's background already is, so it reads
+	   as the view rather than as a widget dropped into one. */
+	position: absolute;
+	inset: 0;
 	overflow: hidden;
 }
 
@@ -518,7 +514,7 @@ svg.city.spinning {
 	grid-template-columns: 300px minmax(0, 1fr) 320px;
 	grid-template-rows: auto minmax(0, 1fr) auto;
 	grid-template-areas:
-		"tools tools rail"
+		"title tools rail"
 		"inspector . info"
 		"legend . .";
 	gap: var(--sm);
@@ -705,14 +701,71 @@ svg.city.spinning {
 	line-height: 1.5;
 }
 
-/* ── the viewer shell around it ── */
+/* ── the page around it ──
+   The tether route is the one page whose content is not a document, so it opts
+   out of the scrolling column the docs layout provides and takes the whole
+   area instead. */
+.tether-layout .docs-content-area {
+	display: flex;
+	overflow: hidden;
+}
 .tether-viewer {
-	padding: var(--lg);
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
 	display: flex;
 	flex-direction: column;
-	gap: var(--md);
+	justify-content: center;
 }
-.tether-viewer__header h1 {
+
+/* the list is navigation, not part of the view, so it can get out of the way */
+.tether-layout.nav-shut .docs-sidebar {
+	width: 0;
+	min-width: 0;
+	border-right: none;
+}
+.tether-nav-toggle {
+	position: absolute;
+	top: calc(var(--navbar-h) + var(--sm));
+	left: 280px;
+	z-index: 11;
+	width: 22px;
+	height: 34px;
+	display: grid;
+	place-items: center;
+	background: var(--city-panel);
+	border: 1px solid var(--border);
+	border-left: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	font-size: 10px;
+	transition: left 0.3s var(--ease);
+}
+.tether-layout.nav-shut .tether-nav-toggle {
+	left: 0;
+}
+.tether-nav-toggle:hover {
+	color: var(--text);
+}
+.tether-nav-toggle:focus-visible {
+	outline: 2px solid var(--c-cyan);
+	outline-offset: 2px;
+}
+
+/* ── the title, riding the canvas ── */
+.city-title {
+	grid-area: title;
+	align-self: start;
+	pointer-events: none;
+}
+.city-title h1 {
 	font-size: var(--text-xl);
 	margin: 0;
+	line-height: 1.2;
+}
+.city-title p {
+	margin: 2px 0 0;
+	font-size: var(--text-sm);
+	color: var(--text-sec);
 }

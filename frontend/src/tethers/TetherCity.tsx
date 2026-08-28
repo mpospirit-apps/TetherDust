@@ -13,10 +13,14 @@ const ALL_RELS: Rel[] = ["reads", "writes", "references", "maps-to"];
 
 export function TetherCity({
 	graph,
+	title,
+	subtitle,
 	codeLabel,
 	dataLabel,
 }: {
 	graph: TetherGraph;
+	title?: string;
+	subtitle?: string;
 	codeLabel?: string;
 	dataLabel?: string;
 }) {
@@ -92,6 +96,12 @@ export function TetherCity({
 		<div className="city-wrap">
 			<svg ref={svgRef} className="city" />
 			<div className="city-overlay">
+				{title ? (
+					<div className="city-title">
+						<h1>{title}</h1>
+						{subtitle ? <p>{subtitle}</p> : null}
+					</div>
+				) : null}
 				<div className="city-rail">
 					<button
 						type="button"

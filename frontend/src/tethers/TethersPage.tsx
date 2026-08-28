@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
 import { getTether, getTetherGraph, getTethers } from "../api/tethers";
 import { TetherCity } from "./TetherCity";
@@ -29,15 +30,6 @@ function TetherViewer({ id }: { id: string }) {
 
 	return (
 		<div className="tether-viewer">
-			<header className="tether-viewer__header">
-				<div>
-					<h1>{t.name}</h1>
-					<p className="text-sec">
-						{t.source_name} ↔ {t.database_name}
-					</p>
-				</div>
-			</header>
-
 			{!t.has_graph ? (
 				<div className="docs-empty-state">
 					<p className="text-sec">
@@ -55,6 +47,8 @@ function TetherViewer({ id }: { id: string }) {
 			) : (
 				<TetherCity
 					graph={graph.data}
+					title={t.name}
+					subtitle={`${t.source_name} ↔ ${t.database_name}`}
 					codeLabel={t.source_name}
 					dataLabel={t.database_name}
 				/>
@@ -65,6 +59,9 @@ function TetherViewer({ id }: { id: string }) {
 
 export function TethersPage() {
 	const { id } = useParams();
+	// the list is navigation, not part of the view, so it gets out of the way on
+	// request — the city is worth every pixel it can have
+	const [navOpen, setNavOpen] = useState(true);
 	const { data, isLoading } = useQuery({
 		queryKey: ["tethers"],
 		queryFn: getTethers,
@@ -73,7 +70,18 @@ export function TethersPage() {
 	const tethers = data?.tethers ?? [];
 
 	return (
-		<div className="docs-layout">
+		<div className={`docs-layout tether-layout${navOpen ? "" : " nav-shut"}`}>
+			<button
+				type="button"
+				className="tether-nav-toggle"
+				onClick={() => setNavOpen((v) => !v)}
+				title={navOpen ? "Hide the tether list" : "Show the tether list"}
+				aria-expanded={navOpen}
+			>
+				<i
+					className={`fa-solid ${navOpen ? "fa-chevron-left" : "fa-chevron-right"}`}
+				/>
+			</button>
 			<aside className="docs-sidebar">
 				<div className="docs-tree">
 					{isLoading ? (
