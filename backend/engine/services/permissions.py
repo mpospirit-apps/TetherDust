@@ -16,6 +16,9 @@ from ..models.connections import DocumentationSource, MCPServerConfiguration
 if TYPE_CHECKING:
     from ..models.auth import UserProfile
 
+#: Row cap applied when a user has no role of their own.
+DEFAULT_MAX_ROW_LIMIT = 100
+
 
 class PermissionService:
     """Access-control queries for a user profile."""
@@ -27,7 +30,7 @@ class PermissionService:
         """User's maximum row limit. None for staff (no limit)."""
         if profile.user.is_staff:
             return None
-        return profile.role.max_row_limit if profile.role else 100
+        return profile.role.max_row_limit if profile.role else DEFAULT_MAX_ROW_LIMIT
 
     def get_allowed_tools(self, profile: UserProfile) -> set[str] | None:
         """Tool names the user can access (None = unrestricted)."""

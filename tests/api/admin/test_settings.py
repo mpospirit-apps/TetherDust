@@ -12,15 +12,15 @@ pytestmark = pytest.mark.django_db
 def test_general_get(staff_client: Any) -> None:
     resp = staff_client.get("/api/v1/admin/settings/general/")
     assert resp.status_code == 200
-    assert "mcp_base_url" in resp.json()
+    assert "chartgen_timeout" in resp.json()
 
 
 def test_general_put_persists(staff_client: Any) -> None:
     resp = staff_client.put(
-        "/api/v1/admin/settings/general/", {"max_row_limit": 500}, format="json"
+        "/api/v1/admin/settings/general/", {"chartgen_timeout": 500}, format="json"
     )
     assert resp.status_code == 200
-    assert resp.json()["max_row_limit"] == 500
+    assert resp.json()["chartgen_timeout"] == 500
 
 
 def test_smtp_get_reports_password_presence_only(staff_client: Any) -> None:

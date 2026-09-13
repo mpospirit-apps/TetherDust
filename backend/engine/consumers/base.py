@@ -23,7 +23,7 @@ import httpx
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from engine.services import AgentService, SystemConfigService, get
+from engine.services import AgentService, get
 
 from ..agents.stream import parse_chunk, tool_status_label
 
@@ -105,17 +105,15 @@ class BaseAgentConsumer(AsyncWebsocketConsumer):
             return  # no subprocess gateway to abort
 
         if agent_type == "claude_code":
-            config_key, env_key = "claude_service_url", "CLAUDE_SERVICE_URL"
+            env_key = "CLAUDE_SERVICE_URL"
         elif agent_type == "claude_code_api":
-            config_key, env_key = "claude_api_service_url", "CLAUDE_API_SERVICE_URL"
+            env_key = "CLAUDE_API_SERVICE_URL"
         elif agent_type == "codex_api":
-            config_key, env_key = "codex_api_service_url", "CODEX_API_SERVICE_URL"
+            env_key = "CODEX_API_SERVICE_URL"
         else:
-            config_key, env_key = "codex_service_url", "CODEX_SERVICE_URL"
+            env_key = "CODEX_SERVICE_URL"
         service_url = (
-            (config.service_url if config else "")
-            or await database_sync_to_async(get(SystemConfigService).get_value)(config_key, "")
-            or os.environ.get(env_key, "")
+            (config.service_url if config else "") or os.environ.get(env_key, "")
         ).rstrip("/")
         if not service_url:
             return

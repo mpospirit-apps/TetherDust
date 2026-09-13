@@ -7,17 +7,12 @@ import os
 from pathlib import PurePosixPath
 
 import httpx
-from channels.db import database_sync_to_async
 
 logger = logging.getLogger(__name__)
 
 
 async def _mcp_base_url() -> str:
-    from engine.services import SystemConfigService, get
-
-    return await database_sync_to_async(get(SystemConfigService).get_value)(
-        "mcp_base_url", ""
-    ) or os.environ.get("MCP_BASE_URL", "http://tdmcp:8001")
+    return os.environ.get("MCP_BASE_URL", "http://tdmcp:8001").rstrip("/")
 
 
 async def read_mcp_resources(allowed_doc_sources: set[str] | None, uris: list[str]) -> str:

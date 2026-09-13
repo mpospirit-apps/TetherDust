@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from channels.db import database_sync_to_async
 
 from engine.services import McpServerService, PermissionService, SystemConfigService, get
+from engine.services.permissions import DEFAULT_MAX_ROW_LIMIT
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser, User
@@ -154,8 +155,6 @@ class PermissionsMixin(_Base):
 
     @database_sync_to_async
     def _get_max_row_limit(self) -> int | None:
-
-        system_default = cast(int | None, get(SystemConfigService).get_value("max_row_limit", 100))
         if not self.profile:
-            return system_default
+            return DEFAULT_MAX_ROW_LIMIT
         return get(PermissionService).get_max_row_limit(self.profile)

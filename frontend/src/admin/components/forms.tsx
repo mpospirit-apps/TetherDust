@@ -86,6 +86,32 @@ export function Toggle({
 	);
 }
 
+// Toggle switch with its label on the same line, for sitting in a row beside
+// other controls (e.g. next to an action button) rather than in its own field.
+export function ToggleInline({
+	label,
+	checked,
+	onChange,
+}: {
+	label: string;
+	checked: boolean;
+	onChange: (value: boolean) => void;
+}) {
+	return (
+		<label className="toggle-control toggle-inline">
+			<input
+				type="checkbox"
+				checked={checked}
+				onChange={(event) => onChange(event.target.checked)}
+			/>
+			<span className="toggle__track">
+				<span className="toggle__thumb" />
+			</span>
+			{label}
+		</label>
+	);
+}
+
 // Toggle switch with its own label + explanation beside it, used when the
 // field deserves more context than a bare FormField-labelled switch.
 export function ToggleField({

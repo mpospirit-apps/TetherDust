@@ -5,10 +5,15 @@
 
 /* ── Design Tokens ── */
 :root {
+	/* Native UI (number-input spinners, scrollbars, date pickers) follows the
+	   theme; without this they paint dark-on-dark in the dark theme. */
+	color-scheme: light;
+
 	/* Palette */
 	--c-red: #f23847;
 	--c-pink: #f24b99;
 	--c-cyan: #3dbcd9;
+	--c-green: #3dd98a;
 	--c-lime: #d3d93b;
 	--c-orange: #f29544;
 	--c-dust: var(--c-cyan);
@@ -77,6 +82,8 @@
 
 /* ── Dark Mode Overrides ── */
 [data-theme="dark"] {
+	color-scheme: dark;
+
 	--bg: #0f0f0d;
 	--bg-warm: #141410;
 	--surface: #1c1b18;

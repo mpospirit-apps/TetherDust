@@ -32,7 +32,7 @@ class CodexAgent(BaseAgent):
     """Agent implementation that delegates to the codex Docker service.
 
     Django POSTs chat requests to the codex service (resolved from
-    SystemConfiguration["codex_service_url"] or the CODEX_SERVICE_URL env var),
+    the CODEX_SERVICE_URL env var),
     which spawns the Codex CLI subprocess internally and streams SSE back.
     """
 
@@ -44,16 +44,11 @@ class CodexAgent(BaseAgent):
         # Per-agent service_url override (falls back to system config / env below)
         config_service_url = getattr(config, "service_url", "") or "" if config else ""
 
-        from engine.services import SystemConfigService, get
-
-        db_service_url = get(SystemConfigService).get_value("codex_service_url", "") or ""
-        self._service_url = (
-            config_service_url or db_service_url or os.getenv("CODEX_SERVICE_URL", "")
-        ).rstrip("/")
+        self._service_url = (config_service_url or os.getenv("CODEX_SERVICE_URL", "")).rstrip("/")
         if not self._service_url:
             raise RuntimeError(
-                "CodexAgent requires a service URL. Set the `codex_service_url` system "
-                "configuration value or the CODEX_SERVICE_URL environment variable."
+                "CodexAgent requires a service URL. Set this agent's service URL or the "
+                "CODEX_SERVICE_URL environment variable."
             )
         self._http_response: httpx.Response | None = None
 

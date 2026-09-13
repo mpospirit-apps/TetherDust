@@ -11,7 +11,7 @@ import os
 from typing import TYPE_CHECKING, Any, cast
 
 from django.core.mail import EmailMessage
-from engine.models import SystemConfiguration, encrypt_value
+from engine.models import encrypt_value
 from engine.services import SystemConfigService, get
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -29,13 +29,9 @@ def _cfg() -> SystemConfigService:
 
 
 class GeneralSettingsSerializer(serializers.Serializer[Any]):
-    codex_service_url = serializers.CharField(required=False, allow_blank=True, default="")
-    mcp_base_url = serializers.CharField(required=False, allow_blank=True, default="")
     docgen_timeout = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     doclibgen_timeout = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     chartgen_timeout = serializers.IntegerField(required=False, allow_null=True, min_value=1)
-    max_row_limit = serializers.IntegerField(required=False, allow_null=True, min_value=1)
-    hot_reload_interval = serializers.IntegerField(required=False, allow_null=True, min_value=1)
 
 
 class GeneralSettingsView(APIView):
@@ -45,12 +41,6 @@ class GeneralSettingsView(APIView):
         cfg = _cfg()
         return Response(
             {
-                "codex_service_url": cfg.get_value(
-                    "codex_service_url", os.getenv("CODEX_SERVICE_URL", "")
-                ),
-                "mcp_base_url": cfg.get_value(
-                    "mcp_base_url", os.getenv("MCP_BASE_URL", "http://tdmcp:8001")
-                ),
                 "docgen_timeout": cfg.get_value(
                     "docgen_timeout", int(os.getenv("DOCGEN_TIMEOUT", "1800"))
                 ),
@@ -60,8 +50,6 @@ class GeneralSettingsView(APIView):
                 "chartgen_timeout": cfg.get_value(
                     "chartgen_timeout", int(os.getenv("CHARTGEN_TIMEOUT", "1800"))
                 ),
-                "max_row_limit": cfg.get_value("max_row_limit", None),
-                "hot_reload_interval": cfg.get_value("hot_reload_interval", None),
             }
         )
 
@@ -70,18 +58,10 @@ class GeneralSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         cfg = _cfg()
-        for key in ("codex_service_url", "mcp_base_url"):
-            cfg.set_value(key, data.get(key, "") or "", value_type="string")
         for key in ("docgen_timeout", "doclibgen_timeout", "chartgen_timeout"):
             val = data.get(key)
             if val is not None:
                 cfg.set_value(key, val, value_type="integer")
-        for key in ("max_row_limit", "hot_reload_interval"):
-            val = data.get(key)
-            if val is not None:
-                cfg.set_value(key, val, value_type="integer")
-            else:
-                SystemConfiguration.objects.filter(key=key).delete()
         return self.get(request)
 
 

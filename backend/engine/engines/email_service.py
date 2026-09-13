@@ -198,7 +198,7 @@ def send_report_email(execution_id: str, recipients: list[str]) -> bool:
 
         email.send()
         logger.info(
-            "Report email sent: '%s' (execution %d) to %s",
+            "Report email sent: '%s' (execution %s) to %s",
             report.name,
             execution_id,
             ", ".join(recipients),
@@ -206,7 +206,7 @@ def send_report_email(execution_id: str, recipients: list[str]) -> bool:
         return True
 
     except Exception:
-        logger.exception("Failed to send report email for execution %d.", execution_id)
+        logger.exception("Failed to send report email for execution %s.", execution_id)
         return False
     finally:
         try:

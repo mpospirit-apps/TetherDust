@@ -10,7 +10,7 @@ import {
 	updateSmtpSettings,
 } from "../../api/admin";
 import { ApiError, apiErrorDetail } from "../../api/client";
-import { FormCheckbox, FormField } from "../components/forms";
+import { FormField, ToggleInline } from "../components/forms";
 
 function numOrNull(value: string): number | null {
 	return value.trim() === "" ? null : Number(value);
@@ -29,23 +29,15 @@ function smtpErrorText(err: unknown): string {
 }
 
 interface GeneralForm {
-	codex_service_url: string;
-	mcp_base_url: string;
 	docgen_timeout: string;
 	doclibgen_timeout: string;
 	chartgen_timeout: string;
-	max_row_limit: string;
-	hot_reload_interval: string;
 }
 
 const EMPTY_GENERAL: GeneralForm = {
-	codex_service_url: "",
-	mcp_base_url: "",
 	docgen_timeout: "",
 	doclibgen_timeout: "",
 	chartgen_timeout: "",
-	max_row_limit: "",
-	hot_reload_interval: "",
 };
 
 interface SmtpForm {
@@ -93,16 +85,11 @@ export function SettingsPage() {
 		const d = general.data;
 		if (!d) return;
 		setGeneralForm({
-			codex_service_url: d.codex_service_url ?? "",
-			mcp_base_url: d.mcp_base_url ?? "",
 			docgen_timeout: d.docgen_timeout == null ? "" : String(d.docgen_timeout),
 			doclibgen_timeout:
 				d.doclibgen_timeout == null ? "" : String(d.doclibgen_timeout),
 			chartgen_timeout:
 				d.chartgen_timeout == null ? "" : String(d.chartgen_timeout),
-			max_row_limit: d.max_row_limit == null ? "" : String(d.max_row_limit),
-			hot_reload_interval:
-				d.hot_reload_interval == null ? "" : String(d.hot_reload_interval),
 		});
 	}, [general.data]);
 
@@ -133,13 +120,9 @@ export function SettingsPage() {
 			setGeneralError(null);
 			setSmtpError(null);
 			const generalPayload: GeneralSettings = {
-				codex_service_url: generalForm.codex_service_url,
-				mcp_base_url: generalForm.mcp_base_url,
 				docgen_timeout: numOrNull(generalForm.docgen_timeout),
 				doclibgen_timeout: numOrNull(generalForm.doclibgen_timeout),
 				chartgen_timeout: numOrNull(generalForm.chartgen_timeout),
-				max_row_limit: numOrNull(generalForm.max_row_limit),
-				hot_reload_interval: numOrNull(generalForm.hot_reload_interval),
 			};
 			const smtpPayload: SmtpSettingsInput = {
 				smtp_host: smtpForm.smtp_host,
@@ -192,7 +175,7 @@ export function SettingsPage() {
 			<div className="page-header">
 				<div>
 					<h1>Settings</h1>
-					<p>General operational settings and email (SMTP) configuration.</p>
+					<p>Agent generation timeouts and email (SMTP) configuration.</p>
 				</div>
 				<div className="form-actions">
 					{saved && <span className="badge badge-success">Saved ✓</span>}
@@ -215,7 +198,16 @@ export function SettingsPage() {
 				<form id="settings-form" onSubmit={onSubmit}>
 					<div className="form-split">
 						<div className="card">
-							<h3 style={{ margin: "0 0 var(--md)" }}>General</h3>
+							<h3 style={{ margin: "0 0 var(--xs)" }}>Timeouts</h3>
+							<p
+								className="text-sec"
+								style={{ margin: "0 0 var(--md)", fontSize: "13px" }}
+							>
+								How long the AI agent may work on one background generation job
+								before it is cut off and the run is marked failed in its
+								generation log. Raise a timeout if long runs keep failing part
+								way; lower it to stop a stuck agent holding a worker.
+							</p>
 							{generalError && (
 								<div
 									className="flash flash-error"
@@ -224,24 +216,11 @@ export function SettingsPage() {
 									{generalError}
 								</div>
 							)}
-							<FormField label="Codex Service URL">
-								<input
-									className="form-control"
-									value={generalForm.codex_service_url}
-									onChange={(e) =>
-										setGeneral("codex_service_url", e.target.value)
-									}
-								/>
-							</FormField>
-							<FormField label="MCP Base URL">
-								<input
-									className="form-control"
-									value={generalForm.mcp_base_url}
-									onChange={(e) => setGeneral("mcp_base_url", e.target.value)}
-								/>
-							</FormField>
 							<div className="form-grid">
-								<FormField label="Doc Gen Timeout (s)">
+								<FormField
+									label="Doc Gen Timeout (s)"
+									help="One document — a single table or file. Default 1800 (30 min)."
+								>
 									<input
 										className="form-control"
 										type="number"
@@ -251,7 +230,10 @@ export function SettingsPage() {
 										}
 									/>
 								</FormField>
-								<FormField label="Doc Library Gen Timeout (s)">
+								<FormField
+									label="Doc Library Gen Timeout (s)"
+									help="A whole library in one run, so it needs longer than a single document. Default 3600 (1 hr)."
+								>
 									<input
 										className="form-control"
 										type="number"
@@ -262,38 +244,16 @@ export function SettingsPage() {
 									/>
 								</FormField>
 							</div>
-							<div className="form-grid">
-								<FormField label="Chart Gen Timeout (s)">
-									<input
-										className="form-control"
-										type="number"
-										value={generalForm.chartgen_timeout}
-										onChange={(e) =>
-											setGeneral("chartgen_timeout", e.target.value)
-										}
-									/>
-								</FormField>
-								<FormField label="Max Row Limit" help="Blank = no limit.">
-									<input
-										className="form-control"
-										type="number"
-										value={generalForm.max_row_limit}
-										onChange={(e) =>
-											setGeneral("max_row_limit", e.target.value)
-										}
-									/>
-								</FormField>
-							</div>
 							<FormField
-								label="Hot Reload Interval (s)"
-								help="Blank to disable."
+								label="Chart Gen Timeout (s)"
+								help="One dashboard chart, from prompt to saved spec. Default 1800 (30 min)."
 							>
 								<input
 									className="form-control"
 									type="number"
-									value={generalForm.hot_reload_interval}
+									value={generalForm.chartgen_timeout}
 									onChange={(e) =>
-										setGeneral("hot_reload_interval", e.target.value)
+										setGeneral("chartgen_timeout", e.target.value)
 									}
 								/>
 							</FormField>
@@ -371,25 +331,30 @@ export function SettingsPage() {
 									onChange={(e) => setSmtp("email_max_rows", e.target.value)}
 								/>
 							</FormField>
-							<FormCheckbox
-								label="Use TLS"
-								checked={smtpForm.smtp_use_tls}
-								onChange={(v) => setSmtp("smtp_use_tls", v)}
-							/>
-							<div
-								className="form-actions"
-								style={{ marginTop: "var(--md)", flexWrap: "wrap" }}
-							>
+							<div className="control-row">
+								<ToggleInline
+									label="Use TLS"
+									checked={smtpForm.smtp_use_tls}
+									onChange={(v) => setSmtp("smtp_use_tls", v)}
+								/>
 								<button
 									type="button"
-									className="btn btn-ghost"
+									className="btn btn-secondary"
 									disabled={test.isPending}
 									onClick={() => {
 										setTestMsg(null);
 										test.mutate();
 									}}
 								>
-									{test.isPending ? "Sending…" : "Send Test Email"}
+									{test.isPending ? (
+										<>
+											<i className="fa-solid fa-spinner fa-spin" /> Sending…
+										</>
+									) : (
+										<>
+											<i className="fa-solid fa-paper-plane" /> Send Test Email
+										</>
+									)}
 								</button>
 								{testMsg && (
 									<span
