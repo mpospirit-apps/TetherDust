@@ -334,6 +334,28 @@ svg.city.spinning {
 	cursor: pointer;
 }
 
+/* ── entrance ──
+   Gated on .anim, which the scene adds only when motion is allowed. Under
+   prefers-reduced-motion the class never appears, so there is nothing to
+   override and no !important fighting the cascade.
+
+   Only the BEFORE state names an opacity. Landing on `opacity: 1` once the
+   city is ready would tie on specificity with every rule below that dims
+   something — selection, search — and win on order, which is exactly how the
+   dimming got lost. The settled state is instead the absence of a rule, so
+   those later rules are free to lower it and the transitions here only decide
+   how the entrance fade is paced. */
+.city.anim:not(.ready) .bld,
+.city.anim:not(.ready) .arc-g {
+	opacity: 0;
+}
+.city.anim .bld {
+	transition: opacity 0.45s ease;
+}
+.city.anim .arc-g {
+	transition: opacity 0.6s ease 0.35s;
+}
+
 /* ── hover and selection ──
    A selected tether lights up rather than fattens: the layering is the look. */
 .city .bld:hover .wall,
@@ -481,23 +503,6 @@ svg.city.spinning {
 }
 .city-inspector__close:hover {
 	color: var(--text);
-}
-
-/* ── entrance ──
-   Gated on .anim, which the scene adds only when motion is allowed. Under
-   prefers-reduced-motion the class never appears, so there is nothing to
-   override and no !important fighting the cascade. */
-.city.anim .bld,
-.city.anim .arc-g {
-	opacity: 0;
-}
-.city.anim.ready .bld {
-	opacity: 1;
-	transition: opacity 0.45s ease;
-}
-.city.anim.ready .arc-g {
-	opacity: 1;
-	transition: opacity 0.6s ease 0.35s;
 }
 
 /* ── chrome ──
