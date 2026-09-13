@@ -70,7 +70,7 @@ def test_no_role_denies_everything(perms: PermissionService, make_user: Any) -> 
 def test_inactive_role_grants_nothing(
     perms: PermissionService, make_user: Any, make_role: Any
 ) -> None:
-    role = make_role(is_active=False, can_chat=True, can_view_tethers=True, max_row_limit=500)
+    role = make_role(is_active=False, can_chat=True, max_row_limit=500)
     db = baker.make("engine.DatabaseConnection", is_active=True, name="analytics")
     role.allowed_databases.set([db])
     report = baker.make("engine.ReportDefinition", is_active=True)
@@ -176,18 +176,20 @@ def test_allowed_reports_scoped_to_role(
     assert perms.can_view_reports(profile) is True
 
 
-def test_can_view_tethers_requires_role_flag(
+def test_can_view_tethers_requires_a_shared_active_tether(
     perms: PermissionService, make_user: Any, make_role: Any
 ) -> None:
-    role_off = make_role(can_view_tethers=False)
-    tether = baker.make("engine.Tether", is_active=True)
-    tether.allowed_roles.set([role_off])
-    assert perms.can_view_tethers(make_user(role=role_off).profile) is False
+    role = make_role()
+    profile = make_user(role=role).profile
+    assert perms.can_view_tethers(profile) is False
 
-    role_on = make_role(can_view_tethers=True)
-    tether2 = baker.make("engine.Tether", is_active=True)
-    tether2.allowed_roles.set([role_on])
-    assert perms.can_view_tethers(make_user(role=role_on).profile) is True
+    inactive = baker.make("engine.Tether", is_active=False)
+    inactive.allowed_roles.set([role])
+    assert perms.can_view_tethers(profile) is False
+
+    active = baker.make("engine.Tether", is_active=True)
+    active.allowed_roles.set([role])
+    assert perms.can_view_tethers(profile) is True
 
 
 def test_can_view_docs_nonstaff(perms: PermissionService, make_user: Any, make_role: Any) -> None:

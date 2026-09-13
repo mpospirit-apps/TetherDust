@@ -148,12 +148,7 @@ class PermissionService:
         return Tether.objects.filter(allowed_roles=role, is_active=True)
 
     def can_view_tethers(self, profile: UserProfile) -> bool:
-        """True if the user has at least one accessible tether and the role allows it."""
-        if profile.user.is_staff:
-            return self.get_allowed_tethers(profile).exists()
-        role = self._role(profile)
-        if not role or not role.can_view_tethers:
-            return False
+        """True if the user has at least one accessible tether."""
         return self.get_allowed_tethers(profile).exists()
 
     def get_allowed_reports_names(self, profile: UserProfile) -> set[str] | None:

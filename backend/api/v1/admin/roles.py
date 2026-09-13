@@ -1,9 +1,9 @@
 """Role admin API: CRUD over roles + the option lists for the access grants.
 
 Manages the six forward M2M grants on the Role model (tools, databases,
-doc_sources, codebases, prompts, mcp_servers). Dashboards/reports/tethers access
-is the reverse `allowed_roles` relation and is managed from those resources'
-admin (added with their feature verticals).
+doc_sources, codebases, prompts, mcp_servers) plus reports, dashboards and
+tethers, which are the reverse side of each one's ``allowed_roles`` — so they
+can be shared from either the role form or their own.
 
 Any staff user may read roles — the dashboard, report and tether forms pick
 from them. Changing one is user management (its grants and admin flag decide
@@ -17,13 +17,17 @@ from typing import Any
 
 from engine.models import (
     Codebase,
+    Dashboard,
     DatabaseConnection,
     DocumentationSource,
     MCPServerConfiguration,
     PromptConfiguration,
+    ReportDefinition,
     Role,
+    Tether,
     ToolConfiguration,
 )
+from engine.services import ToolService, get
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, BasePermission
@@ -35,6 +39,18 @@ from api.serializer_meta import SerializerMeta
 
 
 class RoleSerializer(serializers.ModelSerializer[Role]):
+    # Reverse sides of each resource's ``allowed_roles``; declared so they
+    # aren't required.
+    allowed_reports = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=ReportDefinition.objects.all(), required=False
+    )
+    allowed_dashboards = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Dashboard.objects.all(), required=False
+    )
+    allowed_tethers = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Tether.objects.all(), required=False
+    )
+
     class Meta(SerializerMeta):
         model = Role
         fields = [
@@ -43,7 +59,6 @@ class RoleSerializer(serializers.ModelSerializer[Role]):
             "description",
             "is_active",
             "can_chat",
-            "can_view_tethers",
             "can_manage_users",
             "is_admin_role",
             "max_row_limit",
@@ -53,6 +68,9 @@ class RoleSerializer(serializers.ModelSerializer[Role]):
             "allowed_codebases",
             "allowed_prompts",
             "allowed_mcp_servers",
+            "allowed_reports",
+            "allowed_dashboards",
+            "allowed_tethers",
         ]
 
     def _sync_staff(self, role: Role) -> None:
@@ -85,31 +103,62 @@ class RoleViewSet(viewsets.ModelViewSet[Role]):
 
     @action(detail=False, methods=["get"])
     def grants(self, request: Request) -> Response:
-        """Choices for the role editor's access-grant multi-selects."""
+        """Choices for the role editor's access-grant multi-selects.
+
+        ``is_active`` mirrors the filter ``PermissionService`` applies, so the
+        editor can flag a grant that currently resolves to nothing (an inactive
+        database, report, dashboard or tether, a disabled tool, a tool on an
+        inactive server). Tools carry their category so the editor can group them.
+        """
+        tool_service = get(ToolService)
         return Response(
             {
                 "tools": [
-                    {"id": t.pk, "name": t.tool_name, "mcp_server": t.mcp_server_id}
-                    for t in ToolConfiguration.objects.all()
+                    {
+                        "id": t.pk,
+                        "name": t.tool_name,
+                        "mcp_server": t.mcp_server_id,
+                        "category_label": tool_service.category_label(t),
+                        "is_active": t.is_enabled and t.mcp_server.is_active,
+                    }
+                    for t in ToolConfiguration.objects.select_related("mcp_server")
                 ],
                 "prompts": [
                     {
                         "id": p.pk,
                         "name": p.display_name or p.prompt_name,
                         "mcp_server": p.mcp_server_id,
+                        "is_active": p.is_enabled and p.mcp_server.is_active,
                     }
-                    for p in PromptConfiguration.objects.all()
+                    for p in PromptConfiguration.objects.select_related("mcp_server")
                 ],
                 "databases": [
-                    {"id": d.pk, "name": d.name} for d in DatabaseConnection.objects.all()
+                    {"id": d.pk, "name": d.name, "is_active": d.is_active}
+                    for d in DatabaseConnection.objects.all()
                 ],
                 "doc_sources": [
-                    {"id": s.pk, "name": s.folder_name} for s in DocumentationSource.objects.all()
+                    {"id": s.pk, "name": s.folder_name, "is_active": s.is_active}
+                    for s in DocumentationSource.objects.all()
                 ],
-                "codebases": [{"id": c.pk, "name": c.name} for c in Codebase.objects.all()],
+                "codebases": [
+                    {"id": c.pk, "name": c.name, "is_active": c.is_active}
+                    for c in Codebase.objects.all()
+                ],
                 "mcp_servers": [
-                    {"id": m.pk, "name": m.name}
+                    {"id": m.pk, "name": m.name, "is_active": True}
                     for m in MCPServerConfiguration.objects.filter(is_active=True, is_builtin=False)
+                ],
+                "reports": [
+                    {"id": r.pk, "name": r.name, "is_active": r.is_active}
+                    for r in ReportDefinition.objects.all()
+                ],
+                "dashboards": [
+                    {"id": d.pk, "name": d.name, "is_active": d.is_active}
+                    for d in Dashboard.objects.all()
+                ],
+                "tethers": [
+                    {"id": t.pk, "name": t.name, "is_active": t.is_active}
+                    for t in Tether.objects.all()
                 ],
             }
         )

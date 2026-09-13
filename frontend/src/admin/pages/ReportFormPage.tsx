@@ -207,6 +207,11 @@ export function ReportFormPage() {
 			isEdit ? updateReport(id as string, payload) : createReport(payload),
 		onSuccess: () => {
 			void queryClient.invalidateQueries({ queryKey: ["admin", "reports"] });
+			// Its allowed roles are the role form's report grants (and grant list).
+			void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+			void queryClient.invalidateQueries({
+				queryKey: ["admin", "role-grants"],
+			});
 			navigate("/admin/reports");
 		},
 		onError: (err) => setError(apiErrorDetail(err, "Save failed.")),

@@ -100,6 +100,11 @@ export function TetherFormPage() {
 			isEdit ? updateTether(id as string, payload) : createTether(payload),
 		onSuccess: (t) => {
 			void queryClient.invalidateQueries({ queryKey: ["admin", "tethers"] });
+			// Its allowed roles are the role form's tether grants (and grant list).
+			void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+			void queryClient.invalidateQueries({
+				queryKey: ["admin", "role-grants"],
+			});
 			navigate(`/admin/tethers/${t.id}`);
 		},
 		onError: (err) => setError(apiErrorDetail(err, "Save failed.")),

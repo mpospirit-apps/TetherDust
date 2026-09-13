@@ -161,7 +161,6 @@ export interface Role {
 	description: string;
 	is_active: boolean;
 	can_chat: boolean;
-	can_view_tethers: boolean;
 	can_manage_users: boolean;
 	is_admin_role: boolean;
 	max_row_limit: number;
@@ -171,6 +170,9 @@ export interface Role {
 	allowed_codebases: string[];
 	allowed_prompts: string[];
 	allowed_mcp_servers: string[];
+	allowed_reports: string[];
+	allowed_dashboards: string[];
+	allowed_tethers: string[];
 }
 
 export type RoleInput = Omit<Role, "id">;
@@ -179,6 +181,11 @@ export interface GrantOption {
 	id: string;
 	name: string;
 	mcp_server?: string | null;
+	// Tools only: the feature group ("Querying", "Docs", …, "Other").
+	category_label?: string;
+	// False when the grant currently resolves to nothing (inactive resource,
+	// disabled tool/prompt, or one on an inactive MCP server).
+	is_active: boolean;
 }
 
 export interface RoleGrants {
@@ -188,6 +195,9 @@ export interface RoleGrants {
 	doc_sources: GrantOption[];
 	codebases: GrantOption[];
 	mcp_servers: GrantOption[];
+	reports: GrantOption[];
+	dashboards: GrantOption[];
+	tethers: GrantOption[];
 }
 
 const ROLE_BASE = "/api/v1/admin/roles/";

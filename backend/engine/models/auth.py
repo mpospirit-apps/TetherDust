@@ -51,11 +51,6 @@ class Role(models.Model):
         default=True,
         help_text="Allow users with this role to use the chat interface.",
     )
-    can_view_tethers = models.BooleanField(
-        verbose_name="can view tethers",
-        default=True,
-        help_text="Allow users with this role to view Tethers.",
-    )
     is_admin_role = models.BooleanField(
         verbose_name="is admin role",
         default=False,

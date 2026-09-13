@@ -101,6 +101,9 @@ export function AdminDashboardFormPage() {
 				: createDashboard(payload),
 		onSuccess: (d) => {
 			queryClient.invalidateQueries({ queryKey: ["admin", "dashboards"] });
+			// Its allowed roles are the role form's dashboard grants (and grant list).
+			queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+			queryClient.invalidateQueries({ queryKey: ["admin", "role-grants"] });
 			navigate(`/admin/dashboards/${d.id}`);
 		},
 		onError: (err) => setError(apiErrorDetail(err, "Save failed.")),

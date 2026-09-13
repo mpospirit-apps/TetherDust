@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from model_bakery import baker
 
 pytestmark = pytest.mark.django_db
 
@@ -49,7 +50,43 @@ def test_delete_in_use_returns_400(manager_client: Any, make_user: Any, make_rol
 def test_grants_option_lists(staff_client: Any) -> None:
     resp = staff_client.get("/api/v1/admin/roles/grants/")
     assert resp.status_code == 200
-    assert set(resp.json()) >= {"tools", "databases", "doc_sources", "codebases", "mcp_servers"}
+    assert set(resp.json()) >= {
+        "tools",
+        "databases",
+        "doc_sources",
+        "codebases",
+        "mcp_servers",
+        "reports",
+        "dashboards",
+        "tethers",
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "model"),
+    [
+        ("allowed_reports", "engine.ReportDefinition"),
+        ("allowed_dashboards", "engine.Dashboard"),
+        ("allowed_tethers", "engine.Tether"),
+    ],
+)
+def test_shared_from_the_role(manager_client: Any, field: str, model: str) -> None:
+    """Each field writes the reverse side of that resource's ``allowed_roles``."""
+    first, second = baker.make(model, _quantity=2)
+    resp = manager_client.post(
+        "/api/v1/admin/roles/",
+        {"name": "Viewer", field: [first.id, second.id]},
+        format="json",
+    )
+    assert resp.status_code == 201
+    role_id = resp.json()["id"]
+    assert set(first.allowed_roles.values_list("id", flat=True)) == {role_id}
+
+    resp = manager_client.patch(
+        f"/api/v1/admin/roles/{role_id}/", {field: [second.id]}, format="json"
+    )
+    assert resp.json()[field] == [second.id]
+    assert not first.allowed_roles.exists()
 
 
 # --- who may change a role ---------------------------------------------------

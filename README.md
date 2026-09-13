@@ -92,9 +92,9 @@ flowchart LR
     Role -- allowed_doc_sources --> Docs[Doc Sources]
     Role -- allowed_prompts --> Prompts[Prompts]
     Role -- allowed_mcp_servers --> MCP[Custom MCP Servers]
-    Role -- can_view_dashboards --> Dash[Dashboards]
-    Role -- can_view_reports --> Reports[Reports]
-    Role -- can_view_tethers --> Tethers[Tethers]
+    Role -- allowed_dashboards --> Dash[Dashboards]
+    Role -- allowed_reports --> Reports[Reports]
+    Role -- allowed_tethers --> Tethers[Tethers]
 
     DB --> Agent([🤖 Agent])
     Tools --> Agent
