@@ -27,7 +27,7 @@ import httpx
 from django.conf import settings
 from engine.agents.gateway import gateway_auth_headers
 from engine.models import AgentConfiguration
-from engine.services import AgentService, SystemConfigService, get
+from engine.services import AgentService, get
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -38,10 +38,9 @@ from api.serializer_meta import SerializerMeta
 
 
 def _resolve_codex_url(config: AgentConfiguration) -> str:
-    """Resolve the Codex gateway URL (per-config override → system config → env)."""
+    """Resolve the Codex gateway URL (per-config override → env)."""
     config_url = config.service_url or ""
-    db_url = get(SystemConfigService).get_value("codex_service_url", "") or ""
-    return (config_url or db_url or os.environ.get("CODEX_SERVICE_URL", "")).rstrip("/")
+    return (config_url or os.environ.get("CODEX_SERVICE_URL", "")).rstrip("/")
 
 
 def _default_system_prompt(agent_type: str) -> str:

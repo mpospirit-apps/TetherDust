@@ -174,11 +174,7 @@ def sync_codex_auth_token() -> None:
         return
 
     config_url = config.service_url or ""
-    codex_url = (
-        config_url
-        or get(SystemConfigService).get_value("codex_service_url", "")
-        or os.environ.get("CODEX_SERVICE_URL", "")
-    ).rstrip("/")
+    codex_url = (config_url or os.environ.get("CODEX_SERVICE_URL", "")).rstrip("/")
     if not codex_url:
         return
 

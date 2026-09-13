@@ -15,8 +15,6 @@ import os
 from typing import Any
 
 from ..models.agent import AgentConfiguration
-from .registry import get
-from .system_config import SystemConfigService
 
 logger = logging.getLogger(__name__)
 
@@ -76,18 +74,14 @@ class AgentService:
         # fallback must be type-aware so a blank-URL Claude agent never pushes its
         # prompt to the Codex container (and vice versa).
         if agent.agent_type == "claude_code":
-            config_key, env_key = "claude_service_url", "CLAUDE_SERVICE_URL"
+            env_key = "CLAUDE_SERVICE_URL"
         elif agent.agent_type == "claude_code_api":
-            config_key, env_key = "claude_api_service_url", "CLAUDE_API_SERVICE_URL"
+            env_key = "CLAUDE_API_SERVICE_URL"
         elif agent.agent_type == "codex_api":
-            config_key, env_key = "codex_api_service_url", "CODEX_API_SERVICE_URL"
+            env_key = "CODEX_API_SERVICE_URL"
         else:
-            config_key, env_key = "codex_service_url", "CODEX_SERVICE_URL"
-        service_url = (
-            agent.service_url
-            or get(SystemConfigService).get_value(config_key, "")
-            or os.environ.get(env_key, "")
-        ).rstrip("/")
+            env_key = "CODEX_SERVICE_URL"
+        service_url = (agent.service_url or os.environ.get(env_key, "")).rstrip("/")
         if not service_url:
             return
         from engine.agents.gateway import gateway_auth_headers

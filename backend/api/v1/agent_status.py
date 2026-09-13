@@ -12,7 +12,7 @@ import datetime
 import os
 
 import httpx
-from engine.services import AgentService, SystemConfigService, get
+from engine.services import AgentService, get
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -58,9 +58,8 @@ class AgentStatusView(APIView):
 
         # Claude Code: gateway reachable AND an OAuth token stored.
         if agent_type == "claude_code":
-            db_service_url = get(SystemConfigService).get_value("claude_service_url", "") or ""
             env_url = os.environ.get("CLAUDE_SERVICE_URL", "")
-            service_url = (agent_config.service_url or db_service_url or env_url).rstrip("/")
+            service_url = (agent_config.service_url or env_url).rstrip("/")
             if not service_url:
                 return Response({"name": name, "connected": False})
             try:
@@ -71,10 +70,9 @@ class AgentStatusView(APIView):
             return Response({"name": name, "connected": connected})
 
         # codex / codex_api via the Codex container: gateway health + auth.json.
-        db_service_url = get(SystemConfigService).get_value("codex_service_url", "") or ""
-        service_url = (
-            agent_config.service_url or db_service_url or os.environ.get("CODEX_SERVICE_URL", "")
-        ).rstrip("/")
+        service_url = (agent_config.service_url or os.environ.get("CODEX_SERVICE_URL", "")).rstrip(
+            "/"
+        )
         if not service_url:
             return Response({"name": name, "connected": False})
         try:

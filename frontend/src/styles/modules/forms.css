@@ -311,6 +311,14 @@ input[type="checkbox"]:focus-visible {
 	opacity: 1;
 }
 
+/* Switch with its label on the same line, for sitting in a row of controls. */
+.toggle-inline {
+	gap: var(--sm);
+	font-size: var(--text-sm);
+	font-weight: 600;
+	white-space: nowrap;
+}
+
 .toggle-row {
 	align-items: flex-start;
 	gap: var(--md);
@@ -395,6 +403,21 @@ input[type="checkbox"]:focus-visible {
 	padding-top: var(--lg);
 	border-top: 1px solid rgba(26, 26, 26, 0.06);
 	margin-top: var(--xl);
+}
+
+/* A row of controls inside a card body — a toggle beside the action button it
+   belongs with. Unlike .form-actions this is not a card/page footer, so it
+   draws no rule above itself. The action is pushed to the far end. */
+.control-row {
+	display: flex;
+	align-items: center;
+	gap: var(--md);
+	flex-wrap: wrap;
+	margin-top: var(--lg);
+}
+
+.control-row > .btn {
+	margin-left: auto;
 }
 
 /* ── Multi-column form layout ── */

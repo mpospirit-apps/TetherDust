@@ -104,13 +104,9 @@ export function getEngines(): Promise<EnginesResponse> {
 // ── Settings (key-value) ────────────────────────────────────────────────────
 
 export interface GeneralSettings {
-	codex_service_url: string;
-	mcp_base_url: string;
 	docgen_timeout: number | null;
 	doclibgen_timeout: number | null;
 	chartgen_timeout: number | null;
-	max_row_limit: number | null;
-	hot_reload_interval: number | null;
 }
 
 export interface SmtpSettings {

@@ -818,6 +818,18 @@ tr.clickable-row td {
 	position: relative;
 }
 
+/* Nothing styled the disabled state, so an in-flight button looked clickable. */
+.btn:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.btn:disabled:hover,
+.btn:disabled:active {
+	transform: none;
+	box-shadow: var(--rim-light);
+}
+
 .btn-primary {
 	background: linear-gradient(135deg, var(--c-red), var(--c-pink));
 	color: #fff;
