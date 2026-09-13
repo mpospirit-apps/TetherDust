@@ -3,6 +3,7 @@
 from typing import ClassVar
 
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from ..ids import generate_rol_id, generate_usp_id
@@ -39,7 +40,10 @@ class Role(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(blank=True)
     max_row_limit = models.IntegerField(
-        verbose_name="max row limit", default=100, help_text="Maximum rows per query"
+        verbose_name="max row limit",
+        default=100,
+        validators=[MinValueValidator(1)],
+        help_text="Maximum rows per query",
     )
     can_manage_users = models.BooleanField(verbose_name="can manage users", default=False)
     can_chat = models.BooleanField(
@@ -76,6 +80,11 @@ class Role(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def grants_admin(self) -> bool:
+        """Whether this role makes its users admins (staff): only while it is active."""
+        return self.is_admin_role and self.is_active
 
 
 class UserProfile(models.Model):

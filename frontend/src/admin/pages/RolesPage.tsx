@@ -2,9 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { deleteRole, listRoles, type Role } from "../../api/admin";
 import { apiErrorDetail } from "../../api/client";
+import { useAuth } from "../../auth/AuthContext";
 
 export function RolesPage() {
 	const queryClient = useQueryClient();
+	const canManage = useAuth().user?.can_manage_users ?? false;
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ["admin", "roles"],
 		queryFn: listRoles,
@@ -31,9 +33,11 @@ export function RolesPage() {
 					<h1>Roles</h1>
 					<p>Define what each role can access.</p>
 				</div>
-				<Link to="/admin/roles/new" className="btn btn-primary">
-					+ Add Role
-				</Link>
+				{canManage && (
+					<Link to="/admin/roles/new" className="btn btn-primary">
+						+ Add Role
+					</Link>
+				)}
 			</div>
 
 			<div className="card">
@@ -48,9 +52,11 @@ export function RolesPage() {
 						</div>
 						<h3>No roles yet</h3>
 						<p className="text-sec">Create a role to assign to users.</p>
-						<Link to="/admin/roles/new" className="btn btn-primary mt-md">
-							+ Add Role
-						</Link>
+						{canManage && (
+							<Link to="/admin/roles/new" className="btn btn-primary mt-md">
+								+ Add Role
+							</Link>
+						)}
 					</div>
 				) : (
 					<div className="table-wrap">
@@ -100,16 +106,26 @@ export function RolesPage() {
 													to={`/admin/roles/${r.id}`}
 													className="btn btn-ghost btn-sm"
 												>
-													<i className="fa-solid fa-pen" /> Edit
+													{canManage ? (
+														<>
+															<i className="fa-solid fa-pen" /> Edit
+														</>
+													) : (
+														<>
+															<i className="fa-solid fa-eye" /> View
+														</>
+													)}
 												</Link>
-												<button
-													type="button"
-													className="btn btn-ghost btn-sm"
-													style={{ color: "var(--danger)" }}
-													onClick={() => onDelete(r)}
-												>
-													<i className="fa-solid fa-trash" /> Delete
-												</button>
+												{canManage && (
+													<button
+														type="button"
+														className="btn btn-ghost btn-sm"
+														style={{ color: "var(--danger)" }}
+														onClick={() => onDelete(r)}
+													>
+														<i className="fa-solid fa-trash" /> Delete
+													</button>
+												)}
 											</div>
 										</td>
 									</tr>

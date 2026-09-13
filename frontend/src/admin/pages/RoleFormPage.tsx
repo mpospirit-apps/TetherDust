@@ -9,9 +9,14 @@ import {
 	updateRole,
 } from "../../api/admin";
 import { apiErrorDetail } from "../../api/client";
+import { useAuth } from "../../auth/AuthContext";
 import { CheckboxGroup, FormCheckbox, FormField } from "../components/forms";
 
-const EMPTY: RoleInput = {
+// The row limit is held as the input's raw text so the field can be cleared
+// while typing; `required` + `min` stop an empty or sub-1 value being submitted.
+type RoleForm = Omit<RoleInput, "max_row_limit"> & { max_row_limit: string };
+
+const EMPTY: RoleForm = {
 	name: "",
 	description: "",
 	is_active: true,
@@ -19,7 +24,7 @@ const EMPTY: RoleInput = {
 	can_view_tethers: true,
 	can_manage_users: false,
 	is_admin_role: false,
-	max_row_limit: 100,
+	max_row_limit: "100",
 	allowed_tools: [],
 	allowed_databases: [],
 	allowed_doc_sources: [],
@@ -33,7 +38,9 @@ export function RoleFormPage() {
 	const isEdit = Boolean(id);
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const [form, setForm] = useState<RoleInput>(EMPTY);
+	// Editing a role is user management: staff without it get a read-only view.
+	const readOnly = !(useAuth().user?.can_manage_users ?? false);
+	const [form, setForm] = useState<RoleForm>(EMPTY);
 	const [error, setError] = useState<string | null>(null);
 
 	const grants = useQuery({
@@ -57,7 +64,7 @@ export function RoleFormPage() {
 			can_view_tethers: r.can_view_tethers,
 			can_manage_users: r.can_manage_users,
 			is_admin_role: r.is_admin_role,
-			max_row_limit: r.max_row_limit,
+			max_row_limit: String(r.max_row_limit),
 			allowed_tools: r.allowed_tools,
 			allowed_databases: r.allowed_databases,
 			allowed_doc_sources: r.allowed_doc_sources,
@@ -67,7 +74,7 @@ export function RoleFormPage() {
 		});
 	}, [existing.data]);
 
-	function set<K extends keyof RoleInput>(key: K, value: RoleInput[K]) {
+	function set<K extends keyof RoleForm>(key: K, value: RoleForm[K]) {
 		setForm((f) => ({ ...f, [key]: value }));
 	}
 
@@ -84,7 +91,7 @@ export function RoleFormPage() {
 	function onSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setError(null);
-		save.mutate(form);
+		save.mutate({ ...form, max_row_limit: Number(form.max_row_limit) });
 	}
 
 	if (isEdit && existing.isLoading) {
@@ -101,27 +108,38 @@ export function RoleFormPage() {
 		<div>
 			<div className="page-header">
 				<div>
-					<h1>{isEdit ? `Edit ${form.name}` : "Add Role"}</h1>
+					<h1>
+						{!isEdit ? "Add Role" : readOnly ? form.name : `Edit ${form.name}`}
+					</h1>
 					<p>Configure access for this role.</p>
 				</div>
 				<div className="form-actions">
 					<Link to="/admin/roles" className="btn btn-ghost">
-						Cancel
+						{readOnly ? "Back" : "Cancel"}
 					</Link>
-					<button
-						type="submit"
-						form="role-form"
-						className="btn btn-primary"
-						disabled={save.isPending}
-					>
-						{save.isPending
-							? "Saving…"
-							: isEdit
-								? "Save Changes"
-								: "Create Role"}
-					</button>
+					{!readOnly && (
+						<button
+							type="submit"
+							form="role-form"
+							className="btn btn-primary"
+							disabled={save.isPending}
+						>
+							{save.isPending
+								? "Saving…"
+								: isEdit
+									? "Save Changes"
+									: "Create Role"}
+						</button>
+					)}
 				</div>
 			</div>
+
+			{readOnly && (
+				<div className="flash flash-info" style={{ marginBottom: "var(--md)" }}>
+					Read-only. Changing a role changes what every user holding it can
+					reach, so it needs the "Can manage users" permission.
+				</div>
+			)}
 
 			{error && (
 				<div
@@ -133,112 +151,114 @@ export function RoleFormPage() {
 			)}
 
 			<form id="role-form" onSubmit={onSubmit}>
-				<div className="form-split">
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Identity & Permissions</h3>
-						<FormField label="Name">
-							<input
-								className="form-control"
-								value={form.name}
-								required
-								onChange={(e) => set("name", e.target.value)}
+				<fieldset className="form-fieldset" disabled={readOnly}>
+					<div className="form-split">
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>
+								Identity & Permissions
+							</h3>
+							<FormField label="Name">
+								<input
+									className="form-control"
+									value={form.name}
+									required
+									onChange={(e) => set("name", e.target.value)}
+								/>
+							</FormField>
+							<FormField label="Description">
+								<textarea
+									className="form-control"
+									rows={3}
+									value={form.description}
+									onChange={(e) => set("description", e.target.value)}
+								/>
+							</FormField>
+							<FormField
+								label="Max Row Limit"
+								help="Max rows per query for this role."
+							>
+								<input
+									className="form-control"
+									type="number"
+									min={1}
+									step={1}
+									required
+									value={form.max_row_limit}
+									onChange={(e) => set("max_row_limit", e.target.value)}
+								/>
+							</FormField>
+							<FormCheckbox
+								label="Can chat"
+								checked={form.can_chat}
+								onChange={(v) => set("can_chat", v)}
 							/>
-						</FormField>
-						<FormField label="Description">
-							<textarea
-								className="form-control"
-								rows={3}
-								value={form.description}
-								onChange={(e) => set("description", e.target.value)}
+							<FormCheckbox
+								label="Can view tethers"
+								checked={form.can_view_tethers}
+								onChange={(v) => set("can_view_tethers", v)}
 							/>
-						</FormField>
-						<FormField
-							label="Max Row Limit"
-							help="Max rows per query for this role."
-						>
-							<input
-								className="form-control"
-								type="number"
-								value={form.max_row_limit ?? ""}
-								onChange={(e) =>
-									set(
-										"max_row_limit",
-										e.target.value === "" ? null : Number(e.target.value),
-									)
-								}
+							<FormCheckbox
+								label="Can manage users"
+								checked={form.can_manage_users}
+								onChange={(v) => set("can_manage_users", v)}
 							/>
-						</FormField>
-						<FormCheckbox
-							label="Can chat"
-							checked={form.can_chat}
-							onChange={(v) => set("can_chat", v)}
-						/>
-						<FormCheckbox
-							label="Can view tethers"
-							checked={form.can_view_tethers}
-							onChange={(v) => set("can_view_tethers", v)}
-						/>
-						<FormCheckbox
-							label="Can manage users"
-							checked={form.can_manage_users}
-							onChange={(v) => set("can_manage_users", v)}
-						/>
-						<FormCheckbox
-							label="Admin role (bypasses all restrictions)"
-							checked={form.is_admin_role}
-							onChange={(v) => set("is_admin_role", v)}
-						/>
-						<FormCheckbox
-							label="Is active"
-							checked={form.is_active}
-							onChange={(v) => set("is_active", v)}
-						/>
-					</div>
+							<FormCheckbox
+								label="Admin role (bypasses all restrictions)"
+								checked={form.is_admin_role}
+								onChange={(v) => set("is_admin_role", v)}
+							/>
+							<FormCheckbox
+								label="Is active"
+								checked={form.is_active}
+								onChange={(v) => set("is_active", v)}
+							/>
+						</div>
 
-					<div className="card">
-						<h3 style={{ margin: "0 0 var(--md)" }}>Access Grants</h3>
-						<p className="text-sec" style={{ marginTop: 0 }}>
-							Ignored for admin roles, which bypass all restrictions.
-						</p>
-						<CheckboxGroup
-							label="Databases"
-							options={g?.databases ?? []}
-							selected={form.allowed_databases}
-							onChange={(ids) => set("allowed_databases", ids)}
-						/>
-						<CheckboxGroup
-							label="Tools"
-							options={g?.tools ?? []}
-							selected={form.allowed_tools}
-							onChange={(ids) => set("allowed_tools", ids)}
-						/>
-						<CheckboxGroup
-							label="Prompts"
-							options={g?.prompts ?? []}
-							selected={form.allowed_prompts}
-							onChange={(ids) => set("allowed_prompts", ids)}
-						/>
-						<CheckboxGroup
-							label="Documentation Sources"
-							options={g?.doc_sources ?? []}
-							selected={form.allowed_doc_sources}
-							onChange={(ids) => set("allowed_doc_sources", ids)}
-						/>
-						<CheckboxGroup
-							label="Codebases"
-							options={g?.codebases ?? []}
-							selected={form.allowed_codebases}
-							onChange={(ids) => set("allowed_codebases", ids)}
-						/>
-						<CheckboxGroup
-							label="MCP Servers"
-							options={g?.mcp_servers ?? []}
-							selected={form.allowed_mcp_servers}
-							onChange={(ids) => set("allowed_mcp_servers", ids)}
-							help="The built-in server is always available."
-						/>
+						<div className="card">
+							<h3 style={{ margin: "0 0 var(--md)" }}>Access Grants</h3>
+							<p className="text-sec" style={{ marginTop: 0 }}>
+								Ignored for admin roles, which bypass all restrictions.
+							</p>
+							<CheckboxGroup
+								label="Databases"
+								options={g?.databases ?? []}
+								selected={form.allowed_databases}
+								onChange={(ids) => set("allowed_databases", ids)}
+							/>
+							<CheckboxGroup
+								label="Tools"
+								options={g?.tools ?? []}
+								selected={form.allowed_tools}
+								onChange={(ids) => set("allowed_tools", ids)}
+							/>
+							<CheckboxGroup
+								label="Prompts"
+								options={g?.prompts ?? []}
+								selected={form.allowed_prompts}
+								onChange={(ids) => set("allowed_prompts", ids)}
+							/>
+							<CheckboxGroup
+								label="Documentation Sources"
+								options={g?.doc_sources ?? []}
+								selected={form.allowed_doc_sources}
+								onChange={(ids) => set("allowed_doc_sources", ids)}
+							/>
+							<CheckboxGroup
+								label="Codebases"
+								options={g?.codebases ?? []}
+								selected={form.allowed_codebases}
+								onChange={(ids) => set("allowed_codebases", ids)}
+							/>
+							<CheckboxGroup
+								label="MCP Servers"
+								options={g?.mcp_servers ?? []}
+								selected={form.allowed_mcp_servers}
+								onChange={(ids) => set("allowed_mcp_servers", ids)}
+								help="The built-in server is always available."
+							/>
+						</div>
 					</div>
-				</div>
+				</fieldset>
 			</form>
 		</div>
 	);

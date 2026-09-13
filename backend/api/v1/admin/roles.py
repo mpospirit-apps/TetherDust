@@ -4,6 +4,11 @@ Manages the six forward M2M grants on the Role model (tools, databases,
 doc_sources, codebases, prompts, mcp_servers). Dashboards/reports/tethers access
 is the reverse `allowed_roles` relation and is managed from those resources'
 admin (added with their feature verticals).
+
+Any staff user may read roles — the dashboard, report and tether forms pick
+from them. Changing one is user management (its grants and admin flag decide
+what every user holding it can reach), so writes need ``CanManageUsers``, the
+same gate as the user admin API.
 """
 
 from __future__ import annotations
@@ -21,10 +26,11 @@ from engine.models import (
 )
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from api.permissions import IsStaffUser
+from api.permissions import CanManageUsers, IsStaffUser
 from api.serializer_meta import SerializerMeta
 
 
@@ -50,11 +56,11 @@ class RoleSerializer(serializers.ModelSerializer[Role]):
         ]
 
     def _sync_staff(self, role: Role) -> None:
-        """Keep non-superusers' staff flag aligned with the role's admin flag."""
+        """Keep non-superusers' staff flag aligned with whether the role grants admin."""
         from django.contrib.auth.models import User
 
         User.objects.filter(profile__role=role, is_superuser=False).update(
-            is_staff=role.is_admin_role
+            is_staff=role.grants_admin
         )
 
     def create(self, validated_data: Any) -> Role:
@@ -69,9 +75,13 @@ class RoleSerializer(serializers.ModelSerializer[Role]):
 
 
 class RoleViewSet(viewsets.ModelViewSet[Role]):
-    permission_classes = [IsStaffUser]
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
+
+    def get_permissions(self) -> list[BasePermission]:
+        if self.request.method in SAFE_METHODS:
+            return [IsStaffUser()]
+        return [CanManageUsers()]
 
     @action(detail=False, methods=["get"])
     def grants(self, request: Request) -> Response:

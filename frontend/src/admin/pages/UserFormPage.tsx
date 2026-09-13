@@ -178,7 +178,9 @@ export function UserFormPage() {
 								<option value="">— No role —</option>
 								{roleOptions.map((r) => (
 									<option key={r.id} value={r.id}>
-										{r.name}
+										{r.is_active
+											? r.name
+											: `${r.name} (inactive — grants nothing)`}
 									</option>
 								))}
 							</select>

@@ -3,6 +3,7 @@
 The contract (see the service docstring): ``None`` means *unrestricted* (staff or
 an admin role); an empty set / ``.none()`` queryset means *no access*; otherwise
 the user sees exactly what their role grants, filtered to enabled/active rows.
+An inactive role grants nothing.
 """
 
 from __future__ import annotations
@@ -61,6 +62,45 @@ def test_no_role_denies_everything(perms: PermissionService, make_user: Any) -> 
     assert perms.get_max_row_limit(profile) == 100  # default floor
     assert perms.can_chat(profile) is False
     assert perms.get_allowed_reports(profile).count() == 0
+
+
+# --- inactive role (same as no role) -----------------------------------------
+
+
+def test_inactive_role_grants_nothing(
+    perms: PermissionService, make_user: Any, make_role: Any
+) -> None:
+    role = make_role(is_active=False, can_chat=True, can_view_tethers=True, max_row_limit=500)
+    db = baker.make("engine.DatabaseConnection", is_active=True, name="analytics")
+    role.allowed_databases.set([db])
+    report = baker.make("engine.ReportDefinition", is_active=True)
+    report.allowed_roles.set([role])
+
+    profile = make_user(role=role).profile
+    assert perms.can_chat(profile) is False
+    assert perms.get_allowed_databases(profile) == set()
+    assert perms.get_max_row_limit(profile) == 100  # the roleless default, not 500
+    assert perms.get_allowed_reports(profile).count() == 0
+    assert perms.get_allowed_mcp_servers(profile).count() == 0
+
+
+def test_inactive_admin_role_is_not_unrestricted(
+    perms: PermissionService, make_user: Any, make_role: Any
+) -> None:
+    profile = make_user(role=make_role(is_admin_role=True, is_active=False)).profile
+    assert perms.get_allowed_tools(profile) == set()
+    assert perms.can_chat(profile) is False
+
+
+def test_can_manage_users(perms: PermissionService, make_user: Any, make_role: Any) -> None:
+    assert perms.can_manage_users(make_user(is_staff=True, is_superuser=True).profile) is True
+    assert perms.can_manage_users(make_user(is_staff=True).profile) is False  # no role
+    grant = make_role(is_admin_role=True, can_manage_users=True)
+    assert perms.can_manage_users(make_user(role=grant, is_staff=True).profile) is True
+    # The flag means nothing off the console: a non-staff user never manages users.
+    assert perms.can_manage_users(make_user(role=make_role(can_manage_users=True)).profile) is False
+    inactive = make_role(is_admin_role=True, can_manage_users=True, is_active=False)
+    assert perms.can_manage_users(make_user(role=inactive, is_staff=True).profile) is False
 
 
 # --- role-scoped grants ------------------------------------------------------

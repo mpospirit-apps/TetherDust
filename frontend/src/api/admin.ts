@@ -164,7 +164,7 @@ export interface Role {
 	can_view_tethers: boolean;
 	can_manage_users: boolean;
 	is_admin_role: boolean;
-	max_row_limit: number | null;
+	max_row_limit: number;
 	allowed_tools: string[];
 	allowed_databases: string[];
 	allowed_doc_sources: string[];

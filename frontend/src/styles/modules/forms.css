@@ -12,6 +12,15 @@ fieldset.form-group {
 	min-inline-size: 0;
 }
 
+/* A whole-form <fieldset>, there only so `disabled` locks every control inside
+   it (e.g. a read-only role); it draws nothing of its own. */
+fieldset.form-fieldset {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	min-inline-size: 0;
+}
+
 .form-group label,
 .form-group legend {
 	display: block;

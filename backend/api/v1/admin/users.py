@@ -2,7 +2,8 @@
 
 Gated by ``CanManageUsers`` (superuser, or staff whose role has
 ``can_manage_users``). Role lives on the linked ``UserProfile``; assigning an
-admin role syncs the user's ``is_staff`` flag (superusers are never demoted).
+active admin role syncs the user's ``is_staff`` flag (superusers are never
+demoted).
 """
 
 from __future__ import annotations
@@ -57,7 +58,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
             username=validated_data["username"],
             email=validated_data.get("email", ""),
             is_active=validated_data.get("is_active", True),
-            is_staff=bool(role and role.is_admin_role),
+            is_staff=bool(role and role.grants_admin),
         )
         if password:
             user.set_password(password)
@@ -79,7 +80,7 @@ class UserSerializer(serializers.ModelSerializer[User]):
             profile, _ = UserProfile.objects.get_or_create(user=instance)
             profile.role = role
             profile.save()
-            instance.is_staff = bool(role and role.is_admin_role)
+            instance.is_staff = bool(role and role.grants_admin)
         instance.save()
         return instance
 
