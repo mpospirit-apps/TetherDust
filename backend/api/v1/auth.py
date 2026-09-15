@@ -81,6 +81,10 @@ def user_payload(user: AbstractUser) -> dict[str, Any]:
         "email": user.email,
         "is_staff": user.is_staff,
         "is_superuser": user.is_superuser,
+        "can_manage_users": bool(
+            user.is_superuser
+            or (profile is not None and get(PermissionService).can_manage_users(profile))
+        ),
         "role": role,
         "permissions": access_flags(user),
     }

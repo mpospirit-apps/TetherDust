@@ -119,17 +119,20 @@ export function ToggleField({
 	description,
 	checked,
 	onChange,
+	disabled,
 }: {
 	label: string;
 	description: string;
 	checked: boolean;
 	onChange: (value: boolean) => void;
+	disabled?: boolean;
 }) {
 	return (
 		<label className="toggle-control toggle-row">
 			<input
 				type="checkbox"
 				checked={checked}
+				disabled={disabled}
 				onChange={(event) => onChange(event.target.checked)}
 			/>
 			<span className="toggle__track">
@@ -144,7 +147,7 @@ export function ToggleField({
 }
 
 // Multi-select checkbox list (matches the legacy `.checkbox-list`), used for the
-// role access grants.
+// "Allowed roles" pickers on the report, dashboard and tether forms.
 export function CheckboxGroup({
 	label,
 	options,

@@ -8,6 +8,21 @@ export interface Paginated<T> {
 	results: T[];
 }
 
+// Follows `next` until the last page, so a list the UI shows in full (every
+// user, every role in a picker) isn't silently cut off at the page size.
+async function fetchAllPages<T>(path: string): Promise<Paginated<T>> {
+	const first = await apiFetch<Paginated<T>>(path);
+	const results = [...first.results];
+	let next = first.next;
+	while (next) {
+		const url = new URL(next, window.location.origin);
+		const page = await apiFetch<Paginated<T>>(url.pathname + url.search);
+		results.push(...page.results);
+		next = page.next;
+	}
+	return { ...first, next: null, results };
+}
+
 export interface DatabaseConnection {
 	id: string;
 	name: string;
@@ -161,16 +176,18 @@ export interface Role {
 	description: string;
 	is_active: boolean;
 	can_chat: boolean;
-	can_view_tethers: boolean;
 	can_manage_users: boolean;
 	is_admin_role: boolean;
-	max_row_limit: number | null;
+	max_row_limit: number;
 	allowed_tools: string[];
 	allowed_databases: string[];
 	allowed_doc_sources: string[];
 	allowed_codebases: string[];
 	allowed_prompts: string[];
 	allowed_mcp_servers: string[];
+	allowed_reports: string[];
+	allowed_dashboards: string[];
+	allowed_tethers: string[];
 }
 
 export type RoleInput = Omit<Role, "id">;
@@ -179,6 +196,11 @@ export interface GrantOption {
 	id: string;
 	name: string;
 	mcp_server?: string | null;
+	// Tools only: the feature group ("Querying", "Docs", …, "Other").
+	category_label?: string;
+	// False when the grant currently resolves to nothing (inactive resource,
+	// disabled tool/prompt, or one on an inactive MCP server).
+	is_active: boolean;
 }
 
 export interface RoleGrants {
@@ -188,12 +210,15 @@ export interface RoleGrants {
 	doc_sources: GrantOption[];
 	codebases: GrantOption[];
 	mcp_servers: GrantOption[];
+	reports: GrantOption[];
+	dashboards: GrantOption[];
+	tethers: GrantOption[];
 }
 
 const ROLE_BASE = "/api/v1/admin/roles/";
 
 export function listRoles(): Promise<Paginated<Role>> {
-	return apiFetch(ROLE_BASE);
+	return fetchAllPages(ROLE_BASE);
 }
 export function getRole(id: string): Promise<Role> {
 	return apiFetch(`${ROLE_BASE}${id}/`);
@@ -225,7 +250,10 @@ export interface AdminUser {
 	is_active: boolean;
 	role: string | null;
 	role_name: string | null;
+	// null when the user has no role.
+	role_is_active: boolean | null;
 	date_joined: string;
+	last_login: string | null;
 }
 
 export interface UserInput {
@@ -239,7 +267,7 @@ export interface UserInput {
 const USER_BASE = "/api/v1/admin/users/";
 
 export function listUsers(): Promise<Paginated<AdminUser>> {
-	return apiFetch(USER_BASE);
+	return fetchAllPages(USER_BASE);
 }
 export function getUser(id: number): Promise<AdminUser> {
 	return apiFetch(`${USER_BASE}${id}/`);

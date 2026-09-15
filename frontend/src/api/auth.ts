@@ -20,6 +20,8 @@ export interface CurrentUser {
 	email: string;
 	is_staff: boolean;
 	is_superuser: boolean;
+	// Superuser, or staff whose active role grants it. Also gates editing roles.
+	can_manage_users: boolean;
 	role: Role | null;
 	permissions: Permissions;
 }

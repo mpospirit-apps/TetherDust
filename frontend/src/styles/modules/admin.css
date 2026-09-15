@@ -944,3 +944,332 @@ tr.clickable-row td {
 	background: rgba(61, 188, 217, 0.08);
 	color: var(--c-cyan);
 }
+
+/* ── Role form: permissions + access grants ── */
+/* The admin toggles sit apart from the everyday permissions above them,
+   since turning one on changes what the rest of the page means. */
+.role-admin-block {
+	margin-top: var(--lg);
+	padding-top: var(--lg);
+	border-top: 1px solid rgba(26, 26, 26, 0.08);
+}
+[data-theme="dark"] .role-admin-block {
+	border-top-color: rgba(255, 255, 255, 0.08);
+}
+/* On the role and user forms a disabled field (the row limit under an admin
+   role, a username on edit, every field on a read-only view) should read as
+   locked, not as an empty editable box. */
+.form-dim-disabled .form-control:disabled,
+.form-dim-disabled .custom-select__trigger:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+.role-bypass-note {
+	margin: 0;
+}
+.role-bypass-note i {
+	margin-right: var(--xs);
+}
+/* The two grant sections share one fieldset so an admin role can disable
+   both at once; it lays them out like the sibling .form-split-col rows. */
+.role-grants {
+	display: flex;
+	flex-direction: column;
+	gap: var(--lg);
+}
+.role-grants .card {
+	transition: opacity 0.2s var(--ease);
+}
+.role-grants.is-bypassed .card {
+	opacity: 0.5;
+}
+
+.grant-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--md);
+}
+/* The six data panels sit three to a row once there's room for their headers
+   and names not to wrap or truncate, two to a row below that. */
+@media (min-width: 1400px) {
+	.grant-grid--data {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+/* Tools takes two-thirds and both rows; prompts and MCP servers stack
+   beside it. */
+.grant-grid--tooling {
+	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+.grant-grid--tooling .grant-panel--wide {
+	grid-row: span 2;
+}
+@media (max-width: 1100px) {
+	.grant-grid,
+	.grant-grid--tooling {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.grant-grid--tooling .grant-panel--wide {
+		grid-column: 1 / -1;
+		grid-row: auto;
+	}
+}
+@media (max-width: 700px) {
+	.grant-grid,
+	.grant-grid--tooling {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* A <fieldset> per grant list; its native chrome is replaced below. */
+.grant-panel {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	min-inline-size: 0;
+	margin: 0;
+	padding: var(--md);
+	background: var(--bg-warm);
+	border: 1px solid rgba(26, 26, 26, 0.08);
+	box-shadow: var(--rim-light);
+}
+[data-theme="dark"] .grant-panel {
+	border-color: rgba(255, 255, 255, 0.08);
+}
+.grant-panel__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--xs) var(--sm);
+}
+.grant-panel__icon {
+	color: var(--c-cyan);
+	font-size: var(--text-sm);
+	width: 16px;
+	text-align: center;
+}
+.grant-panel__title {
+	font-size: var(--text-base);
+	font-weight: 700;
+	color: var(--text);
+	white-space: nowrap;
+	margin: 0;
+}
+.grant-panel__count {
+	font-size: var(--text-xs);
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	padding: 2px 8px;
+	background: rgba(26, 26, 26, 0.06);
+	color: var(--text-sec);
+}
+[data-theme="dark"] .grant-panel__count {
+	background: rgba(255, 255, 255, 0.08);
+}
+.grant-panel__count.is-some {
+	background: rgba(61, 188, 217, 0.12);
+	color: var(--c-cyan);
+}
+.grant-panel__actions {
+	display: flex;
+	gap: 2px;
+	margin-left: auto;
+}
+.grant-panel__action {
+	background: none;
+	border: 0;
+	padding: 2px 6px;
+	font-family: var(--font);
+	font-size: var(--text-xs);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	color: var(--c-cyan);
+	cursor: pointer;
+	transition: var(--transition);
+}
+.grant-panel__action:hover:not(:disabled) {
+	background: rgba(61, 188, 217, 0.1);
+}
+.grant-panel__action:disabled {
+	color: var(--text-muted);
+	cursor: default;
+}
+.grant-panel__hint {
+	font-size: 12px;
+	color: var(--text-sec);
+	line-height: 1.45;
+	margin: var(--xs) 0 var(--sm);
+}
+.grant-panel__empty {
+	font-size: var(--text-sm);
+	color: var(--text-muted);
+	padding: var(--sm) 0;
+}
+.grant-panel__empty a {
+	color: var(--c-cyan);
+	font-weight: 600;
+}
+
+/* Long lists scroll inside the panel instead of stretching the whole row;
+   the tools list is laid out in columns and shown in full instead. */
+.grant-list {
+	display: flex;
+	flex-direction: column;
+	max-height: 280px;
+	overflow-y: auto;
+	margin: 0 calc(-1 * var(--xs));
+}
+.grant-list--columns {
+	display: block;
+	columns: 2;
+	column-gap: var(--md);
+	max-height: none;
+	overflow: visible;
+}
+@media (max-width: 700px) {
+	.grant-list--columns {
+		columns: 1;
+	}
+}
+.grant-list__group {
+	display: flex;
+	flex-direction: column;
+	break-inside: avoid;
+}
+.grant-list--columns .grant-list__group + .grant-list__group {
+	margin-top: var(--sm);
+}
+.grant-list__group-title {
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 1.5px;
+	color: var(--text-muted);
+	padding: var(--xs) var(--xs) 2px;
+}
+
+.grant-item {
+	display: flex;
+	align-items: center;
+	gap: var(--sm);
+	padding: 7px var(--xs);
+	font-size: var(--text-sm);
+	color: var(--text);
+	cursor: pointer;
+	transition: background 0.1s;
+}
+.grant-item:hover {
+	background: rgba(61, 188, 217, 0.06);
+}
+.grant-item__name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.grant-item__name.is-mono {
+	font-family: var(--font-mono);
+	font-size: 12px;
+}
+.grant-item.is-checked .grant-item__name {
+	font-weight: 600;
+}
+.grant-item__tag {
+	margin-left: auto;
+	flex-shrink: 0;
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	padding: 1px 6px;
+	background: rgba(242, 149, 68, 0.12);
+	color: var(--c-orange);
+}
+fieldset:disabled .grant-item {
+	cursor: default;
+}
+fieldset:disabled .grant-item:hover {
+	background: none;
+}
+
+/* ── Users: list identity cell + the role summary on the user form ── */
+.user-cell {
+	display: flex;
+	align-items: center;
+	gap: var(--sm);
+}
+.user-cell__avatar {
+	width: 32px;
+	height: 32px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: rgba(61, 188, 217, 0.1);
+	border: 1.5px solid rgba(61, 188, 217, 0.28);
+	color: var(--c-cyan);
+	font-size: var(--text-sm);
+	font-weight: 700;
+}
+.user-cell__name {
+	display: flex;
+	align-items: center;
+	gap: var(--sm);
+}
+.user-cell__email {
+	font-size: 12px;
+	color: var(--text-sec);
+}
+
+.role-summary {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--sm);
+	margin-top: var(--sm);
+	padding: var(--md);
+	background: var(--bg-warm);
+	border: 1px solid rgba(26, 26, 26, 0.08);
+	box-shadow: var(--rim-light);
+}
+[data-theme="dark"] .role-summary {
+	border-color: rgba(255, 255, 255, 0.08);
+}
+.role-summary__icon {
+	color: var(--c-cyan);
+	margin-top: 3px;
+	width: 16px;
+	text-align: center;
+}
+.role-summary--warn .role-summary__icon {
+	color: var(--c-orange);
+}
+.role-summary__title {
+	font-size: var(--text-sm);
+	font-weight: 700;
+	color: var(--text);
+}
+.role-summary__desc {
+	font-size: 12px;
+	color: var(--text-sec);
+	line-height: 1.5;
+	margin-top: 2px;
+}
+.role-summary__desc a {
+	color: var(--c-cyan);
+	font-weight: 600;
+}
+.role-summary__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--xs);
+	margin: var(--xs) 0;
+}
+.role-chip {
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+	background: rgba(61, 188, 217, 0.1);
+	color: var(--text);
+}

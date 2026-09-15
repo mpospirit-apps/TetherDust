@@ -48,6 +48,14 @@ def test_me_returns_capability_flags(auth_client: Any, make_user: Any) -> None:
     assert set(body["permissions"]) >= {"can_chat", "can_view_reports", "can_view_dashboards"}
 
 
+def test_me_reports_can_manage_users(auth_client: Any, make_user: Any, make_role: Any) -> None:
+    assert auth_client(is_staff=True).get("/api/v1/auth/me/").json()["can_manage_users"] is False
+    superuser = auth_client(is_staff=True, is_superuser=True)
+    assert superuser.get("/api/v1/auth/me/").json()["can_manage_users"] is True
+    manager = make_user(role=make_role(is_admin_role=True, can_manage_users=True), is_staff=True)
+    assert auth_client(user=manager).get("/api/v1/auth/me/").json()["can_manage_users"] is True
+
+
 def test_logout(api_client: Any, make_user: Any) -> None:
     make_user(username="dave", password="pw")
     api_client.post("/api/v1/auth/login/", {"username": "dave", "password": "pw"}, format="json")

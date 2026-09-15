@@ -74,7 +74,7 @@ class CanViewTethers(_ProfilePermission):
 
 
 class CanManageUsers(BasePermission):
-    """Superusers always; otherwise staff whose role has ``can_manage_users``."""
+    """Superusers always; otherwise staff whose active role has ``can_manage_users``."""
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         user = cast("AbstractUser", request.user)
@@ -86,4 +86,4 @@ class CanManageUsers(BasePermission):
             profile = getattr(user, "profile")
         except UserProfile.DoesNotExist:
             return False
-        return bool(profile.role and profile.role.can_manage_users)
+        return get(PermissionService).can_manage_users(profile)

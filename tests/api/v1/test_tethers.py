@@ -1,4 +1,4 @@
-"""Public tethers API — role scoping (incl. the can_view_tethers flag) + graph."""
+"""Public tethers API — role scoping + graph."""
 
 from __future__ import annotations
 
@@ -10,10 +10,10 @@ from model_bakery import baker
 pytestmark = pytest.mark.django_db
 
 
-def test_denied_when_role_flag_off(auth_client: Any, make_role: Any) -> None:
-    role = make_role(can_view_tethers=False)
+def test_denied_without_a_shared_tether(auth_client: Any, make_role: Any) -> None:
+    role = make_role()
     tether = baker.make("engine.Tether", is_active=True)
-    tether.allowed_roles.set([role])
+    tether.allowed_roles.set([make_role()])
     assert auth_client(role=role).get("/api/v1/tethers/").status_code == 403
 
 
@@ -25,11 +25,11 @@ def test_staff_sees_all_active(staff_client: Any) -> None:
 
 
 def test_role_scoped(auth_client: Any, make_role: Any) -> None:
-    role = make_role(can_view_tethers=True)
+    role = make_role()
     mine = baker.make("engine.Tether", is_active=True, name="Mine")
     mine.allowed_roles.set([role])
     other = baker.make("engine.Tether", is_active=True, name="Theirs")
-    other.allowed_roles.set([make_role(can_view_tethers=True)])
+    other.allowed_roles.set([make_role()])
 
     resp = auth_client(role=role).get("/api/v1/tethers/")
     assert {t["name"] for t in resp.json()["tethers"]} == {"Mine"}
