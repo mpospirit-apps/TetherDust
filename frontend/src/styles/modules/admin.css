@@ -956,9 +956,11 @@ tr.clickable-row td {
 [data-theme="dark"] .role-admin-block {
 	border-top-color: rgba(255, 255, 255, 0.08);
 }
-/* A disabled field (the row limit under an admin role, or every field on the
-   read-only view) should read as locked, not as an empty editable box. */
-.role-form .form-control:disabled {
+/* On the role and user forms a disabled field (the row limit under an admin
+   role, a username on edit, every field on a read-only view) should read as
+   locked, not as an empty editable box. */
+.form-dim-disabled .form-control:disabled,
+.form-dim-disabled .custom-select__trigger:disabled {
 	opacity: 0.55;
 	cursor: not-allowed;
 }
@@ -1189,4 +1191,85 @@ fieldset:disabled .grant-item {
 }
 fieldset:disabled .grant-item:hover {
 	background: none;
+}
+
+/* ── Users: list identity cell + the role summary on the user form ── */
+.user-cell {
+	display: flex;
+	align-items: center;
+	gap: var(--sm);
+}
+.user-cell__avatar {
+	width: 32px;
+	height: 32px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: rgba(61, 188, 217, 0.1);
+	border: 1.5px solid rgba(61, 188, 217, 0.28);
+	color: var(--c-cyan);
+	font-size: var(--text-sm);
+	font-weight: 700;
+}
+.user-cell__name {
+	display: flex;
+	align-items: center;
+	gap: var(--sm);
+}
+.user-cell__email {
+	font-size: 12px;
+	color: var(--text-sec);
+}
+
+.role-summary {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--sm);
+	margin-top: var(--sm);
+	padding: var(--md);
+	background: var(--bg-warm);
+	border: 1px solid rgba(26, 26, 26, 0.08);
+	box-shadow: var(--rim-light);
+}
+[data-theme="dark"] .role-summary {
+	border-color: rgba(255, 255, 255, 0.08);
+}
+.role-summary__icon {
+	color: var(--c-cyan);
+	margin-top: 3px;
+	width: 16px;
+	text-align: center;
+}
+.role-summary--warn .role-summary__icon {
+	color: var(--c-orange);
+}
+.role-summary__title {
+	font-size: var(--text-sm);
+	font-weight: 700;
+	color: var(--text);
+}
+.role-summary__desc {
+	font-size: 12px;
+	color: var(--text-sec);
+	line-height: 1.5;
+	margin-top: 2px;
+}
+.role-summary__desc a {
+	color: var(--c-cyan);
+	font-weight: 600;
+}
+.role-summary__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--xs);
+	margin: var(--xs) 0;
+}
+.role-chip {
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+	background: rgba(61, 188, 217, 0.1);
+	color: var(--text);
 }

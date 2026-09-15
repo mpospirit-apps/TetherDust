@@ -474,7 +474,7 @@ export function RoleFormPage() {
 				</div>
 			)}
 
-			<form id="role-form" className="role-form" onSubmit={onSubmit}>
+			<form id="role-form" className="form-dim-disabled" onSubmit={onSubmit}>
 				{!isEdit && (
 					<div className="card doc-hiw-card">
 						<button
